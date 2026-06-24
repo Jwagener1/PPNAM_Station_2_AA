@@ -41,16 +41,30 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `validateIngredient uses cache when available`() = runTest {
-        whenever(mockBomCacheDao.get("510019068"))
-            .thenReturn(BomCacheEntity("510019068", bomJson, 1000L))
+    fun `validateIngredient always delegates to MQTT`() = runTest {
+        val bomLineJson = """{"itemCode":"MAT-001","itemName":"Resin","requiredQty":50.0}"""
+        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
+            .thenReturn(MqttResult.Success(bomLineJson))
 
         val result = useCase.validateIngredient("510019068", "MAT-001")
 
-        // MqttRepository.send should NOT be called — pure cache hit
-        verify(mockMqtt, never()).send(any(), any())
+        // Cache is never used — always goes to MQTT
+        verify(mockBomCacheDao, never()).get(any())
+        verify(mockMqtt).send(eq("validate-ingredient"), any())
         assertTrue(result.isSuccess)
         assertEquals("MAT-001", result.getOrThrow().itemCode)
+    }
+
+    @Test
+    fun `validateIngredient returns optimistic success when queued offline`() = runTest {
+        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
+            .thenReturn(MqttResult.Queued("offline-corr-id"))
+
+        val result = useCase.validateIngredient("510019068", "EPC-HEX-TAG")
+
+        assertTrue(result.isSuccess)
+        assertEquals("EPC-HEX-TAG", result.getOrThrow().itemCode)
+        assertEquals("Offline scan", result.getOrThrow().itemName)
     }
 
     @Test

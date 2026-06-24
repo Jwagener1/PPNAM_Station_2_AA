@@ -34,7 +34,7 @@ class RajooUseCaseTest {
     fun `allocatePallet returns AllocationRecord on success`() = runTest {
         // allocatedAt as epoch millis — handled by the custom Instant TypeAdapter
         val recordJson = """{"preMixId":"PREMIX-001","machineCode":"M1","allocatedAt":1704067200000}"""
-        whenever(mockMqtt.send(eq("allocate-pallet"), any()))
+        whenever(mockMqtt.send(eq("allocate-rajoo"), any()))
             .thenReturn(MqttResult.Success(recordJson))
 
         val result = useCase.allocatePallet("M1", "TAG-001")

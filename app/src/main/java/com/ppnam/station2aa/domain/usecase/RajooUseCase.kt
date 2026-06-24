@@ -53,8 +53,8 @@ class RajooUseCase @Inject constructor(
     }
 
     suspend fun allocatePallet(machineCode: String, tagId: String): Result<AllocationRecord> {
-        val payload = """{"machineCode":"$machineCode","tagId":"$tagId"}"""
-        return when (val result = mqttRepository.send("allocate-pallet", payload)) {
+        val payload = gson.toJson(mapOf("machineCode" to machineCode, "tagId" to tagId))
+        return when (val result = mqttRepository.send("allocate-rajoo", payload)) {
             is MqttResult.Success -> {
                 val record = gson.fromJson(result.dataJson, AllocationRecord::class.java)
                 Result.success(record)

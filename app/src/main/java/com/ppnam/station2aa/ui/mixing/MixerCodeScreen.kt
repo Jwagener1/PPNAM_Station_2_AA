@@ -16,9 +16,9 @@ fun MixerCodeScreen(
 ) {
     val mixerCode by viewModel.mixerCode.collectAsState()
 
-    // Sync scans on this screen (barcode scans auto-fill the mixer code field)
-    LaunchedEffect(orderNo) {
-        viewModel.startListeningForScans(orderNo)
+    // Only listen for barcode scans on this screen (auto-fills the mixer code field)
+    LaunchedEffect(Unit) {
+        viewModel.startListeningForBarcode()
     }
 
     Column(

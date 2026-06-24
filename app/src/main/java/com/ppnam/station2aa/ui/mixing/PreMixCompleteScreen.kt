@@ -18,6 +18,7 @@ fun PreMixCompleteScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scannedIngredients by viewModel.scannedIngredients.collectAsState()
     val mixerCode by viewModel.mixerCode.collectAsState()
+    val isQueuedOffline by viewModel.isQueuedOffline.collectAsState()
 
     // Use the navigationEvent channel instead of keying off uiState to avoid
     // re-triggering when the user back-navigates to this screen.
@@ -60,5 +61,22 @@ fun PreMixCompleteScreen(
             if (isLoading) CircularProgressIndicator(Modifier.size(20.dp))
             else Text("Confirm & Complete")
         }
+    }
+}
+
+@Composable
+fun PremixConfirmedScreen(
+    isQueuedOffline: Boolean
+) {
+    val message = if (isQueuedOffline) {
+        "Pre-mix queued — will send when online"
+    } else {
+        "Pre-mix confirmed by WPF"
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(message, style = MaterialTheme.typography.headlineSmall)
     }
 }

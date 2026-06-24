@@ -43,6 +43,9 @@ class MixingViewModel @Inject constructor(
     private val _mixerCode = MutableStateFlow("")
     val mixerCode: StateFlow<String> = _mixerCode.asStateFlow()
 
+    private val _isQueuedOffline = MutableStateFlow(false)
+    val isQueuedOffline: StateFlow<Boolean> = _isQueuedOffline.asStateFlow()
+
     /** Emits a one-shot navigation destination so screens never re-trigger on back-stack restoration. */
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
@@ -81,21 +84,33 @@ class MixingViewModel @Inject constructor(
         }
     }
 
+    fun startListeningForBarcode() {
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
+            scanEventBus.events.filterIsInstance<ScanEvent.Barcode>().collect { event ->
+                if (_mixerCode.value.isEmpty()) setMixerCode(event.value)
+            }
+        }
+    }
+
     fun setMixerCode(code: String) {
         _mixerCode.value = code
     }
 
     fun completePremix(orderNo: String) {
-        val ingredients = _scannedIngredients.value
-        val mixer = _mixerCode.value
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.completePremix(orderNo, mixer, ingredients)
-                .onSuccess {
-                    _uiState.value = MixingUiState.Idle
-                    _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
+            useCase.completePremix(orderNo, _mixerCode.value, _scannedIngredients.value)
+                .onSuccess { _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE) }
+                .onFailure { e ->
+                    if (e.message?.startsWith("Queued") == true) {
+                        // Queued offline — still navigate to complete screen, ViewModel holds the status
+                        _isQueuedOffline.value = true
+                        _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
+                    } else {
+                        _uiState.value = MixingUiState.Error(e.message ?: "Failed to complete pre-mix")
+                    }
                 }
-                .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Unknown error") }
         }
     }
 

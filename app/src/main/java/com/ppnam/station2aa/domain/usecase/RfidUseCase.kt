@@ -14,7 +14,7 @@ class RfidUseCase @Inject constructor(
     private val gson = Gson()
 
     suspend fun lookupPallet(tagId: String): Result<Pallet> {
-        val payload = """{"tagId":"$tagId"}"""
+        val payload = gson.toJson(mapOf("tagId" to tagId))
         return when (val result = mqttRepository.send("lookup-pallet", payload)) {
             is MqttResult.Success -> {
                 val pallet = gson.fromJson(result.dataJson, Pallet::class.java)
