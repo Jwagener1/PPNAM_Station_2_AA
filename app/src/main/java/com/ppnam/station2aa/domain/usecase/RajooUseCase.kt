@@ -60,13 +60,7 @@ class RajooUseCase @Inject constructor(
                 Result.success(record)
             }
             is MqttResult.Error -> Result.failure(Exception(result.message))
-            is MqttResult.Queued -> Result.success(
-                AllocationRecord(
-                    preMixId = tagId,
-                    machineCode = machineCode,
-                    allocatedAt = java.time.Instant.now()
-                )
-            )
+            is MqttResult.Queued -> Result.failure(Exception("Offline: allocation queued for retry"))
         }
     }
 }
