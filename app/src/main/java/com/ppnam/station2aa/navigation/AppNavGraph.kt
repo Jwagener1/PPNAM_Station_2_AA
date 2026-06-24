@@ -12,6 +12,7 @@ import com.ppnam.station2aa.ui.mixing.MixerCodeScreen
 import com.ppnam.station2aa.ui.mixing.PreMixCompleteScreen
 import com.ppnam.station2aa.ui.rajoo.MachineSelectScreen
 import com.ppnam.station2aa.ui.rajoo.PalletAllocScreen
+import com.ppnam.station2aa.ui.dashboard.DashboardScreen
 import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 
 @Composable
@@ -79,6 +80,8 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 }
             })
         }
-        composable(NavRoutes.DASHBOARD) { /* Task 14 */ }
+        composable(NavRoutes.DASHBOARD) {
+            DashboardScreen()
+        }
     }
 }
