@@ -8,6 +8,7 @@ import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -46,6 +47,8 @@ class MixingViewModel @Inject constructor(
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
 
+    private var scanJob: Job? = null
+
     fun lookupJob(orderNo: String) {
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
@@ -56,20 +59,24 @@ class MixingViewModel @Inject constructor(
     }
 
     fun startListeningForScans(orderNo: String) {
-        viewModelScope.launch {
-            scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
-                val valid = useCase.validateIngredientOffline(event.tagId, orderNo)
-                if (valid) {
-                    val ingredient = ScannedIngredient(event.tagId, event.tagId, 1.0)
-                    _scannedIngredients.update { it + ingredient }
-                } else {
-                    _uiState.value = MixingUiState.Error("Unknown tag: ${event.tagId}")
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
+            launch {
+                scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
+                    useCase.validateIngredient(orderNo, event.tagId)
+                        .onSuccess { bomLine ->
+                            val ingredient = ScannedIngredient(tagId = event.tagId, itemCode = bomLine.itemCode, qty = 1.0)
+                            _scannedIngredients.update { it + ingredient }
+                        }
+                        .onFailure {
+                            _uiState.value = MixingUiState.Error("Unknown ingredient: ${event.tagId}")
+                        }
                 }
             }
-        }
-        viewModelScope.launch {
-            scanEventBus.events.filterIsInstance<ScanEvent.Barcode>().collect { event ->
-                if (_mixerCode.value.isEmpty()) setMixerCode(event.value)
+            launch {
+                scanEventBus.events.filterIsInstance<ScanEvent.Barcode>().collect { event ->
+                    if (_mixerCode.value.isEmpty()) setMixerCode(event.value)
+                }
             }
         }
     }
