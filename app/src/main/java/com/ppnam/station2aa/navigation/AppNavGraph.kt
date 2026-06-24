@@ -12,6 +12,7 @@ import com.ppnam.station2aa.ui.mixing.MixerCodeScreen
 import com.ppnam.station2aa.ui.mixing.PreMixCompleteScreen
 import com.ppnam.station2aa.ui.rajoo.MachineSelectScreen
 import com.ppnam.station2aa.ui.rajoo.PalletAllocScreen
+import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController = rememberNavController()) {
@@ -71,7 +72,13 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 }
             })
         }
-        composable(NavRoutes.RFID_RECOVERY) { /* Task 13 */ }
+        composable(NavRoutes.RFID_RECOVERY) {
+            RfidRecoveryScreen(onDone = {
+                navController.navigate(NavRoutes.HOME) {
+                    popUpTo(NavRoutes.HOME) { inclusive = true }
+                }
+            })
+        }
         composable(NavRoutes.DASHBOARD) { /* Task 14 */ }
     }
 }
