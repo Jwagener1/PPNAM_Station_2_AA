@@ -10,6 +10,8 @@ import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
 import com.ppnam.station2aa.ui.mixing.MixerCodeScreen
 import com.ppnam.station2aa.ui.mixing.PreMixCompleteScreen
+import com.ppnam.station2aa.ui.rajoo.MachineSelectScreen
+import com.ppnam.station2aa.ui.rajoo.PalletAllocScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController = rememberNavController()) {
@@ -56,7 +58,19 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 }
             )
         }
-        composable(NavRoutes.MACHINE_SELECT) { /* Task 12 */ }
+        composable(NavRoutes.MACHINE_SELECT) {
+            MachineSelectScreen(onMachineSelected = { machineCode ->
+                navController.navigate(NavRoutes.palletAlloc(machineCode))
+            })
+        }
+        composable(NavRoutes.PALLET_ALLOC) { backStack ->
+            val machineCode = backStack.arguments?.getString("machineCode") ?: return@composable
+            PalletAllocScreen(machineCode = machineCode, onDone = {
+                navController.navigate(NavRoutes.HOME) {
+                    popUpTo(NavRoutes.HOME) { inclusive = true }
+                }
+            })
+        }
         composable(NavRoutes.RFID_RECOVERY) { /* Task 13 */ }
         composable(NavRoutes.DASHBOARD) { /* Task 14 */ }
     }
