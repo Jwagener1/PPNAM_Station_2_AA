@@ -6,7 +6,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ppnam.station2aa.ui.home.HomeScreen
+import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
+import com.ppnam.station2aa.ui.mixing.MixerCodeScreen
+import com.ppnam.station2aa.ui.mixing.PreMixCompleteScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController = rememberNavController()) {
@@ -25,19 +28,33 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             })
         }
         composable(NavRoutes.INGREDIENT_SCAN) { backStack ->
-            @Suppress("UNUSED_VARIABLE")
             val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
-            // Task 11
+            IngredientScanScreen(
+                orderNo = orderNo,
+                onProceedToMixerCode = {
+                    navController.navigate(NavRoutes.mixerCode(orderNo))
+                }
+            )
         }
         composable(NavRoutes.MIXER_CODE) { backStack ->
-            @Suppress("UNUSED_VARIABLE")
             val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
-            // Task 11
+            MixerCodeScreen(
+                orderNo = orderNo,
+                onProceed = {
+                    navController.navigate(NavRoutes.premixComplete(orderNo))
+                }
+            )
         }
         composable(NavRoutes.PREMIX_COMPLETE) { backStack ->
-            @Suppress("UNUSED_VARIABLE")
             val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
-            // Task 11
+            PreMixCompleteScreen(
+                orderNo = orderNo,
+                onCompleted = {
+                    navController.navigate(NavRoutes.HOME) {
+                        popUpTo(NavRoutes.HOME) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(NavRoutes.MACHINE_SELECT) { /* Task 12 */ }
         composable(NavRoutes.RFID_RECOVERY) { /* Task 13 */ }

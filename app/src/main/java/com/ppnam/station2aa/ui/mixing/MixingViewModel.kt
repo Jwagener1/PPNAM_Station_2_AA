@@ -8,6 +8,7 @@ import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -17,6 +18,13 @@ sealed class MixingUiState {
     object Loading : MixingUiState()
     data class OrderLoaded(val order: ProductionOrder) : MixingUiState()
     data class Error(val message: String) : MixingUiState()
+}
+
+/** One-shot navigation destinations emitted on the navigation channel. */
+object MixingNavDestination {
+    const val MIXER_CODE = "mixer_code"
+    const val PREMIX_COMPLETE = "premix_complete"
+    const val HOME = "home"
 }
 
 @HiltViewModel
@@ -33,6 +41,10 @@ class MixingViewModel @Inject constructor(
 
     private val _mixerCode = MutableStateFlow("")
     val mixerCode: StateFlow<String> = _mixerCode.asStateFlow()
+
+    /** Emits a one-shot navigation destination so screens never re-trigger on back-stack restoration. */
+    private val _navigationEvent = Channel<String>(Channel.BUFFERED)
+    val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
 
     fun lookupJob(orderNo: String) {
         viewModelScope.launch {
@@ -72,7 +84,10 @@ class MixingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
             useCase.completePremix(orderNo, mixer, ingredients)
-                .onSuccess { _uiState.value = MixingUiState.Idle }
+                .onSuccess {
+                    _uiState.value = MixingUiState.Idle
+                    _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
+                }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Unknown error") }
         }
     }
