@@ -9,7 +9,9 @@ import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import java.time.Instant
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class MixingUseCase @Inject constructor(
     private val mqttRepository: MqttRepository,
     private val bomCacheDao: BomCacheDao

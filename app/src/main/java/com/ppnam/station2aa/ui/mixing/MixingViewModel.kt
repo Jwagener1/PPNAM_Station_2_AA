@@ -21,7 +21,7 @@ sealed class MixingUiState {
 
 @HiltViewModel
 class MixingViewModel @Inject constructor(
-    val useCase: MixingUseCase,
+    private val useCase: MixingUseCase,
     private val scanEventBus: ScanEventBus
 ) : ViewModel() {
 
