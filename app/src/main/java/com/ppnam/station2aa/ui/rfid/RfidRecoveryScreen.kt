@@ -1,89 +1,138 @@
 package com.ppnam.station2aa.ui.rfid
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.components.LabelValueRow
+import com.ppnam.station2aa.ui.theme.*
 
 @Composable
 fun RfidRecoveryScreen(
     onDone: () -> Unit,
+    onBack: () -> Unit = {},
     viewModel: RfidViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val connectionState by viewModel.connectionState.collectAsState()
+    val pendingCount by viewModel.pendingCount.collectAsState()
 
     LaunchedEffect(Unit) { viewModel.startListening() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("RFID Recovery", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(8.dp))
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse),
+        label = "pulseAlpha"
+    )
 
-        when (val state = uiState) {
-            is RfidUiState.Idle -> {
-                Text(
-                    "Scan an RFID tag to look up a pallet",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            is RfidUiState.Loading -> {
-                Spacer(Modifier.height(24.dp))
-                CircularProgressIndicator()
-                Spacer(Modifier.height(8.dp))
-                Text("Looking up pallet…", style = MaterialTheme.typography.bodyMedium)
-            }
-            is RfidUiState.PalletFound -> {
-                Spacer(Modifier.height(16.dp))
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Pallet Found",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text("Tag ID: ${state.pallet.tagId}")
-                        Text("Batch No: ${state.pallet.batchNo}")
-                        Text("Item Code: ${state.pallet.itemCode}")
-                        Text("Location: ${state.pallet.location}")
+    AppScaffold(
+        title = "RFID Recovery",
+        connectionState = connectionState,
+        pendingCount = pendingCount,
+        onBack = onBack
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                when (val state = uiState) {
+                    is RfidUiState.Idle -> {
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.elevatedCardColors(containerColor = GraphiteSurface)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.WifiTethering,
+                                    contentDescription = null,
+                                    tint = AmberPrimary,
+                                    modifier = Modifier.size(48.dp).alpha(pulseAlpha)
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    text = "Scan an RFID tag to look up a pallet",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = TextPrimary
+                                )
+                            }
+                        }
+                    }
+                    is RfidUiState.Loading -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = AmberPrimary)
+                            Spacer(Modifier.height(12.dp))
+                            Text("Looking up pallet…", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+                        }
+                    }
+                    is RfidUiState.PalletFound -> {
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.elevatedCardColors(containerColor = SuccessGreen.copy(alpha = 0.12f))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(24.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Pallet Found", style = MaterialTheme.typography.headlineSmall, color = SuccessGreen)
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                LabelValueRow("Tag ID", state.pallet.tagId)
+                                LabelValueRow("Batch No", state.pallet.batchNo)
+                                LabelValueRow("Item Code", state.pallet.itemCode)
+                                LabelValueRow("Location", state.pallet.location)
+                            }
+                        }
+                    }
+                    is RfidUiState.Error -> {
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.elevatedCardColors(containerColor = DangerRed.copy(alpha = 0.12f))
+                        ) {
+                            Text(
+                                text = state.message,
+                                color = DangerRed,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
                     }
                 }
-                Spacer(Modifier.height(24.dp))
-                Button(
-                    onClick = { viewModel.resetToIdle() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Scan Another")
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = onDone,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Done")
-                }
             }
-            is RfidUiState.Error -> {
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    state.message,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = { viewModel.resetToIdle() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Try Again")
+
+            Spacer(Modifier.height(16.dp))
+            when (uiState) {
+                is RfidUiState.PalletFound, is RfidUiState.Error -> {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = { viewModel.resetToIdle() },
+                            modifier = Modifier.weight(1f).height(56.dp)
+                        ) {
+                            Text(if (uiState is RfidUiState.Error) "Try Again" else "Scan Another")
+                        }
+                        OutlinedButton(
+                            onClick = onDone,
+                            modifier = Modifier.weight(1f).height(56.dp)
+                        ) { Text("Done") }
+                    }
                 }
+                else -> Unit
             }
         }
     }

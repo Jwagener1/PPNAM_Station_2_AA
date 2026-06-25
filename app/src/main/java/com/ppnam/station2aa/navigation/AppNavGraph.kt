@@ -79,11 +79,14 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
         composable(NavRoutes.RFID_RECOVERY) {
-            RfidRecoveryScreen(onDone = {
-                navController.navigate(NavRoutes.HOME) {
-                    popUpTo(NavRoutes.HOME) { inclusive = true }
-                }
-            })
+            RfidRecoveryScreen(
+                onDone = {
+                    navController.navigate(NavRoutes.HOME) {
+                        popUpTo(NavRoutes.HOME) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(NavRoutes.DASHBOARD) {
             DashboardScreen()
