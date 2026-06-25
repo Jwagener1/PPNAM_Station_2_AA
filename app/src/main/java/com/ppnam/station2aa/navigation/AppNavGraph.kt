@@ -27,26 +27,25 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
         composable(NavRoutes.JOB_LOOKUP) {
-            JobLookupScreen(onJobFound = { orderNo ->
-                navController.navigate(NavRoutes.ingredientScan(orderNo))
-            })
+            JobLookupScreen(
+                onJobFound = { orderNo -> navController.navigate(NavRoutes.ingredientScan(orderNo)) },
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(NavRoutes.INGREDIENT_SCAN) { backStack ->
             val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
             IngredientScanScreen(
                 orderNo = orderNo,
-                onProceedToMixerCode = {
-                    navController.navigate(NavRoutes.mixerCode(orderNo))
-                }
+                onProceedToMixerCode = { navController.navigate(NavRoutes.mixerCode(orderNo)) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(NavRoutes.MIXER_CODE) { backStack ->
             val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
             MixerCodeScreen(
                 orderNo = orderNo,
-                onProceed = {
-                    navController.navigate(NavRoutes.premixComplete(orderNo))
-                }
+                onProceed = { navController.navigate(NavRoutes.premixComplete(orderNo)) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(NavRoutes.PREMIX_COMPLETE) { backStack ->
@@ -57,7 +56,8 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     navController.navigate(NavRoutes.HOME) {
                         popUpTo(NavRoutes.HOME) { inclusive = true }
                     }
-                }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(NavRoutes.MACHINE_SELECT) {
