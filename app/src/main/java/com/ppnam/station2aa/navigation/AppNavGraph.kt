@@ -89,7 +89,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
         composable(NavRoutes.DASHBOARD) {
-            DashboardScreen()
+            DashboardScreen(onBack = { navController.popBackStack() })
         }
     }
 }

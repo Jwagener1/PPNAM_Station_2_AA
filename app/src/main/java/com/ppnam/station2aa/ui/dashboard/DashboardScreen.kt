@@ -1,33 +1,26 @@
 package com.ppnam.station2aa.ui.dashboard
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.components.LabelValueRow
+import com.ppnam.station2aa.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
+fun DashboardScreen(
+    onBack: () -> Unit = {},
+    viewModel: DashboardViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsState()
+    val connectionState by viewModel.connectionState.collectAsState()
+    val pendingCount by viewModel.pendingCount.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Pallet", "Pre-Mix", "Allocation", "Exceptions")
 
@@ -38,31 +31,58 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = { Text(title) }
-                )
+    AppScaffold(
+        title = "Dashboard",
+        connectionState = connectionState,
+        pendingCount = pendingCount,
+        onBack = onBack
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = GraphiteSurface,
+                contentColor = AmberPrimary,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = AmberPrimary,
+                        height = 3.dp
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = {
+                            Text(
+                                text = title.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (selectedTab == index) AmberPrimary else TextMuted
+                            )
+                        }
+                    )
+                }
             }
-        }
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            when (selectedTab) {
-                0 -> PalletLocationTab(
-                    tagInput = state.palletTagInput,
-                    result = state.palletLocation,
-                    onTagChange = viewModel::setPalletTagInput,
-                    onLookup = viewModel::lookupPallet
-                )
-                1 -> SimpleJsonTab(label = "Pre-Mix List", json = state.preMixList, isLoading = state.isLoading)
-                2 -> SimpleJsonTab(label = "Allocation History", json = "", isLoading = false)
-                3 -> SimpleJsonTab(label = "Exceptions", json = state.exceptions, isLoading = state.isLoading)
-            }
-            state.error?.let {
-                Snackbar(modifier = Modifier.align(Alignment.BottomCenter)) {
-                    Text(it)
+
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                when (selectedTab) {
+                    0 -> PalletTab(
+                        tagInput = state.palletTagInput,
+                        result = state.palletLocation,
+                        isLoading = state.isLoading,
+                        onTagChange = viewModel::setPalletTagInput,
+                        onLookup = viewModel::lookupPallet
+                    )
+                    1 -> JsonTab(json = state.preMixList, isLoading = state.isLoading, emptyMessage = "No Pre-Mix data")
+                    2 -> PlaceholderTab("No allocation history available")
+                    3 -> JsonTab(json = state.exceptions, isLoading = state.isLoading, emptyMessage = "No exceptions", isError = true)
+                }
+                state.error?.let { err ->
+                    Snackbar(
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        containerColor = DangerRed
+                    ) { Text(err, color = TextPrimary) }
                 }
             }
         }
@@ -70,9 +90,10 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun PalletLocationTab(
+private fun PalletTab(
     tagInput: String,
     result: String,
+    isLoading: Boolean,
     onTagChange: (String) -> Unit,
     onLookup: () -> Unit
 ) {
@@ -81,18 +102,60 @@ private fun PalletLocationTab(
             value = tagInput,
             onValueChange = onTagChange,
             label = { Text("Tag ID") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AmberPrimary,
+                focusedLabelColor = AmberPrimary,
+                cursorColor = AmberPrimary
+            ),
             modifier = Modifier.fillMaxWidth()
         )
-        Button(onClick = onLookup, modifier = Modifier.fillMaxWidth()) { Text("Look Up") }
-        if (result.isNotBlank()) Text(result)
+        Button(
+            onClick = onLookup,
+            enabled = tagInput.isNotBlank() && !isLoading,
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            if (isLoading) CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+            else Text("Look Up")
+        }
+        if (result.isNotBlank()) {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.elevatedCardColors(containerColor = GraphiteSurface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    LabelValueRow("Result", result)
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun SimpleJsonTab(label: String, json: String, isLoading: Boolean) {
-    Column {
-        if (isLoading) CircularProgressIndicator()
-        else if (json.isBlank()) Text("No data")
-        else Text(json)
+private fun JsonTab(json: String, isLoading: Boolean, emptyMessage: String, isError: Boolean = false) {
+    when {
+        isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = AmberPrimary)
+        }
+        json.isBlank() -> PlaceholderTab(emptyMessage)
+        else -> ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = if (isError) DangerRed.copy(alpha = 0.1f) else GraphiteSurface
+            )
+        ) {
+            Text(
+                text = json,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isError) DangerRed else TextPrimary,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaceholderTab(message: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(message, style = MaterialTheme.typography.bodyMedium, color = TextMuted)
     }
 }
