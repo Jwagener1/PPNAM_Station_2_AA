@@ -1,0 +1,76 @@
+package com.ppnam.station2aa.ui.components
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.ppnam.station2aa.domain.repository.MqttConnectionState
+import com.ppnam.station2aa.ui.theme.*
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppScaffold(
+    title: String,
+    connectionState: MqttConnectionState,
+    pendingCount: Int,
+    onBack: (() -> Unit)? = null,
+    content: @Composable (PaddingValues) -> Unit
+) {
+    val (dotColor, statusLabel) = when (connectionState) {
+        MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
+        MqttConnectionState.RECONNECTING -> AmberPrimary to "Reconnecting"
+        MqttConnectionState.DISCONNECTED ->
+            DangerRed to if (pendingCount > 0) "Offline — $pendingCount queued" else "Offline"
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = TextPrimary
+                    )
+                },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = TextPrimary
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 16.dp)
+                    ) {
+                        Canvas(modifier = Modifier.size(10.dp)) {
+                            drawCircle(color = dotColor)
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = statusLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = GraphiteSurface
+                )
+            )
+        },
+        containerColor = GraphiteBackground,
+        content = content
+    )
+}
