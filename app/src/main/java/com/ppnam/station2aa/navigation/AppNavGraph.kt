@@ -61,17 +61,22 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
         composable(NavRoutes.MACHINE_SELECT) {
-            MachineSelectScreen(onMachineSelected = { machineCode ->
-                navController.navigate(NavRoutes.palletAlloc(machineCode))
-            })
+            MachineSelectScreen(
+                onMachineSelected = { machineCode -> navController.navigate(NavRoutes.palletAlloc(machineCode)) },
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(NavRoutes.PALLET_ALLOC) { backStack ->
             val machineCode = backStack.arguments?.getString("machineCode") ?: return@composable
-            PalletAllocScreen(machineCode = machineCode, onDone = {
-                navController.navigate(NavRoutes.HOME) {
-                    popUpTo(NavRoutes.HOME) { inclusive = true }
-                }
-            })
+            PalletAllocScreen(
+                machineCode = machineCode,
+                onDone = {
+                    navController.navigate(NavRoutes.HOME) {
+                        popUpTo(NavRoutes.HOME) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(NavRoutes.RFID_RECOVERY) {
             RfidRecoveryScreen(onDone = {
