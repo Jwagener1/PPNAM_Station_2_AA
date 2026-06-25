@@ -2,9 +2,12 @@ package com.ppnam.station2aa.ui.rajoo
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.domain.model.AllocationRecord
+import com.ppnam.station2aa.domain.repository.MqttConnectionState
+import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.RajooUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -24,7 +27,9 @@ sealed class RajooUiState {
 @HiltViewModel
 class RajooViewModel @Inject constructor(
     private val useCase: RajooUseCase,
-    private val scanEventBus: ScanEventBus
+    private val scanEventBus: ScanEventBus,
+    private val mqttRepository: MqttRepository,
+    private val offlineQueueRepository: OfflineQueueRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RajooUiState>(RajooUiState.Idle)
@@ -32,6 +37,11 @@ class RajooViewModel @Inject constructor(
 
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
+
+    val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
+
+    val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private var scanJob: Job? = null
 
@@ -46,6 +56,7 @@ class RajooViewModel @Inject constructor(
 
     fun startListeningForScans(machineCode: String) {
         scanJob?.cancel()
+        _uiState.value = RajooUiState.Idle
         scanJob = viewModelScope.launch {
             scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
                 allocatePallet(machineCode, event.tagId)
@@ -63,9 +74,7 @@ class RajooViewModel @Inject constructor(
     }
 
     fun navigateHome() {
-        viewModelScope.launch {
-            _navigationEvent.send("home")
-        }
+        viewModelScope.launch { _navigationEvent.send("home") }
     }
 
     override fun onCleared() {

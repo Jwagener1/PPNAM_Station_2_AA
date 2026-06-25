@@ -2,10 +2,13 @@ package com.ppnam.station2aa.ui.mixing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.model.ScannedIngredient
+import com.ppnam.station2aa.domain.repository.MqttConnectionState
+import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -21,7 +24,6 @@ sealed class MixingUiState {
     data class Error(val message: String) : MixingUiState()
 }
 
-/** One-shot navigation destinations emitted on the navigation channel. */
 object MixingNavDestination {
     const val MIXER_CODE = "mixer_code"
     const val PREMIX_COMPLETE = "premix_complete"
@@ -31,7 +33,9 @@ object MixingNavDestination {
 @HiltViewModel
 class MixingViewModel @Inject constructor(
     private val useCase: MixingUseCase,
-    private val scanEventBus: ScanEventBus
+    private val scanEventBus: ScanEventBus,
+    private val mqttRepository: MqttRepository,
+    private val offlineQueueRepository: OfflineQueueRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MixingUiState>(MixingUiState.Idle)
@@ -46,7 +50,11 @@ class MixingViewModel @Inject constructor(
     private val _isQueuedOffline = MutableStateFlow(false)
     val isQueuedOffline: StateFlow<Boolean> = _isQueuedOffline.asStateFlow()
 
-    /** Emits a one-shot navigation destination so screens never re-trigger on back-stack restoration. */
+    val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
+
+    val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
 
@@ -93,9 +101,7 @@ class MixingViewModel @Inject constructor(
         }
     }
 
-    fun setMixerCode(code: String) {
-        _mixerCode.value = code
-    }
+    fun setMixerCode(code: String) { _mixerCode.value = code }
 
     fun completePremix(orderNo: String) {
         viewModelScope.launch {
@@ -104,7 +110,6 @@ class MixingViewModel @Inject constructor(
                 .onSuccess { _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE) }
                 .onFailure { e ->
                     if (e.message?.startsWith("Queued") == true) {
-                        // Queued offline — still navigate to complete screen, ViewModel holds the status
                         _isQueuedOffline.value = true
                         _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
                     } else {
@@ -115,8 +120,6 @@ class MixingViewModel @Inject constructor(
     }
 
     fun clearError() {
-        if (_uiState.value is MixingUiState.Error) {
-            _uiState.value = MixingUiState.Idle
-        }
+        if (_uiState.value is MixingUiState.Error) _uiState.value = MixingUiState.Idle
     }
 }
