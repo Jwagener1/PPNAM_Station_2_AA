@@ -18,8 +18,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "MQTT_HOST", "\"10.1.50.1\"")
-        buildConfigField("int", "MQTT_PORT", "1883")
     }
 
     buildTypes {
@@ -59,6 +57,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.datastore.preferences)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
