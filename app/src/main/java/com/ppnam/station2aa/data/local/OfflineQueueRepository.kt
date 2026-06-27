@@ -29,6 +29,8 @@ class OfflineQueueRepository @Inject constructor(
 
     fun pendingCount(): Flow<Int> = dao.pendingCount()
 
+    suspend fun deletePending() = dao.deletePending()
+
     suspend fun drainQueue() {
         if (mqttRepository.connectionState.value != MqttConnectionState.CONNECTED) return
         val pending = dao.getPending()

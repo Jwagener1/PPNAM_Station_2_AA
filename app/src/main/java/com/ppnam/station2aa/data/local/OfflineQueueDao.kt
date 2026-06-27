@@ -25,4 +25,7 @@ interface OfflineQueueDao {
 
     @Query("SELECT * FROM offline_queue WHERE status = 'failed' ORDER BY createdAt DESC")
     fun getFailedAsFlow(): Flow<List<OfflineQueueEntity>>
+
+    @Query("DELETE FROM offline_queue WHERE status = 'pending'")
+    suspend fun deletePending()
 }
