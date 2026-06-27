@@ -1,0 +1,119 @@
+package com.ppnam.station2aa.ui.settings
+
+import com.ppnam.station2aa.data.local.OfflineQueueRepository
+import com.ppnam.station2aa.data.settings.SettingsRepository
+import com.ppnam.station2aa.domain.model.AppSettings
+import com.ppnam.station2aa.domain.repository.MqttConnectionState
+import com.ppnam.station2aa.domain.repository.MqttRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.*
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.mockito.kotlin.*
+
+class SettingsViewModelTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    private lateinit var mockSettingsRepository: SettingsRepository
+    private lateinit var mockMqttRepository: MqttRepository
+    private lateinit var mockQueueRepository: OfflineQueueRepository
+    private lateinit var viewModel: SettingsViewModel
+
+    @Before
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+        mockSettingsRepository = mock()
+        mockMqttRepository = mock()
+        mockQueueRepository = mock()
+
+        whenever(mockSettingsRepository.settingsFlow).thenReturn(flowOf(AppSettings()))
+        runBlocking { whenever(mockSettingsRepository.current()).thenReturn(AppSettings()) }
+        whenever(mockMqttRepository.connectionState)
+            .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
+        whenever(mockQueueRepository.pendingCount()).thenReturn(flowOf(0))
+
+        viewModel = SettingsViewModel(mockSettingsRepository, mockMqttRepository, mockQueueRepository)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `initial pin state is Locked`() {
+        assertTrue(viewModel.pinState.value is PinState.Locked)
+    }
+
+    @Test
+    fun `correct PIN unlocks settings`() = runTest {
+        viewModel.onPinChange("079545")
+        viewModel.submitPin()
+        assertTrue(viewModel.pinState.value is PinState.Unlocked)
+        assertFalse(viewModel.pinError.value)
+    }
+
+    @Test
+    fun `wrong PIN stays Locked and sets pinError`() = runTest {
+        viewModel.onPinChange("000000")
+        viewModel.submitPin()
+        assertTrue(viewModel.pinState.value is PinState.Locked)
+        assertTrue(viewModel.pinError.value)
+        assertEquals("", viewModel.pinInput.value)
+    }
+
+    @Test
+    fun `updateDraft replaces draft settings`() {
+        val newSettings = AppSettings(mqttHost = "192.168.1.1")
+        viewModel.updateDraft(newSettings)
+        assertEquals("192.168.1.1", viewModel.draftSettings.value.mqttHost)
+    }
+
+    @Test
+    fun `testAndApply on success saves settings and resets to Locked`() = runTest {
+        whenever(mockMqttRepository.reconnectWith(any())).thenReturn(Result.success(Unit))
+        viewModel.onPinChange("079545")
+        viewModel.submitPin()
+
+        viewModel.testAndApply()
+        advanceUntilIdle()
+
+        verify(mockSettingsRepository).save(any())
+        assertTrue(viewModel.applyState.value is ApplyState.Success)
+        advanceTimeBy(2100)
+        assertTrue(viewModel.pinState.value is PinState.Locked)
+    }
+
+    @Test
+    fun `testAndApply on failure sets Failure state and does not save`() = runTest {
+        val error = RuntimeException("Connection refused")
+        whenever(mockMqttRepository.reconnectWith(any())).thenReturn(Result.failure(error))
+
+        viewModel.testAndApply()
+        advanceUntilIdle()
+
+        verify(mockSettingsRepository, never()).save(any())
+        val state = viewModel.applyState.value
+        assertTrue(state is ApplyState.Failure)
+        assertEquals("Connection refused", (state as ApplyState.Failure).message)
+    }
+
+    @Test
+    fun `clearQueue calls deletePending on repository`() = runTest {
+        viewModel.clearQueue()
+        advanceUntilIdle()
+        verify(mockQueueRepository).deletePending()
+    }
+
+    @Test
+    fun `onPinChange does not accept more than 6 digits`() {
+        viewModel.onPinChange("1234567")
+        assertEquals("", viewModel.pinInput.value)
+    }
+}
