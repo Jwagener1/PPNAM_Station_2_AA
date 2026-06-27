@@ -6,6 +6,8 @@ import com.google.gson.Gson
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
+import com.ppnam.station2aa.data.settings.SettingsRepository
+import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,19 +21,21 @@ import javax.inject.Singleton
 
 @Singleton
 class MqttRepositoryImpl internal constructor(
-    private val mqttClient: Mqtt5AsyncClient,
+    private val clientFactory: MqttClientFactory,
+    private val settingsRepository: SettingsRepository,
     private val offlineQueueDao: OfflineQueueDao,
     private val deviceId: String
 ) : MqttRepository {
 
-    /** Production constructor: resolved via Hilt dependency injection. */
     @Inject
     constructor(
-        mqttClient: Mqtt5AsyncClient,
+        clientFactory: MqttClientFactory,
+        settingsRepository: SettingsRepository,
         offlineQueueDao: OfflineQueueDao,
         @ApplicationContext context: Context
     ) : this(
-        mqttClient,
+        clientFactory,
+        settingsRepository,
         offlineQueueDao,
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: ""
     )
@@ -43,21 +47,30 @@ class MqttRepositoryImpl internal constructor(
 
     private val _incomingResponses = MutableSharedFlow<MqttResponseMessage>(extraBufferCapacity = 64)
 
+    private var mqttClient: Mqtt5AsyncClient? = null
+    private var currentStationName: String = AppSettings().stationName
+    private var requestTimeoutMs: Long = AppSettings().requestTimeoutMs
+
     override suspend fun connect() {
         _connectionState.value = MqttConnectionState.RECONNECTING
         try {
-            mqttClient.connectWith()
+            val settings = settingsRepository.current()
+            currentStationName = settings.stationName
+            requestTimeoutMs = settings.requestTimeoutMs
+            if (mqttClient == null) {
+                mqttClient = clientFactory.build(settings)
+            }
+            val client = mqttClient!!
+            client.connectWith()
                 .cleanStart(false)
                 .keepAlive(30)
                 .send()
                 .await()
-
-            mqttClient.subscribeWith()
-                .topicFilter(MqttTopics.response(deviceId))
+            client.subscribeWith()
+                .topicFilter(MqttTopics.response(currentStationName, deviceId))
                 .callback { publish -> handleIncoming(publish.payloadAsBytes) }
                 .send()
                 .await()
-
             _connectionState.value = MqttConnectionState.CONNECTED
         } catch (e: Exception) {
             _connectionState.value = MqttConnectionState.DISCONNECTED
@@ -65,12 +78,40 @@ class MqttRepositoryImpl internal constructor(
     }
 
     override fun disconnect() {
-        mqttClient.disconnect()
+        mqttClient?.disconnect()
         _connectionState.value = MqttConnectionState.DISCONNECTED
     }
 
     override suspend fun send(action: String, dataJson: String): MqttResult =
-        sendWithTimeout(action, dataJson, timeoutMs = 10_000L)
+        sendWithTimeout(action, dataJson, requestTimeoutMs)
+
+    override suspend fun reconnectWith(settings: AppSettings): Result<Unit> {
+        val candidate = clientFactory.build(settings)
+        return try {
+            withTimeout(15_000L) {
+                candidate.connectWith()
+                    .cleanStart(false)
+                    .keepAlive(30)
+                    .send()
+                    .await()
+                candidate.subscribeWith()
+                    .topicFilter(MqttTopics.response(settings.stationName, deviceId))
+                    .callback { publish -> handleIncoming(publish.payloadAsBytes) }
+                    .send()
+                    .await()
+            }
+            val old = mqttClient
+            mqttClient = candidate
+            currentStationName = settings.stationName
+            requestTimeoutMs = settings.requestTimeoutMs
+            _connectionState.value = MqttConnectionState.CONNECTED
+            try { old?.disconnect() } catch (_: Exception) { }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            try { candidate.disconnect() } catch (_: Exception) { }
+            Result.failure(e)
+        }
+    }
 
     internal suspend fun sendWithTimeout(action: String, dataJson: String, timeoutMs: Long): MqttResult {
         if (_connectionState.value != MqttConnectionState.CONNECTED) {
@@ -88,8 +129,8 @@ class MqttRepositoryImpl internal constructor(
                         .filter { it.correlationId == correlationId }
                         .first()
                 }
-                mqttClient.publishWith()
-                    .topic(MqttTopics.REQUEST)
+                mqttClient!!.publishWith()
+                    .topic(MqttTopics.request(currentStationName))
                     .payload(payload)
                     .send()
                     .await()
