@@ -1,14 +1,17 @@
 package com.ppnam.station2aa.ui.mixing
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
@@ -48,7 +51,18 @@ fun IngredientScanScreen(
                 }
                 is MixingUiState.Error -> {
                     Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopStart) {
-                        Text(state.message, color = DangerRed, style = MaterialTheme.typography.bodyMedium)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.12f)),
+                            border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                state.message,
+                                color = DangerRed,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
                     }
                 }
                 is MixingUiState.OrderLoaded -> {
@@ -56,17 +70,25 @@ fun IngredientScanScreen(
                     val satisfiedCount = order.lines.count { bomLine ->
                         scannedIngredients.count { it.itemCode == bomLine.itemCode } >= bomLine.requiredQty.toInt()
                     }
+                    val allSatisfied = satisfiedCount == order.lines.size
 
-                    ElevatedCard(
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.elevatedCardColors(containerColor = GraphiteSurfaceVariant)
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (allSatisfied) SuccessGreen.copy(alpha = 0.12f) else GraphiteSurfaceVariant
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (allSatisfied) SuccessGreen.copy(alpha = 0.35f) else GraphiteBorder
+                        )
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("Order $orderNo", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                            Spacer(Modifier.height(2.dp))
                             Text(
-                                "$satisfiedCount of ${order.lines.size} satisfied",
+                                "$satisfiedCount of ${order.lines.size} lines satisfied",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = TextMuted
+                                color = if (allSatisfied) SuccessGreen else TextMuted
                             )
                         }
                     }
@@ -83,10 +105,14 @@ fun IngredientScanScreen(
                             val fraction = (scannedCount.toFloat() / required.toFloat()).coerceIn(0f, 1f)
                             val displayName = bomLine.itemName.ifBlank { bomLine.itemCode }
 
-                            ElevatedCard(
+                            Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.elevatedCardColors(
-                                    containerColor = if (satisfied) SuccessGreen.copy(alpha = 0.12f) else GraphiteSurface
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (satisfied) SuccessGreen.copy(alpha = 0.10f) else GraphiteSurface
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (satisfied) SuccessGreen.copy(alpha = 0.30f) else GraphiteBorder
                                 )
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
@@ -105,20 +131,23 @@ fun IngredientScanScreen(
                                                 imageVector = Icons.Filled.CheckCircle,
                                                 contentDescription = "Satisfied",
                                                 tint = SuccessGreen,
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(18.dp)
                                             )
-                                            Spacer(Modifier.width(4.dp))
+                                            Spacer(Modifier.width(6.dp))
                                         }
                                         Text(
                                             text = "$scannedCount / $required",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = TextMuted
+                                            color = if (satisfied) SuccessGreen else TextMuted
                                         )
                                     }
-                                    Spacer(Modifier.height(6.dp))
+                                    Spacer(Modifier.height(8.dp))
                                     LinearProgressIndicator(
                                         progress = { fraction },
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(6.dp)
+                                            .clip(RoundedCornerShape(3.dp)),
                                         color = if (satisfied) SuccessGreen else AmberPrimary,
                                         trackColor = GraphiteBorder
                                     )

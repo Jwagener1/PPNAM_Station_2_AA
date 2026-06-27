@@ -1,5 +1,6 @@
 package com.ppnam.station2aa.ui.mixing
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -8,8 +9,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.theme.AmberPrimary
+import com.ppnam.station2aa.ui.theme.GraphiteBorder
 import com.ppnam.station2aa.ui.theme.GraphiteSurfaceVariant
-import com.ppnam.station2aa.ui.theme.TextPrimary
+import com.ppnam.station2aa.ui.theme.TextMuted
 
 @Composable
 fun MixerCodeScreen(
@@ -37,14 +39,15 @@ fun MixerCodeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center
         ) {
-            ElevatedCard(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.elevatedCardColors(containerColor = GraphiteSurfaceVariant)
+                colors = CardDefaults.cardColors(containerColor = GraphiteSurfaceVariant),
+                border = BorderStroke(1.dp, GraphiteBorder)
             ) {
                 Text(
                     text = "Scan barcode or enter the mixer code manually",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = TextPrimary,
+                    color = TextMuted,
                     modifier = Modifier.padding(16.dp)
                 )
             }

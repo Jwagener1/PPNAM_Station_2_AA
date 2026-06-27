@@ -1,5 +1,6 @@
 package com.ppnam.station2aa.ui.rajoo
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
@@ -50,10 +52,11 @@ fun MachineSelectScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(state.machines) { machine ->
-                            ElevatedCard(
+                            Card(
                                 onClick = { onMachineSelected(machine) },
-                                modifier = Modifier.height(120.dp),
-                                colors = CardDefaults.elevatedCardColors(containerColor = GraphiteSurface)
+                                modifier = Modifier.height(140.dp),
+                                colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+                                border = BorderStroke(1.dp, GraphiteBorder)
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -66,10 +69,12 @@ fun MachineSelectScreen(
                                         tint = AmberPrimary,
                                         modifier = Modifier.size(32.dp)
                                     )
-                                    Spacer(Modifier.height(8.dp))
+                                    Spacer(Modifier.height(10.dp))
                                     Text(
                                         text = machine,
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style = MaterialTheme.typography.headlineSmall.copy(
+                                            fontFamily = FontFamily.Monospace
+                                        ),
                                         color = TextPrimary
                                     )
                                 }
@@ -82,10 +87,9 @@ fun MachineSelectScreen(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        ElevatedCard(
-                            colors = CardDefaults.elevatedCardColors(
-                                containerColor = DangerRed.copy(alpha = 0.12f)
-                            )
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.12f)),
+                            border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.3f))
                         ) {
                             Text(
                                 text = state.message,

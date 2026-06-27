@@ -28,7 +28,7 @@ fun AppScaffold(
 ) {
     val (dotColor, statusLabel) = when (connectionState) {
         MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
-        MqttConnectionState.RECONNECTING -> AmberPrimary to "Reconnecting"
+        MqttConnectionState.RECONNECTING -> WarningOrange to "Reconnecting"
         MqttConnectionState.DISCONNECTED ->
             DangerRed to if (pendingCount > 0) "Offline — $pendingCount queued" else "Offline"
     }

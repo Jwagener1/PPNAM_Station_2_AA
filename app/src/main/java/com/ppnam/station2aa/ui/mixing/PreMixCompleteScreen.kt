@@ -1,8 +1,12 @@
 package com.ppnam.station2aa.ui.mixing
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Schedule
@@ -10,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -64,13 +69,36 @@ fun PreMixCompleteScreen(
                 .padding(16.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SuggestionChip(onClick = {}, label = { Text("Order $orderNo") })
-                SuggestionChip(onClick = {}, label = { Text("Mixer: $mixerCode") })
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text("Order $orderNo", color = TextPrimary) },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = GraphiteSurfaceVariant
+                    ),
+                    border = SuggestionChipDefaults.suggestionChipBorder(
+                        enabled = true,
+                        borderColor = GraphiteBorder,
+                        disabledBorderColor = GraphiteBorder
+                    )
+                )
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text("Mixer: $mixerCode", color = TextPrimary) },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = GraphiteSurfaceVariant
+                    ),
+                    border = SuggestionChipDefaults.suggestionChipBorder(
+                        enabled = true,
+                        borderColor = AmberPrimary.copy(alpha = 0.4f),
+                        disabledBorderColor = GraphiteBorder
+                    )
+                )
             }
             Spacer(Modifier.height(16.dp))
-            ElevatedCard(
+            Card(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                colors = CardDefaults.elevatedCardColors(containerColor = GraphiteSurface)
+                colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+                border = BorderStroke(1.dp, GraphiteBorder)
             ) {
                 LazyColumn(modifier = Modifier.padding(8.dp)) {
                     items(scannedIngredients) { ingredient ->
@@ -103,6 +131,11 @@ private fun PremixConfirmedContent(
     pendingCount: Int,
     onDone: () -> Unit
 ) {
+    val accentColor = if (isQueuedOffline) WarningOrange else SuccessGreen
+    val icon = if (isQueuedOffline) Icons.Filled.Schedule else Icons.Filled.CheckCircle
+    val headline = if (isQueuedOffline) "Pre-mix queued" else "Pre-mix confirmed"
+    val subtext = if (isQueuedOffline) "Will send when online" else "Order received by WPF"
+
     AppScaffold(
         title = "Pre-Mix Complete",
         connectionState = connectionState,
@@ -117,20 +150,21 @@ private fun PremixConfirmedContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (isQueuedOffline) {
-                Icon(Icons.Filled.Schedule, null, tint = AmberPrimary, modifier = Modifier.size(64.dp))
-                Spacer(Modifier.height(24.dp))
-                Text("Pre-mix queued", style = MaterialTheme.typography.displaySmall, color = TextPrimary)
-                Spacer(Modifier.height(8.dp))
-                Text("Will send when online", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
-            } else {
-                Icon(Icons.Filled.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(64.dp))
-                Spacer(Modifier.height(24.dp))
-                Text("Pre-mix confirmed by WPF", style = MaterialTheme.typography.displaySmall, color = TextPrimary)
-                Spacer(Modifier.height(8.dp))
-                Text("Order sent successfully", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = 0.10f))
+                    .border(1.dp, accentColor.copy(alpha = 0.30f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = accentColor, modifier = Modifier.size(48.dp))
             }
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(28.dp))
+            Text(headline, style = MaterialTheme.typography.displaySmall, color = TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            Text(subtext, style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+            Spacer(Modifier.height(48.dp))
             Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                 Text("Done")
             }

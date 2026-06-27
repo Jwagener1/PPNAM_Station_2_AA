@@ -1,5 +1,6 @@
 package com.ppnam.station2aa.ui.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -48,7 +49,8 @@ fun DashboardScreen(
                         color = AmberPrimary,
                         height = 3.dp
                     )
-                }
+                },
+                divider = { HorizontalDivider(color = GraphiteBorder) }
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -74,7 +76,7 @@ fun DashboardScreen(
                         onTagChange = viewModel::setPalletTagInput,
                         onLookup = viewModel::lookupPallet
                     )
-                    1 -> JsonTab(json = state.preMixList, isLoading = state.isLoading, emptyMessage = "No Pre-Mix data")
+                    1 -> JsonTab(json = state.preMixList, isLoading = state.isLoading, emptyMessage = "No pre-mix records")
                     2 -> PlaceholderTab("No allocation history available")
                     3 -> JsonTab(json = state.exceptions, isLoading = state.isLoading, emptyMessage = "No exceptions", isError = true)
                 }
@@ -118,9 +120,10 @@ private fun PalletTab(
             else Text("Look Up")
         }
         if (result.isNotBlank()) {
-            ElevatedCard(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.elevatedCardColors(containerColor = GraphiteSurface)
+                colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+                border = BorderStroke(1.dp, GraphiteBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     LabelValueRow("Result", result)
@@ -137,10 +140,14 @@ private fun JsonTab(json: String, isLoading: Boolean, emptyMessage: String, isEr
             CircularProgressIndicator(color = AmberPrimary)
         }
         json.isBlank() -> PlaceholderTab(emptyMessage)
-        else -> ElevatedCard(
+        else -> Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = if (isError) DangerRed.copy(alpha = 0.1f) else GraphiteSurface
+            colors = CardDefaults.cardColors(
+                containerColor = if (isError) DangerRed.copy(alpha = 0.08f) else GraphiteSurface
+            ),
+            border = BorderStroke(
+                1.dp,
+                if (isError) DangerRed.copy(alpha = 0.25f) else GraphiteBorder
             )
         ) {
             Text(
