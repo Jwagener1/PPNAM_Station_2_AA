@@ -1,13 +1,17 @@
 package com.ppnam.station2aa.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.ui.theme.*
@@ -19,6 +23,7 @@ fun AppScaffold(
     connectionState: MqttConnectionState,
     pendingCount: Int,
     onBack: (() -> Unit)? = null,
+    onSettings: (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val (dotColor, statusLabel) = when (connectionState) {
@@ -44,25 +49,39 @@ fun AppScaffold(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = TextPrimary
+                                tint = AmberPrimary
                             )
                         }
                     }
                 },
                 actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        Canvas(modifier = Modifier.size(10.dp)) {
-                            drawCircle(color = dotColor)
+                    if (onSettings != null) {
+                        IconButton(onClick = onSettings) {
+                            Icon(
+                                imageVector = Icons.Filled.Settings,
+                                contentDescription = "Settings",
+                                tint = TextMuted
+                            )
                         }
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = statusLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextPrimary
-                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(dotColor.copy(alpha = 0.12f))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Canvas(modifier = Modifier.size(6.dp)) {
+                                drawCircle(color = dotColor)
+                            }
+                            Spacer(Modifier.width(5.dp))
+                            Text(
+                                text = statusLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = dotColor
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

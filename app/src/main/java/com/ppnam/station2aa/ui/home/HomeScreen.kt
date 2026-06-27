@@ -1,6 +1,9 @@
 package com.ppnam.station2aa.ui.home
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Factory
@@ -15,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.theme.*
@@ -25,6 +29,7 @@ fun HomeScreen(
     onNavigateRajoo: () -> Unit,
     onNavigateRfidRecovery: () -> Unit,
     onNavigateDashboard: () -> Unit,
+    onNavigateSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val connectionState by viewModel.connectionState.collectAsState()
@@ -34,7 +39,8 @@ fun HomeScreen(
         title = "PPNAM Station 2",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = null
+        onBack = null,
+        onSettings = onNavigateSettings
     ) { padding ->
         Column(
             modifier = Modifier
@@ -51,7 +57,7 @@ fun HomeScreen(
                     title = "Mixing",
                     subtitle = "Pre-Mix Flow",
                     icon = Icons.Filled.Science,
-                    tileColor = AmberPrimary,
+                    accentColor = AmberPrimary,
                     height = 220.dp,
                     modifier = Modifier.weight(1f),
                     onClick = onNavigateMixing
@@ -60,7 +66,7 @@ fun HomeScreen(
                     title = "Rajoo",
                     subtitle = "Allocation",
                     icon = Icons.Filled.Factory,
-                    tileColor = SuccessGreen,
+                    accentColor = SuccessGreen,
                     height = 220.dp,
                     modifier = Modifier.weight(1f),
                     onClick = onNavigateRajoo
@@ -74,7 +80,7 @@ fun HomeScreen(
                     title = "RFID Recovery",
                     subtitle = null,
                     icon = Icons.Filled.WifiTethering,
-                    tileColor = InfoBlue,
+                    accentColor = InfoBlue,
                     height = 110.dp,
                     modifier = Modifier.weight(1f),
                     onClick = onNavigateRfidRecovery
@@ -83,7 +89,7 @@ fun HomeScreen(
                     title = "Dashboard",
                     subtitle = null,
                     icon = Icons.Filled.BarChart,
-                    tileColor = IndigoAccent,
+                    accentColor = IndigoAccent,
                     height = 110.dp,
                     modifier = Modifier.weight(1f),
                     onClick = onNavigateDashboard
@@ -98,61 +104,75 @@ private fun HomeTile(
     title: String,
     subtitle: String?,
     icon: ImageVector,
-    tileColor: Color,
+    accentColor: Color,
     height: Dp,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    ElevatedCard(
+    Card(
         onClick = onClick,
         modifier = modifier.height(height),
-        colors = CardDefaults.elevatedCardColors(containerColor = tileColor),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f))
     ) {
-        if (subtitle != null) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.75f)
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+        Row(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(4.dp)
+                    .background(accentColor)
+            )
+            if (subtitle != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Column {
+                        Text(
+                            text = title.uppercase(),
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ),
+                            color = TextPrimary
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMuted
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TextPrimary
+                    )
+                }
             }
         }
     }
