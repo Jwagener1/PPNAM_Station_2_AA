@@ -8,6 +8,7 @@ import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
+import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -47,6 +48,9 @@ class MqttRepositoryImpl internal constructor(
 
     private val _incomingResponses = MutableSharedFlow<MqttResponseMessage>(extraBufferCapacity = 64)
 
+    private val _hopperStatusUpdates = MutableSharedFlow<HopperStatus>(replay = 1, extraBufferCapacity = 16)
+    override val hopperStatusUpdates: SharedFlow<HopperStatus> = _hopperStatusUpdates.asSharedFlow()
+
     private var mqttClient: Mqtt5AsyncClient? = null
     private var currentStationName: String = AppSettings().stationName
     private var requestTimeoutMs: Long = AppSettings().requestTimeoutMs
@@ -69,6 +73,11 @@ class MqttRepositoryImpl internal constructor(
             client.subscribeWith()
                 .topicFilter(MqttTopics.response(currentStationName, deviceId))
                 .callback { publish -> handleIncoming(publish.payloadAsBytes) }
+                .send()
+                .await()
+            client.subscribeWith()
+                .topicFilter(MqttTopics.hopperStatus(currentStationName))
+                .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
                 .send()
                 .await()
             _connectionState.value = MqttConnectionState.CONNECTED
@@ -97,6 +106,11 @@ class MqttRepositoryImpl internal constructor(
                 candidate.subscribeWith()
                     .topicFilter(MqttTopics.response(settings.stationName, deviceId))
                     .callback { publish -> handleIncoming(publish.payloadAsBytes) }
+                    .send()
+                    .await()
+                candidate.subscribeWith()
+                    .topicFilter(MqttTopics.hopperStatus(settings.stationName))
+                    .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
                     .send()
                     .await()
             }
@@ -165,6 +179,13 @@ class MqttRepositoryImpl internal constructor(
         try {
             val msg = gson.fromJson(String(bytes), MqttResponseMessage::class.java)
             _incomingResponses.tryEmit(msg)
+        } catch (_: Exception) { }
+    }
+
+    private fun handleHopperStatus(bytes: ByteArray) {
+        try {
+            val status = gson.fromJson(String(bytes), HopperStatus::class.java)
+            _hopperStatusUpdates.tryEmit(status)
         } catch (_: Exception) { }
     }
 }
