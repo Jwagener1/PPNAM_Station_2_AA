@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
+import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -75,9 +76,19 @@ class MixingViewModel @Inject constructor(
             launch {
                 scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
                     useCase.validateIngredient(orderNo, event.tagId)
-                        .onSuccess { bomLine ->
-                            val ingredient = ScannedIngredient(tagId = event.tagId, itemCode = bomLine.itemCode, qty = 1.0)
-                            _scannedIngredients.update { it + ingredient }
+                        .onSuccess { validation ->
+                            when (validation) {
+                                is IngredientValidationResult.Valid -> {
+                                    val ingredient = ScannedIngredient(
+                                        tagId = event.tagId,
+                                        itemCode = validation.bomLine.itemCode,
+                                        qty = 1.0
+                                    )
+                                    _scannedIngredients.update { it + ingredient }
+                                }
+                                is IngredientValidationResult.Invalid ->
+                                    _uiState.value = MixingUiState.Error("Invalid ingredient: ${validation.reason}")
+                            }
                         }
                         .onFailure {
                             _uiState.value = MixingUiState.Error("Unknown ingredient: ${event.tagId}")

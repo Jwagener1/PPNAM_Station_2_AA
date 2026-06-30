@@ -1,8 +1,8 @@
 package com.ppnam.station2aa.domain.usecase
 
 import com.ppnam.station2aa.data.local.BomCacheDao
-import com.ppnam.station2aa.data.local.BomCacheEntity
 import com.ppnam.station2aa.data.mqtt.MqttResult
+import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import kotlinx.coroutines.test.runTest
@@ -27,6 +27,8 @@ class MixingUseCaseTest {
         useCase = MixingUseCase(mockMqtt, mockBomCacheDao)
     }
 
+    // --- lookupJob ---
+
     @Test
     fun `lookupJob success caches bom and returns ProductionOrder`() = runTest {
         whenever(mockMqtt.send("lookup-job", """{"orderNo":"510019068"}"""))
@@ -41,48 +43,6 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `validateIngredient always delegates to MQTT`() = runTest {
-        val bomLineJson = """{"itemCode":"MAT-001","itemName":"Resin","requiredQty":50.0}"""
-        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
-            .thenReturn(MqttResult.Success(bomLineJson))
-
-        val result = useCase.validateIngredient("510019068", "MAT-001")
-
-        // Cache is never used — always goes to MQTT
-        verify(mockBomCacheDao, never()).get(any())
-        verify(mockMqtt).send(eq("validate-ingredient"), any())
-        assertTrue(result.isSuccess)
-        assertEquals("MAT-001", result.getOrThrow().itemCode)
-    }
-
-    @Test
-    fun `validateIngredient returns optimistic success when queued offline`() = runTest {
-        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
-            .thenReturn(MqttResult.Queued("offline-corr-id"))
-
-        val result = useCase.validateIngredient("510019068", "EPC-HEX-TAG")
-
-        assertTrue(result.isSuccess)
-        assertEquals("EPC-HEX-TAG", result.getOrThrow().itemCode)
-        assertEquals("Offline scan", result.getOrThrow().itemName)
-    }
-
-    @Test
-    fun `completePremix delegates to mqtt`() = runTest {
-        whenever(mockMqtt.send(eq("complete-premix"), any()))
-            .thenReturn(MqttResult.Success("{}"))
-
-        val result = useCase.completePremix(
-            orderNo = "510019068",
-            mixerCode = "MIX-01",
-            ingredients = listOf(ScannedIngredient("TAG-001", "MAT-001", 50.0))
-        )
-
-        assertTrue(result.isSuccess)
-        verify(mockMqtt).send(eq("complete-premix"), any())
-    }
-
-    @Test
     fun `lookupJob returns failure on MQTT error`() = runTest {
         whenever(mockMqtt.send("lookup-job", """{"orderNo":"510019068"}"""))
             .thenReturn(MqttResult.Error("Not found"))
@@ -91,14 +51,172 @@ class MixingUseCaseTest {
         assertTrue(result.isFailure)
     }
 
+    // --- validateIngredient ---
+
     @Test
-    fun `completePremix fails when mixerCode is blank`() = runTest {
+    fun `validateIngredient returns Valid when WPF confirms ingredient`() = runTest {
+        val bomLineJson = """{"itemCode":"MAT-001","itemName":"Resin","requiredQty":50.0,"valid":true}"""
+        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
+            .thenReturn(MqttResult.Success(bomLineJson))
+
+        val result = useCase.validateIngredient("510019068", "TAG-001")
+
+        assertTrue(result.isSuccess)
+        val validation = result.getOrThrow()
+        assertTrue(validation is IngredientValidationResult.Valid)
+        assertEquals("MAT-001", (validation as IngredientValidationResult.Valid).bomLine.itemCode)
+    }
+
+    @Test
+    fun `validateIngredient returns Invalid when WPF rejects ingredient`() = runTest {
+        val bomLineJson = """{"itemCode":"MAT-999","itemName":"Unknown","requiredQty":0.0,"valid":false,"reason":"Not in BOM"}"""
+        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
+            .thenReturn(MqttResult.Success(bomLineJson))
+
+        val result = useCase.validateIngredient("510019068", "TAG-BAD")
+
+        assertTrue(result.isSuccess)
+        val validation = result.getOrThrow()
+        assertTrue(validation is IngredientValidationResult.Invalid)
+        assertEquals("TAG-BAD", (validation as IngredientValidationResult.Invalid).tagId)
+        assertEquals("Not in BOM", validation.reason)
+    }
+
+    @Test
+    fun `validateIngredient returns optimistic Valid when queued offline`() = runTest {
+        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
+            .thenReturn(MqttResult.Queued("offline-corr-id"))
+
+        val result = useCase.validateIngredient("510019068", "EPC-HEX-TAG")
+
+        assertTrue(result.isSuccess)
+        val validation = result.getOrThrow()
+        assertTrue(validation is IngredientValidationResult.Valid)
+        assertEquals("EPC-HEX-TAG", (validation as IngredientValidationResult.Valid).bomLine.itemCode)
+        assertEquals("Offline scan", validation.bomLine.itemName)
+    }
+
+    @Test
+    fun `validateIngredient returns failure on MQTT error`() = runTest {
+        whenever(mockMqtt.send(eq("validate-ingredient"), any()))
+            .thenReturn(MqttResult.Error("Server error"))
+
+        val result = useCase.validateIngredient("510019068", "TAG-001")
+        assertTrue(result.isFailure)
+    }
+
+    // --- approveIngredientException ---
+
+    @Test
+    fun `approveIngredientException returns exception ScannedIngredient on approval`() = runTest {
+        val responseJson = """{"approved":true,"supervisorName":"Jane Smith","reason":null}"""
+        whenever(mockMqtt.send(eq("approve-ingredient-exception"), any()))
+            .thenReturn(MqttResult.Success(responseJson))
+
+        val result = useCase.approveIngredientException("510019068", "TAG-BAD", "SUP-TAG-001")
+
+        assertTrue(result.isSuccess)
+        val ingredient = result.getOrThrow()
+        assertEquals("TAG-BAD", ingredient.tagId)
+        assertTrue(ingredient.isException)
+        assertEquals("Jane Smith", ingredient.approvedBy)
+    }
+
+    @Test
+    fun `approveIngredientException returns failure when supervisor not authorised`() = runTest {
+        val responseJson = """{"approved":false,"supervisorName":null,"reason":"Tag not a supervisor"}"""
+        whenever(mockMqtt.send(eq("approve-ingredient-exception"), any()))
+            .thenReturn(MqttResult.Success(responseJson))
+
+        val result = useCase.approveIngredientException("510019068", "TAG-BAD", "NOT-SUP-TAG")
+
+        assertTrue(result.isFailure)
+        assertEquals("Tag not a supervisor", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `approveIngredientException fails when offline`() = runTest {
+        whenever(mockMqtt.send(eq("approve-ingredient-exception"), any()))
+            .thenReturn(MqttResult.Queued("q-id"))
+
+        val result = useCase.approveIngredientException("510019068", "TAG-BAD", "SUP-TAG")
+        assertTrue(result.isFailure)
+        assertEquals("Supervisor approval requires a connection", result.exceptionOrNull()?.message)
+    }
+
+    // --- checkHopper ---
+
+    @Test
+    fun `checkHopper returns success when hopper is available`() = runTest {
+        val responseJson = """{"available":true,"hopperCode":"H-01","reason":null}"""
+        whenever(mockMqtt.send(eq("check-hopper"), any()))
+            .thenReturn(MqttResult.Success(responseJson))
+
+        val result = useCase.checkHopper("510019068", "H-01")
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `checkHopper returns failure when hopper is unavailable`() = runTest {
+        val responseJson = """{"available":false,"hopperCode":"H-01","reason":"Already in use"}"""
+        whenever(mockMqtt.send(eq("check-hopper"), any()))
+            .thenReturn(MqttResult.Success(responseJson))
+
+        val result = useCase.checkHopper("510019068", "H-01")
+        assertTrue(result.isFailure)
+        assertEquals("Already in use", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `checkHopper fails when offline`() = runTest {
+        whenever(mockMqtt.send(eq("check-hopper"), any()))
+            .thenReturn(MqttResult.Queued("q-id"))
+
+        val result = useCase.checkHopper("510019068", "H-01")
+        assertTrue(result.isFailure)
+        assertEquals("Hopper check requires a connection", result.exceptionOrNull()?.message)
+    }
+
+    // --- completePremix ---
+
+    @Test
+    fun `completePremix delegates to mqtt with hopperCode`() = runTest {
+        whenever(mockMqtt.send(eq("complete-premix"), any()))
+            .thenReturn(MqttResult.Success("{}"))
+
         val result = useCase.completePremix(
             orderNo = "510019068",
-            mixerCode = "",
+            hopperCode = "H-01",
+            ingredients = listOf(ScannedIngredient("TAG-001", "MAT-001", 50.0))
+        )
+
+        assertTrue(result.isSuccess)
+        verify(mockMqtt).send(eq("complete-premix"), any())
+    }
+
+    @Test
+    fun `completePremix fails when hopperCode is blank`() = runTest {
+        val result = useCase.completePremix(
+            orderNo = "510019068",
+            hopperCode = "",
             ingredients = emptyList()
         )
         assertTrue(result.isFailure)
-        assertEquals("Mixer code is required", result.exceptionOrNull()?.message)
+        assertEquals("Hopper code is required", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `completePremix includes exceptions array in payload`() = runTest {
+        whenever(mockMqtt.send(eq("complete-premix"), any()))
+            .thenReturn(MqttResult.Success("{}"))
+
+        val normal = ScannedIngredient("TAG-001", "MAT-001", 50.0)
+        val exception = ScannedIngredient("TAG-BAD", "MAT-999", 1.0, isException = true, approvedBy = "Jane")
+        useCase.completePremix("510019068", "H-01", listOf(normal, exception))
+
+        val captor = argumentCaptor<String>()
+        verify(mockMqtt).send(eq("complete-premix"), captor.capture())
+        assertTrue(captor.firstValue.contains("\"exceptions\""))
+        assertTrue(captor.firstValue.contains("TAG-BAD"))
     }
 }
