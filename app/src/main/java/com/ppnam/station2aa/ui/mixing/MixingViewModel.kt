@@ -172,7 +172,9 @@ class MixingViewModel @Inject constructor(
         scanJob?.cancel()
         scanJob = viewModelScope.launch {
             scanEventBus.events.filterIsInstance<ScanEvent.Barcode>().collect { event ->
-                checkAndAllocateHopper(orderNo, event.value)
+                if (_hopperCode.value.isBlank()) {
+                    checkAndAllocateHopper(orderNo, event.value)
+                }
             }
         }
     }

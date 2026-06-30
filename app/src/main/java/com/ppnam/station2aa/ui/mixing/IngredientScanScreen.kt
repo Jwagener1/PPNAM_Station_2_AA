@@ -249,7 +249,7 @@ fun IngredientScanScreen(
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = onProceedToHopperScan,
-                    enabled = scannedIngredients.isNotEmpty(),
+                    enabled = scannedIngredients.isNotEmpty() && uiState is MixingUiState.OrderLoaded,
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
                     Text("Proceed to Hopper Scan")
