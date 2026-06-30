@@ -31,7 +31,7 @@ fun PreMixCompleteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scannedIngredients by viewModel.scannedIngredients.collectAsState()
-    val mixerCode by viewModel.hopperCode.collectAsState()
+    val hopperCode by viewModel.hopperCode.collectAsState()
     val isQueuedOffline by viewModel.isQueuedOffline.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
@@ -83,7 +83,7 @@ fun PreMixCompleteScreen(
                 )
                 SuggestionChip(
                     onClick = {},
-                    label = { Text("Mixer: $mixerCode", color = TextPrimary) },
+                    label = { Text("Hopper: $hopperCode", color = TextPrimary) },
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = GraphiteSurfaceVariant
                     ),

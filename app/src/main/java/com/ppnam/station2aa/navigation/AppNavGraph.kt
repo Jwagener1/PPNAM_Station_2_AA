@@ -7,9 +7,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ppnam.station2aa.ui.dashboard.DashboardScreen
 import com.ppnam.station2aa.ui.home.HomeScreen
+import com.ppnam.station2aa.ui.mixing.HopperScanScreen
 import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
-import com.ppnam.station2aa.ui.mixing.MixerCodeScreen
 import com.ppnam.station2aa.ui.mixing.PreMixCompleteScreen
 import com.ppnam.station2aa.ui.rajoo.MachineSelectScreen
 import com.ppnam.station2aa.ui.rajoo.PalletAllocScreen
@@ -41,13 +41,13 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
             IngredientScanScreen(
                 orderNo = orderNo,
-                onProceedToMixerCode = { navController.navigate(NavRoutes.mixerCode(orderNo)) },
+                onProceedToHopperScan = { navController.navigate(NavRoutes.hopperScan(orderNo)) },
                 onBack = { navController.popBackStack() }
             )
         }
-        composable(NavRoutes.MIXER_CODE) { backStack ->
+        composable(NavRoutes.HOPPER_SCAN) { backStack ->
             val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
-            MixerCodeScreen(
+            HopperScanScreen(
                 orderNo = orderNo,
                 onProceed = { navController.navigate(NavRoutes.premixComplete(orderNo)) },
                 onBack = { navController.popBackStack() }

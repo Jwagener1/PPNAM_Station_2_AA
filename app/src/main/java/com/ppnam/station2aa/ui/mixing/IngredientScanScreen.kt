@@ -20,7 +20,7 @@ import com.ppnam.station2aa.ui.theme.*
 @Composable
 fun IngredientScanScreen(
     orderNo: String,
-    onProceedToMixerCode: () -> Unit,
+    onProceedToHopperScan: () -> Unit,
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
@@ -161,11 +161,11 @@ fun IngredientScanScreen(
 
             Spacer(Modifier.height(16.dp))
             Button(
-                onClick = onProceedToMixerCode,
+                onClick = onProceedToHopperScan,
                 enabled = scannedIngredients.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text("Proceed to Mixer Code")
+                Text("Proceed to Hopper Scan")
             }
         }
     }
