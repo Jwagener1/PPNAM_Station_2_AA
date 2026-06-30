@@ -31,7 +31,7 @@ fun PreMixCompleteScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scannedIngredients by viewModel.scannedIngredients.collectAsState()
-    val mixerCode by viewModel.mixerCode.collectAsState()
+    val mixerCode by viewModel.hopperCode.collectAsState()
     val isQueuedOffline by viewModel.isQueuedOffline.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()

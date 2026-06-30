@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.mixing
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -8,11 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
-import com.ppnam.station2aa.ui.theme.AmberPrimary
-import com.ppnam.station2aa.ui.theme.GraphiteBorder
-import com.ppnam.station2aa.ui.theme.GraphiteSurfaceVariant
-import com.ppnam.station2aa.ui.theme.TextMuted
 
+// NOTE: This screen is superseded by the hopper workflow and will be removed in Task 5.
 @Composable
 fun MixerCodeScreen(
     orderNo: String,
@@ -20,11 +16,8 @@ fun MixerCodeScreen(
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
-    val mixerCode by viewModel.mixerCode.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
-
-    LaunchedEffect(Unit) { viewModel.startListeningForBarcode() }
 
     AppScaffold(
         title = "Mixer Code",
@@ -39,38 +32,10 @@ fun MixerCodeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = GraphiteSurfaceVariant),
-                border = BorderStroke(1.dp, GraphiteBorder)
-            ) {
-                Text(
-                    text = "Scan barcode or enter the mixer code manually",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TextMuted,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+            Text("This screen is no longer in use.", style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                value = mixerCode,
-                onValueChange = { viewModel.setMixerCode(it) },
-                label = { Text("Mixer Code") },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AmberPrimary,
-                    focusedLabelColor = AmberPrimary,
-                    cursorColor = AmberPrimary
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = onProceed,
-                enabled = mixerCode.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) {
-                Text("Review & Complete")
+            Button(onClick = onProceed, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                Text("Continue")
             }
         }
     }
