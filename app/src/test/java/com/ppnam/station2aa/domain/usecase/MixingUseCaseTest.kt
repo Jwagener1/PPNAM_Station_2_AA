@@ -218,5 +218,8 @@ class MixingUseCaseTest {
         verify(mockMqtt).send(eq("complete-premix"), captor.capture())
         assertTrue(captor.firstValue.contains("\"exceptions\""))
         assertTrue(captor.firstValue.contains("TAG-BAD"))
+        val occurrences = captor.firstValue.split("TAG-BAD").size - 1
+        assertTrue("TAG-BAD must appear in both ingredients and exceptions arrays", occurrences >= 2)
+        assertTrue(captor.firstValue.contains("TAG-001"))
     }
 }
