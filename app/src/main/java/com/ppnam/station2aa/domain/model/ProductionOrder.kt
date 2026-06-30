@@ -11,5 +11,7 @@ data class BomLine(
     val itemCode: String,
     val itemName: String,
     val requiredQty: Double,
-    val scannedQty: Double = 0.0
+    val scannedQty: Double = 0.0,
+    val valid: Boolean = true,
+    val reason: String? = null
 )
