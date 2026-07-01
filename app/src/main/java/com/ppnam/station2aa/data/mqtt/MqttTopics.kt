@@ -9,4 +9,22 @@ object MqttTopics {
 
     fun hopperStatus(stationName: String): String =
         "${stationName.trim().lowercase().replace(" ", "")}/hopper/status"
+
+    fun contractRequest(deviceId: String, requestType: String): String =
+        "PPNAM/$deviceId/$requestType"
+
+    fun contractResponse(deviceId: String, responseType: String): String =
+        "PPNAM/$deviceId/$responseType"
+
+    fun contractResponseWildcard(deviceId: String): String =
+        "PPNAM/$deviceId/+"
+
+    fun deviceStatus(deviceId: String): String =
+        "PPNAM/$deviceId/status"
+
+    fun stationStatus(stationName: String): String =
+        "PPNAM/${stationName.trim().lowercase().replace(" ", "_")}/status"
+
+    fun responseTypeOf(topic: String): String =
+        topic.substringAfterLast('/')
 }
