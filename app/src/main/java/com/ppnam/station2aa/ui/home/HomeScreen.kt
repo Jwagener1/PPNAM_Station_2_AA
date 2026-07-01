@@ -30,17 +30,25 @@ fun HomeScreen(
     onNavigateRfidRecovery: () -> Unit,
     onNavigateDashboard: () -> Unit,
     onNavigateSettings: () -> Unit,
+    onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
+    val session by viewModel.session.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.logoutEvent.collect { onLogout() }
+    }
 
     AppScaffold(
         title = "PPNAM Station 2",
         connectionState = connectionState,
         pendingCount = pendingCount,
         onBack = null,
-        onSettings = onNavigateSettings
+        onSettings = onNavigateSettings,
+        operatorName = session?.operatorName,
+        onLogout = viewModel::logout
     ) { padding ->
         Column(
             modifier = Modifier

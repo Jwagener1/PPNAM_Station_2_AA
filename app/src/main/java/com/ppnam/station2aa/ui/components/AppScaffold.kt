@@ -9,6 +9,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +28,8 @@ fun AppScaffold(
     pendingCount: Int,
     onBack: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
+    operatorName: String? = null,
+    onLogout: (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val (dotColor, statusLabel) = when (connectionState) {
@@ -31,6 +37,26 @@ fun AppScaffold(
         MqttConnectionState.RECONNECTING -> WarningOrange to "Reconnecting"
         MqttConnectionState.DISCONNECTED ->
             DangerRed to if (pendingCount > 0) "Offline — $pendingCount queued" else "Offline"
+    }
+
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Log out?", color = TextPrimary) },
+            text = { Text("You'll need to log in again to continue.", color = TextMuted) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                    onLogout?.invoke()
+                }) { Text("Log out", color = DangerRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel") }
+            },
+            containerColor = GraphiteSurface
+        )
     }
 
     Scaffold(
@@ -55,6 +81,11 @@ fun AppScaffold(
                     }
                 },
                 actions = {
+                    if (operatorName != null) {
+                        TextButton(onClick = { showLogoutDialog = true }) {
+                            Text(operatorName, color = TextPrimary, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
                     if (onSettings != null) {
                         IconButton(onClick = onSettings) {
                             Icon(

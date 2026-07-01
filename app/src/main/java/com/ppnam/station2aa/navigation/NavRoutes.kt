@@ -1,6 +1,7 @@
 package com.ppnam.station2aa.navigation
 
 object NavRoutes {
+    const val LOGIN = "login"
     const val HOME = "home"
     const val SETTINGS = "settings"
     const val JOB_LOOKUP = "mixing/job_lookup"

@@ -9,6 +9,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.ppnam.station2aa.ui.dashboard.DashboardScreen
 import com.ppnam.station2aa.ui.home.HomeScreen
+import com.ppnam.station2aa.ui.login.LoginScreen
 import com.ppnam.station2aa.ui.mixing.HopperScanScreen
 import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
@@ -21,14 +22,28 @@ import com.ppnam.station2aa.ui.settings.SettingsScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = NavRoutes.HOME) {
+    NavHost(navController = navController, startDestination = NavRoutes.LOGIN) {
+        composable(NavRoutes.LOGIN) {
+            LoginScreen(
+                onLoggedIn = {
+                    navController.navigate(NavRoutes.HOME) {
+                        popUpTo(NavRoutes.LOGIN) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(NavRoutes.HOME) {
             HomeScreen(
                 onNavigateMixing = { navController.navigate(NavRoutes.JOB_LOOKUP) },
                 onNavigateRajoo = { navController.navigate(NavRoutes.MACHINE_SELECT) },
                 onNavigateRfidRecovery = { navController.navigate(NavRoutes.RFID_RECOVERY) },
                 onNavigateDashboard = { navController.navigate(NavRoutes.DASHBOARD) },
-                onNavigateSettings = { navController.navigate(NavRoutes.SETTINGS) }
+                onNavigateSettings = { navController.navigate(NavRoutes.SETTINGS) },
+                onLogout = {
+                    navController.navigate(NavRoutes.LOGIN) {
+                        popUpTo(0)
+                    }
+                }
             )
         }
         composable(NavRoutes.SETTINGS) {
