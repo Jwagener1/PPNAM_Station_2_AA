@@ -16,6 +16,11 @@ class AppSettingsTest {
     }
 
     @Test
+    fun `default deviceId is handheld_1`() {
+        assertEquals("handheld_1", AppSettings().deviceId)
+    }
+
+    @Test
     fun `default mqtt host is mqtt sysone co za`() {
         assertEquals("mqtt.sysone.co.za", AppSettings().mqttHost)
     }

@@ -19,6 +19,7 @@ class SettingsRepository @Inject constructor(
 ) {
     private object Keys {
         val STATION_NAME            = stringPreferencesKey("station_name")
+        val DEVICE_ID               = stringPreferencesKey("device_id")
         val SCANNER_ID              = intPreferencesKey("scanner_id")
         val MQTT_HOST               = stringPreferencesKey("mqtt_host")
         val MQTT_PORT               = intPreferencesKey("mqtt_port")
@@ -33,6 +34,7 @@ class SettingsRepository @Inject constructor(
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
         AppSettings(
             stationName          = prefs[Keys.STATION_NAME]         ?: "Station 2",
+            deviceId              = prefs[Keys.DEVICE_ID]            ?: "handheld_1",
             scannerId            = prefs[Keys.SCANNER_ID]           ?: 1,
             mqttHost             = prefs[Keys.MQTT_HOST]            ?: "mqtt.sysone.co.za",
             mqttPort             = prefs[Keys.MQTT_PORT]            ?: 8884,
@@ -50,6 +52,7 @@ class SettingsRepository @Inject constructor(
     suspend fun save(settings: AppSettings) {
         context.dataStore.edit { prefs ->
             prefs[Keys.STATION_NAME]        = settings.stationName
+            prefs[Keys.DEVICE_ID]           = settings.deviceId
             prefs[Keys.SCANNER_ID]          = settings.scannerId
             prefs[Keys.MQTT_HOST]           = settings.mqttHost
             prefs[Keys.MQTT_PORT]           = settings.mqttPort
