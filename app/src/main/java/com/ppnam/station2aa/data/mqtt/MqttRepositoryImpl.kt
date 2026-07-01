@@ -1,7 +1,5 @@
 package com.ppnam.station2aa.data.mqtt
 
-import android.content.Context
-import android.provider.Settings
 import com.google.gson.Gson
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.local.OfflineQueueDao
@@ -11,7 +9,6 @@ import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
@@ -21,25 +18,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MqttRepositoryImpl internal constructor(
+class MqttRepositoryImpl @Inject constructor(
     private val clientFactory: MqttClientFactory,
     private val settingsRepository: SettingsRepository,
-    private val offlineQueueDao: OfflineQueueDao,
-    private val deviceId: String
+    private val offlineQueueDao: OfflineQueueDao
 ) : MqttRepository {
-
-    @Inject
-    constructor(
-        clientFactory: MqttClientFactory,
-        settingsRepository: SettingsRepository,
-        offlineQueueDao: OfflineQueueDao,
-        @ApplicationContext context: Context
-    ) : this(
-        clientFactory,
-        settingsRepository,
-        offlineQueueDao,
-        Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: ""
-    )
 
     private val gson = Gson()
 
@@ -47,12 +30,14 @@ class MqttRepositoryImpl internal constructor(
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
     private val _incomingResponses = MutableSharedFlow<MqttResponseMessage>(extraBufferCapacity = 64)
+    private val _incomingTyped = MutableSharedFlow<Pair<String, String>>(extraBufferCapacity = 64)
 
     private val _hopperStatusUpdates = MutableSharedFlow<HopperStatus>(replay = 1, extraBufferCapacity = 16)
     override val hopperStatusUpdates: SharedFlow<HopperStatus> = _hopperStatusUpdates.asSharedFlow()
 
     private var mqttClient: Mqtt5AsyncClient? = null
     private var currentStationName: String = AppSettings().stationName
+    private var currentDeviceId: String = AppSettings().deviceId
     private var requestTimeoutMs: Long = AppSettings().requestTimeoutMs
 
     override suspend fun connect() {
@@ -60,6 +45,7 @@ class MqttRepositoryImpl internal constructor(
         try {
             val settings = settingsRepository.current()
             currentStationName = settings.stationName
+            currentDeviceId = settings.deviceId
             requestTimeoutMs = settings.requestTimeoutMs
             if (mqttClient == null) {
                 mqttClient = clientFactory.build(settings)
@@ -71,13 +57,18 @@ class MqttRepositoryImpl internal constructor(
                 .send()
                 .await()
             client.subscribeWith()
-                .topicFilter(MqttTopics.response(currentStationName, deviceId))
+                .topicFilter(MqttTopics.response(currentStationName, currentDeviceId))
                 .callback { publish -> handleIncoming(publish.payloadAsBytes) }
                 .send()
                 .await()
             client.subscribeWith()
                 .topicFilter(MqttTopics.hopperStatus(currentStationName))
                 .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
+                .send()
+                .await()
+            client.subscribeWith()
+                .topicFilter(MqttTopics.contractResponseWildcard(currentDeviceId))
+                .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
                 .send()
                 .await()
             _connectionState.value = MqttConnectionState.CONNECTED
@@ -104,7 +95,7 @@ class MqttRepositoryImpl internal constructor(
                     .send()
                     .await()
                 candidate.subscribeWith()
-                    .topicFilter(MqttTopics.response(settings.stationName, deviceId))
+                    .topicFilter(MqttTopics.response(settings.stationName, settings.deviceId))
                     .callback { publish -> handleIncoming(publish.payloadAsBytes) }
                     .send()
                     .await()
@@ -113,10 +104,16 @@ class MqttRepositoryImpl internal constructor(
                     .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
                     .send()
                     .await()
+                candidate.subscribeWith()
+                    .topicFilter(MqttTopics.contractResponseWildcard(settings.deviceId))
+                    .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
+                    .send()
+                    .await()
             }
             val old = mqttClient
             mqttClient = candidate
             currentStationName = settings.stationName
+            currentDeviceId = settings.deviceId
             requestTimeoutMs = settings.requestTimeoutMs
             _connectionState.value = MqttConnectionState.CONNECTED
             try { old?.disconnect() } catch (_: Exception) { }
@@ -133,7 +130,7 @@ class MqttRepositoryImpl internal constructor(
         }
 
         val correlationId = UUID.randomUUID().toString()
-        val request = MqttRequest(correlationId, deviceId, action, dataJson)
+        val request = MqttRequest(correlationId, currentDeviceId, action, dataJson)
         val payload = gson.toJson(request).toByteArray()
 
         return try {
@@ -162,24 +159,77 @@ class MqttRepositoryImpl internal constructor(
         }
     }
 
-    private suspend fun queue(action: String, dataJson: String): MqttResult.Queued {
-        val correlationId = UUID.randomUUID().toString()
+    override suspend fun <T> sendTyped(
+        requestType: String,
+        responseType: String,
+        requestJson: String,
+        responseClass: Class<T>,
+        allowOfflineQueue: Boolean
+    ): MqttTypedResult<T> {
+        if (_connectionState.value != MqttConnectionState.CONNECTED) {
+            return if (allowOfflineQueue) {
+                enqueue(requestType, requestJson)
+                MqttTypedResult.Queued
+            } else {
+                MqttTypedResult.Disconnected
+            }
+        }
+
+        return try {
+            withTimeout(requestTimeoutMs) {
+                val responseDeferred = async {
+                    _incomingTyped.filter { it.first == responseType }.first()
+                }
+                mqttClient!!.publishWith()
+                    .topic(MqttTopics.contractRequest(currentDeviceId, requestType))
+                    .payload(requestJson.toByteArray())
+                    .send()
+                    .await()
+                val (_, rawJson) = responseDeferred.await()
+                MqttTypedResult.Success(gson.fromJson(rawJson, responseClass))
+            }
+        } catch (e: TimeoutCancellationException) {
+            if (allowOfflineQueue) {
+                enqueue(requestType, requestJson)
+                MqttTypedResult.Queued
+            } else {
+                MqttTypedResult.Error("Request timed out")
+            }
+        } catch (e: Exception) {
+            if (allowOfflineQueue) {
+                enqueue(requestType, requestJson)
+                MqttTypedResult.Queued
+            } else {
+                MqttTypedResult.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    private suspend fun enqueue(action: String, payload: String): String {
+        val id = UUID.randomUUID().toString()
         offlineQueueDao.insert(
             OfflineQueueEntity(
-                id = correlationId,
+                id = id,
                 action = action,
-                payload = dataJson,
+                payload = payload,
                 createdAt = Instant.now().toEpochMilli()
             )
         )
-        return MqttResult.Queued(correlationId)
+        return id
     }
+
+    private suspend fun queue(action: String, dataJson: String): MqttResult.Queued =
+        MqttResult.Queued(enqueue(action, dataJson))
 
     private fun handleIncoming(bytes: ByteArray) {
         try {
             val msg = gson.fromJson(String(bytes), MqttResponseMessage::class.java)
             _incomingResponses.tryEmit(msg)
         } catch (_: Exception) { }
+    }
+
+    private fun handleIncomingTyped(topic: String, bytes: ByteArray) {
+        _incomingTyped.tryEmit(MqttTopics.responseTypeOf(topic) to String(bytes))
     }
 
     private fun handleHopperStatus(bytes: ByteArray) {

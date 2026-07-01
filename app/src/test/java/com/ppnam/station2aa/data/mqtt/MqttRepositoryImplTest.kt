@@ -1,10 +1,10 @@
 package com.ppnam.station2aa.data.mqtt
 
 import com.ppnam.station2aa.data.local.OfflineQueueDao
+import com.ppnam.station2aa.data.local.OfflineQueueEntity
+import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
 import com.ppnam.station2aa.data.settings.SettingsRepository
-import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.model.HopperAvailability
-import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -19,14 +19,13 @@ class MqttRepositoryImplTest {
     private lateinit var mockSettingsRepository: SettingsRepository
     private lateinit var mockQueueDao: OfflineQueueDao
     private lateinit var repo: MqttRepositoryImpl
-    private val fakeDeviceId = "test-device-id"
 
     @Before
     fun setup() {
         mockClientFactory = mock()
         mockSettingsRepository = mock()
         mockQueueDao = mock()
-        repo = MqttRepositoryImpl(mockClientFactory, mockSettingsRepository, mockQueueDao, fakeDeviceId)
+        repo = MqttRepositoryImpl(mockClientFactory, mockSettingsRepository, mockQueueDao)
     }
 
     @Test
@@ -66,8 +65,36 @@ class MqttRepositoryImplTest {
     fun `hopperStatusUpdates does not crash on malformed payload`() = runTest {
         val method = MqttRepositoryImpl::class.java.getDeclaredMethod("handleHopperStatus", ByteArray::class.java)
         method.isAccessible = true
-        // Should not throw
         method.invoke(repo, "not-json".toByteArray())
         assertTrue(repo.hopperStatusUpdates.replayCache.isEmpty())
+    }
+
+    @Test
+    fun `sendTyped returns Disconnected when offline queue not allowed`() = runTest {
+        val result = repo.sendTyped(
+            requestType = "reader_login_requested",
+            responseType = "operator_context",
+            requestJson = "{}",
+            responseClass = OperatorContextResponse::class.java,
+            allowOfflineQueue = false
+        )
+        assertTrue(result is MqttTypedResult.Disconnected)
+        verify(mockQueueDao, never()).insert(any())
+    }
+
+    @Test
+    fun `sendTyped queues when disconnected and offline queue allowed`() = runTest {
+        whenever(mockQueueDao.insert(any())).thenReturn(Unit)
+        val result = repo.sendTyped(
+            requestType = "ingredient_scanned",
+            responseType = "ingredient_scan_result",
+            requestJson = "{\"qty\":5}",
+            responseClass = OperatorContextResponse::class.java,
+            allowOfflineQueue = true
+        )
+        assertTrue(result is MqttTypedResult.Queued)
+        verify(mockQueueDao).insert(
+            argThat<OfflineQueueEntity> { action == "ingredient_scanned" && payload == "{\"qty\":5}" }
+        )
     }
 }
