@@ -66,19 +66,19 @@ class AuthMessagesTest {
               "operatorSessionId": "sess-123",
               "timestampUtc": "2026-06-30T10:30:01Z",
               "correlationKey": "login-0001",
-              "success": true,
-              "errorMessage": null,
+              "accepted": true,
+              "reason": null,
               "operatorId": "OP-1",
-              "operatorName": "Jane Smith",
+              "displayName": "Jane Smith",
               "role": "Operator",
               "allowedActions": ["job_card_submitted", "ingredient_scanned"],
               "allowedTabs": ["Mixing", "Rajoo"]
             }
         """.trimIndent()
         val response = gson.fromJson(raw, OperatorContextResponse::class.java)
-        assertTrue(response.success)
+        assertTrue(response.accepted)
         assertEquals("sess-123", response.operatorSessionId)
-        assertEquals("Jane Smith", response.operatorName)
+        assertEquals("Jane Smith", response.displayName)
         assertEquals(2, response.allowedActions.size)
     }
 
@@ -92,13 +92,30 @@ class AuthMessagesTest {
               "operatorSessionId": null,
               "timestampUtc": "2026-06-30T10:30:01Z",
               "correlationKey": "login-0001",
-              "success": false,
-              "errorMessage": "Invalid credentials"
+              "accepted": false,
+              "reason": "Invalid credentials"
             }
         """.trimIndent()
         val response = gson.fromJson(raw, OperatorContextResponse::class.java)
-        assertFalse(response.success)
+        assertFalse(response.accepted)
         assertNull(response.operatorSessionId)
-        assertEquals("Invalid credentials", response.errorMessage)
+        assertEquals("Invalid credentials", response.reason)
+    }
+
+    @Test
+    fun `OperatorContextResponse deserializes the real Station 2 backend login response`() {
+        // Verbatim payload captured from a live Station 2 login exchange — this is the
+        // ground truth for field names, since the design spec's assumed names (success,
+        // errorMessage, operatorName) turned out not to match the real backend.
+        val raw = """
+            {"accepted":true,"reason":null,"operatorId":"0209e218fd2940b5b0d7c889801fec22","displayName":"Avi","role":"Administrator","roleLabel":"Admin","allowedActions":["submit_job_card","recover_holding","scan_ingredient","assign_hopper","complete_premix","allocate_premix","allocate_full_pallet"],"allowedTabs":["pre_mix","allocation"],"messageId":"response-21e9f35f-3474-417e-b9e4-1cd19fef27bc","schemaVersion":"1.0","deviceId":"handheld_1","operatorSessionId":"b4ce5e9e93544507af5504177f798591","timestampUtc":"2026-07-01T08:22:56.5535261+00:00","correlationKey":"21e9f35f-3474-417e-b9e4-1cd19fef27bc"}
+        """.trimIndent()
+        val response = gson.fromJson(raw, OperatorContextResponse::class.java)
+        assertTrue(response.accepted)
+        assertEquals("b4ce5e9e93544507af5504177f798591", response.operatorSessionId)
+        assertEquals("Avi", response.displayName)
+        assertEquals("Administrator", response.role)
+        assertEquals(7, response.allowedActions.size)
+        assertEquals(2, response.allowedTabs.size)
     }
 }

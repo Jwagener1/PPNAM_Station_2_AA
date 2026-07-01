@@ -32,9 +32,9 @@ class AuthUseCaseTest {
     fun `login with credentials success sets session and returns it`() = runTest {
         val response = OperatorContextResponse(
             operatorSessionId = "sess-1",
-            success = true,
+            accepted = true,
             operatorId = "OP-1",
-            operatorName = "Jane Smith",
+            displayName = "Jane Smith",
             role = "Operator",
             allowedActions = listOf("job_card_submitted"),
             allowedTabs = listOf("Mixing")
@@ -57,7 +57,7 @@ class AuthUseCaseTest {
 
     @Test
     fun `login with credentials failure returns failure and does not set session`() = runTest {
-        val response = OperatorContextResponse(success = false, errorMessage = "Invalid credentials")
+        val response = OperatorContextResponse(accepted = false, reason = "Invalid credentials")
         whenever(
             mockMqttRepository.sendTyped(
                 eq("reader_login_requested"), eq("operator_context"), any(),
@@ -74,7 +74,7 @@ class AuthUseCaseTest {
 
     @Test
     fun `login with badge uses login_tag_scanned request type`() = runTest {
-        val response = OperatorContextResponse(operatorSessionId = "sess-2", success = true, operatorName = "Bob")
+        val response = OperatorContextResponse(operatorSessionId = "sess-2", accepted = true, displayName = "Bob")
         whenever(
             mockMqttRepository.sendTyped(
                 eq("login_tag_scanned"), eq("operator_context"), any(),

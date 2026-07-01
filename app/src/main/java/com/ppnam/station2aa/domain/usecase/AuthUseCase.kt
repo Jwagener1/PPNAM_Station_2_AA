@@ -73,11 +73,11 @@ class AuthUseCase @Inject constructor(
             is MqttTypedResult.Success -> {
                 val response = result.response
                 val sessionId = response.operatorSessionId
-                if (response.success && !sessionId.isNullOrBlank()) {
+                if (response.accepted && !sessionId.isNullOrBlank()) {
                     val session = OperatorSession(
                         operatorSessionId = sessionId,
                         operatorId = response.operatorId ?: "",
-                        operatorName = response.operatorName ?: "",
+                        operatorName = response.displayName ?: "",
                         role = response.role ?: "",
                         allowedActions = response.allowedActions,
                         allowedTabs = response.allowedTabs
@@ -85,7 +85,7 @@ class AuthUseCase @Inject constructor(
                     sessionHolder.set(session)
                     Result.success(session)
                 } else {
-                    Result.failure(Exception(response.errorMessage ?: "Login failed"))
+                    Result.failure(Exception(response.reason ?: "Login failed"))
                 }
             }
             is MqttTypedResult.Error -> Result.failure(Exception(result.message))

@@ -37,10 +37,10 @@ data class OperatorContextResponse(
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
     val correlationKey: String = "",
-    val success: Boolean = false,
-    val errorMessage: String? = null,
+    val accepted: Boolean = false,
+    val reason: String? = null,
     val operatorId: String? = null,
-    val operatorName: String? = null,
+    val displayName: String? = null,
     val role: String? = null,
     val allowedActions: List<String> = emptyList(),
     val allowedTabs: List<String> = emptyList()
