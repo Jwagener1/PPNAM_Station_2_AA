@@ -221,6 +221,11 @@ fun SettingsScreen(
                             onValueChange = { viewModel.updateDraft(draft.copy(stationName = it)) }
                         )
                         SettingsTextField(
+                            value = draft.deviceId,
+                            label = "Device ID",
+                            onValueChange = { viewModel.updateDraft(draft.copy(deviceId = it)) }
+                        )
+                        SettingsTextField(
                             value = draft.scannerId.toString(),
                             label = "Scanner ID",
                             keyboardType = KeyboardType.Number,
