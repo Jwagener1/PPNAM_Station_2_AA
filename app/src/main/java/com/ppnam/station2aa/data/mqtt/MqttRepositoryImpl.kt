@@ -1,6 +1,7 @@
 package com.ppnam.station2aa.data.mqtt
 
 import com.google.gson.Gson
+import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,6 +25,13 @@ class MqttRepositoryImpl @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val offlineQueueDao: OfflineQueueDao
 ) : MqttRepository {
+
+    companion object {
+        // Raw text, not JSON — the deviceId status topic (PPNAM/{deviceId}/status) is
+        // presence-only, so payloads are plain "online"/"offline" bytes.
+        private val STATUS_ONLINE = "online".toByteArray()
+        private val STATUS_OFFLINE = "offline".toByteArray()
+    }
 
     private val gson = Gson()
 
@@ -54,6 +63,12 @@ class MqttRepositoryImpl @Inject constructor(
             client.connectWith()
                 .cleanStart(false)
                 .keepAlive(30)
+                .willPublish()
+                    .topic(MqttTopics.deviceStatus(currentDeviceId))
+                    .payload(STATUS_OFFLINE)
+                    .qos(MqttQos.AT_LEAST_ONCE)
+                    .retain(true)
+                    .applyWillPublish()
                 .send()
                 .await()
             client.subscribeWith()
@@ -71,6 +86,13 @@ class MqttRepositoryImpl @Inject constructor(
                 .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
                 .send()
                 .await()
+            client.publishWith()
+                .topic(MqttTopics.deviceStatus(currentDeviceId))
+                .payload(STATUS_ONLINE)
+                .qos(MqttQos.AT_LEAST_ONCE)
+                .retain(true)
+                .send()
+                .await()
             _connectionState.value = MqttConnectionState.CONNECTED
         } catch (e: Exception) {
             _connectionState.value = MqttConnectionState.DISCONNECTED
@@ -78,6 +100,7 @@ class MqttRepositoryImpl @Inject constructor(
     }
 
     override fun disconnect() {
+        publishOfflineBestEffort(mqttClient, currentDeviceId)
         mqttClient?.disconnect()
         _connectionState.value = MqttConnectionState.DISCONNECTED
     }
@@ -92,6 +115,12 @@ class MqttRepositoryImpl @Inject constructor(
                 candidate.connectWith()
                     .cleanStart(false)
                     .keepAlive(30)
+                    .willPublish()
+                        .topic(MqttTopics.deviceStatus(settings.deviceId))
+                        .payload(STATUS_OFFLINE)
+                        .qos(MqttQos.AT_LEAST_ONCE)
+                        .retain(true)
+                        .applyWillPublish()
                     .send()
                     .await()
                 candidate.subscribeWith()
@@ -109,13 +138,22 @@ class MqttRepositoryImpl @Inject constructor(
                     .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
                     .send()
                     .await()
+                candidate.publishWith()
+                    .topic(MqttTopics.deviceStatus(settings.deviceId))
+                    .payload(STATUS_ONLINE)
+                    .qos(MqttQos.AT_LEAST_ONCE)
+                    .retain(true)
+                    .send()
+                    .await()
             }
             val old = mqttClient
+            val oldDeviceId = currentDeviceId
             mqttClient = candidate
             currentStationName = settings.stationName
             currentDeviceId = settings.deviceId
             requestTimeoutMs = settings.requestTimeoutMs
             _connectionState.value = MqttConnectionState.CONNECTED
+            publishOfflineBestEffort(old, oldDeviceId)
             try { old?.disconnect() } catch (_: Exception) { }
             Result.success(Unit)
         } catch (e: Exception) {
@@ -235,6 +273,21 @@ class MqttRepositoryImpl @Inject constructor(
 
     private fun handleIncomingTyped(topic: String, bytes: ByteArray) {
         _incomingTyped.tryEmit(MqttTopics.responseTypeOf(topic) to String(bytes))
+    }
+
+    // A graceful disconnect/reconnect doesn't trigger the connection's LWT (that only
+    // fires on an ungraceful drop), so the "offline" status has to be published by hand
+    // here. Best-effort: bounded blocking wait since disconnect() isn't suspend.
+    private fun publishOfflineBestEffort(client: Mqtt5AsyncClient?, deviceId: String) {
+        try {
+            client?.publishWith()
+                ?.topic(MqttTopics.deviceStatus(deviceId))
+                ?.payload(STATUS_OFFLINE)
+                ?.qos(MqttQos.AT_LEAST_ONCE)
+                ?.retain(true)
+                ?.send()
+                ?.get(2, TimeUnit.SECONDS)
+        } catch (_: Exception) { }
     }
 
     private fun handleHopperStatus(bytes: ByteArray) {
