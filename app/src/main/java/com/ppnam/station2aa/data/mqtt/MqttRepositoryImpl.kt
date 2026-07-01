@@ -205,6 +205,11 @@ class MqttRepositoryImpl @Inject constructor(
         }
     }
 
+    // OfflineQueueRepository.drainQueue() replays queued items via the old
+    // sendWithTimeout()/`{station}/request` path, not sendTyped()'s contract
+    // topics/envelope. No caller sets allowOfflineQueue=true on sendTyped yet
+    // (login/logout always pass false), so this is dormant — but the drain
+    // path must be updated before any typed request enables queuing.
     private suspend fun enqueue(action: String, payload: String): String {
         val id = UUID.randomUUID().toString()
         offlineQueueDao.insert(
