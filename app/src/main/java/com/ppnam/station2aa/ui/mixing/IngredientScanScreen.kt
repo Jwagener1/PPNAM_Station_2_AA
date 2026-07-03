@@ -94,7 +94,13 @@ fun IngredientScanScreen(
 
     if (showApprovalDialog) {
         AlertDialog(
-            onDismissRequest = { if (!isCancelling) showApprovalDialog = false },
+            onDismissRequest = {
+                if (!isCancelling) {
+                    showApprovalDialog = false
+                    managerUsername = ""
+                    managerPassword = ""
+                }
+            },
             title = { Text("Manager or admin approval required", color = TextPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -141,7 +147,14 @@ fun IngredientScanScreen(
                 }
             },
             dismissButton = {
-                TextButton(enabled = !isCancelling, onClick = { showApprovalDialog = false }) { Text("Back") }
+                TextButton(
+                    enabled = !isCancelling,
+                    onClick = {
+                        showApprovalDialog = false
+                        managerUsername = ""
+                        managerPassword = ""
+                    }
+                ) { Text("Back") }
             },
             containerColor = GraphiteSurface
         )
