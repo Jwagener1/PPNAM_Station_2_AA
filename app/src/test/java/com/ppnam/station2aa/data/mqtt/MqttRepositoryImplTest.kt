@@ -1,5 +1,6 @@
 package com.ppnam.station2aa.data.mqtt
 
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
 import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
@@ -152,5 +153,41 @@ class MqttRepositoryImplTest {
 
         assertEquals(3, callCount)
         assertEquals("attempt 3 failed", thrown?.message)
+    }
+
+    @Test
+    fun `handleTransportDisconnected sets RECONNECTING for the active client`() = runTest {
+        val mockClient: Mqtt5AsyncClient = mock()
+        val mqttClientField = MqttRepositoryImpl::class.java.getDeclaredField("mqttClient")
+        mqttClientField.isAccessible = true
+        mqttClientField.set(repo, mockClient)
+
+        val method = MqttRepositoryImpl::class.java.getDeclaredMethod(
+            "handleTransportDisconnected", Mqtt5AsyncClient::class.java
+        )
+        method.isAccessible = true
+        method.invoke(repo, mockClient)
+
+        assertEquals(MqttConnectionState.RECONNECTING, repo.connectionState.value)
+        val transportField = MqttRepositoryImpl::class.java.getDeclaredField("isTransportConnected")
+        transportField.isAccessible = true
+        assertFalse((transportField.get(repo) as java.util.concurrent.atomic.AtomicBoolean).get())
+    }
+
+    @Test
+    fun `handleTransportDisconnected ignores a stale superseded client`() = runTest {
+        val activeClient: Mqtt5AsyncClient = mock()
+        val staleClient: Mqtt5AsyncClient = mock()
+        val mqttClientField = MqttRepositoryImpl::class.java.getDeclaredField("mqttClient")
+        mqttClientField.isAccessible = true
+        mqttClientField.set(repo, activeClient)
+
+        val method = MqttRepositoryImpl::class.java.getDeclaredMethod(
+            "handleTransportDisconnected", Mqtt5AsyncClient::class.java
+        )
+        method.isAccessible = true
+        method.invoke(repo, staleClient)
+
+        assertEquals(MqttConnectionState.DISCONNECTED, repo.connectionState.value)
     }
 }

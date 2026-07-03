@@ -83,13 +83,16 @@ class MqttRepositoryImpl @Inject constructor(
                     }
                 }
             },
-            onDisconnected = {
-                if (mqttClient === client) {
-                    _connectionState.value = MqttConnectionState.DISCONNECTED
-                }
-            }
+            onDisconnected = { handleTransportDisconnected(client) }
         )
         return client
+    }
+
+    private fun handleTransportDisconnected(client: Mqtt5AsyncClient) {
+        isTransportConnected.set(false)
+        if (mqttClient === client) {
+            _connectionState.value = MqttConnectionState.RECONNECTING
+        }
     }
 
     private fun scheduleReconnectRetry() {
