@@ -36,6 +36,11 @@ fun IngredientScanScreen(
     var managerUsername by remember { mutableStateOf("") }
     var managerPassword by remember { mutableStateOf("") }
 
+    val allIngredientsSatisfied = (uiState as? MixingUiState.OrderLoaded)?.order?.lines?.all { bomLine ->
+        bomLine.isFullyAllocated ||
+            scannedIngredients.count { it.itemCode == bomLine.itemCode } >= bomLine.requiredQty.toInt()
+    } ?: false
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -375,7 +380,7 @@ fun IngredientScanScreen(
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = onProceedToHopperScan,
-                    enabled = scannedIngredients.isNotEmpty() && uiState is MixingUiState.OrderLoaded,
+                    enabled = allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded,
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
                     Text("Proceed to Hopper Scan")
