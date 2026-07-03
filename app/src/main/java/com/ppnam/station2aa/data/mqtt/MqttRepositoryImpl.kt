@@ -33,6 +33,9 @@ class MqttRepositoryImpl @Inject constructor(
         private val STATUS_ONLINE = "online".toByteArray()
         private val STATUS_OFFLINE = "offline".toByteArray()
         private const val RECONNECT_RETRY_DELAY_MS = 5_000L
+        private const val SUBSCRIBE_RETRY_ATTEMPTS = 3
+        private const val SUBSCRIBE_RETRY_DELAY_MS = 2_000L
+        private const val SUBSCRIBE_TIMEOUT_MS = 10_000L
     }
 
     private val gson = Gson()
@@ -66,6 +69,7 @@ class MqttRepositoryImpl @Inject constructor(
         client = clientFactory.build(
             settings,
             onConnected = {
+                isTransportConnected.set(true)
                 scope.launch {
                     if (mqttClient !== client) return@launch
                     if (!initialConnectHandled) {
@@ -74,12 +78,22 @@ class MqttRepositoryImpl @Inject constructor(
                         initialConnectHandled = true
                         return@launch
                     }
+                    // This branch only runs when HiveMQ's automaticReconnect() has just
+                    // silently re-established the transport after a mid-session drop.
+                    // connect() is deliberately NOT called here — per Task 1's guard it
+                    // would just no-op against the now-live transport, which is exactly
+                    // the re-entrancy bug this replaces. Only the subscribe step (which is
+                    // what actually needs redoing, since MQTT5 sessions here don't persist
+                    // subscriptions across a disconnect) is retried.
                     try {
-                        subscribeAndAnnounce(client, settings.stationName, settings.deviceId)
+                        retryBounded(SUBSCRIBE_RETRY_ATTEMPTS, SUBSCRIBE_RETRY_DELAY_MS) {
+                            withTimeout(SUBSCRIBE_TIMEOUT_MS) {
+                                subscribeAndAnnounce(client, settings.stationName, settings.deviceId)
+                            }
+                        }
                         _connectionState.value = MqttConnectionState.CONNECTED
                     } catch (e: Exception) {
                         _connectionState.value = MqttConnectionState.DISCONNECTED
-                        scheduleReconnectRetry()
                     }
                 }
             },
