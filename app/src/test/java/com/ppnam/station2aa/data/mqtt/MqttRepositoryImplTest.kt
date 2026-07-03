@@ -113,4 +113,44 @@ class MqttRepositoryImplTest {
             argThat<OfflineQueueEntity> { action == "ingredient_scanned" && payload == "{\"qty\":5}" }
         )
     }
+
+    @Test
+    fun `retryBounded returns immediately on first success`() = runTest {
+        var callCount = 0
+        val result = repo.retryBounded(maxAttempts = 3, delayMs = 1_000L) {
+            callCount++
+            "ok"
+        }
+        assertEquals("ok", result)
+        assertEquals(1, callCount)
+    }
+
+    @Test
+    fun `retryBounded succeeds on a later attempt without exhausting retries`() = runTest {
+        var callCount = 0
+        val result = repo.retryBounded(maxAttempts = 3, delayMs = 1_000L) {
+            callCount++
+            if (callCount < 2) throw IllegalStateException("not yet")
+            "recovered"
+        }
+        assertEquals("recovered", result)
+        assertEquals(2, callCount)
+    }
+
+    @Test
+    fun `retryBounded retries up to maxAttempts then rethrows the last error`() = runTest {
+        var callCount = 0
+        val thrown = try {
+            repo.retryBounded(maxAttempts = 3, delayMs = 1_000L) {
+                callCount++
+                throw IllegalStateException("attempt $callCount failed")
+            }
+            null
+        } catch (e: IllegalStateException) {
+            e
+        }
+
+        assertEquals(3, callCount)
+        assertEquals("attempt 3 failed", thrown?.message)
+    }
 }

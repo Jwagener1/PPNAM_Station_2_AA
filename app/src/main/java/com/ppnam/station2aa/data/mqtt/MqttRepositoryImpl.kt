@@ -102,6 +102,19 @@ class MqttRepositoryImpl @Inject constructor(
         }
     }
 
+    internal suspend fun <T> retryBounded(maxAttempts: Int, delayMs: Long, block: suspend () -> T): T {
+        var lastError: Throwable? = null
+        repeat(maxAttempts) { attempt ->
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastError = e
+                if (attempt < maxAttempts - 1) delay(delayMs)
+            }
+        }
+        throw lastError ?: IllegalStateException("retryBounded exhausted with no recorded error")
+    }
+
     private suspend fun subscribeAndAnnounce(client: Mqtt5AsyncClient, stationName: String, deviceId: String) {
         client.subscribeWith()
             .topicFilter(MqttTopics.response(stationName, deviceId))
