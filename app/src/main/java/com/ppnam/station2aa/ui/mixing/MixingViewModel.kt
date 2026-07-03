@@ -6,6 +6,7 @@ import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
+import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
@@ -23,6 +24,7 @@ import javax.inject.Inject
 sealed class MixingUiState {
     object Idle : MixingUiState()
     object Loading : MixingUiState()
+    object Cancelling : MixingUiState()
     data class OrderLoaded(val order: ProductionOrder) : MixingUiState()
     data class IngredientInvalid(val tagId: String, val reason: String) : MixingUiState()
     data class WaitingForSupervisor(val tagId: String, val reason: String) : MixingUiState()
@@ -35,12 +37,18 @@ object MixingNavDestination {
     const val HOME = "home"
 }
 
+sealed class CancelOutcome {
+    object Confirmed : CancelOutcome()
+    data class Failed(val reason: String) : CancelOutcome()
+}
+
 @HiltViewModel
 class MixingViewModel @Inject constructor(
     private val useCase: MixingUseCase,
     private val scanEventBus: ScanEventBus,
     private val mqttRepository: MqttRepository,
-    private val offlineQueueRepository: OfflineQueueRepository
+    private val offlineQueueRepository: OfflineQueueRepository,
+    private val sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MixingUiState>(MixingUiState.Idle)
@@ -73,6 +81,9 @@ class MixingViewModel @Inject constructor(
 
     private val _supervisorError = Channel<String>(Channel.BUFFERED)
     val supervisorError: Flow<String> = _supervisorError.receiveAsFlow()
+
+    private val _cancelOutcome = Channel<CancelOutcome>(Channel.BUFFERED)
+    val cancelOutcome: Flow<CancelOutcome> = _cancelOutcome.receiveAsFlow()
 
     private var scanJob: Job? = null
     private var currentOrderNo: String = ""
@@ -217,22 +228,42 @@ class MixingViewModel @Inject constructor(
         if (_uiState.value is MixingUiState.Error) _uiState.value = MixingUiState.Idle
     }
 
-    // Lets an operator back out of a wrongly-loaded job card. Resets local state and
-    // notifies the backend best-effort (there's no handler for this yet — see
-    // MixingUseCase.notifyJobCardCancelled — so this is forward-looking, not a
-    // guarantee the server does anything with it today).
-    fun cancelJob() {
-        scanJob?.cancel()
+    fun operatorCanCancelDirectly(): Boolean =
+        sessionHolder.session.value?.allowedActions?.contains("cancel_premix_direct") == true
+
+    // Waits for premix_cancel_result before touching any local state — a rejected
+    // cancel (e.g. the pre-mix already has scanned ingredients, or the manager
+    // approval was denied) must leave the job exactly as it was, per the backend's
+    // "only an untouched JC load can be closed" rule.
+    fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
         val jobCardNumber = currentOrderNo
         val preMixId = cachedOrder?.preMixId ?: ""
-        if (jobCardNumber.isNotBlank()) {
-            viewModelScope.launch { useCase.notifyJobCardCancelled(jobCardNumber, preMixId) }
+        if (jobCardNumber.isBlank()) return
+        scanJob?.cancel()
+        val orderBeforeCancel = cachedOrder
+        viewModelScope.launch {
+            _uiState.value = MixingUiState.Cancelling
+            useCase.cancelJob(
+                preMixId,
+                jobCardNumber,
+                "Operator cancelled — incorrect job card",
+                managerUsername,
+                managerPassword
+            )
+                .onSuccess {
+                    currentOrderNo = ""
+                    cachedOrder = null
+                    _scannedIngredients.value = emptyList()
+                    _hopperCode.value = ""
+                    _isQueuedOffline.value = false
+                    _uiState.value = MixingUiState.Idle
+                    _cancelOutcome.send(CancelOutcome.Confirmed)
+                }
+                .onFailure { e ->
+                    _uiState.value = orderBeforeCancel?.let { MixingUiState.OrderLoaded(it) } ?: MixingUiState.Idle
+                    if (orderBeforeCancel != null) startListeningForScans(jobCardNumber)
+                    _cancelOutcome.send(CancelOutcome.Failed(e.message ?: "Cancel failed"))
+                }
         }
-        currentOrderNo = ""
-        cachedOrder = null
-        _scannedIngredients.value = emptyList()
-        _hopperCode.value = ""
-        _isQueuedOffline.value = false
-        _uiState.value = MixingUiState.Idle
     }
 }

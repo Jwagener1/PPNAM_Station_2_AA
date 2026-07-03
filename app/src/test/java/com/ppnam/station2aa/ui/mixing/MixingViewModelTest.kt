@@ -2,6 +2,8 @@ package com.ppnam.station2aa.ui.mixing
 
 import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEventBus
+import com.ppnam.station2aa.data.session.OperatorSession
+import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.HopperAvailability
 import com.ppnam.station2aa.domain.model.HopperStatus
@@ -31,12 +33,21 @@ class MixingViewModelTest {
     private lateinit var mockScanEventBus: ScanEventBus
     private lateinit var mockMqttRepository: MqttRepository
     private lateinit var mockOfflineQueueRepository: OfflineQueueRepository
+    private lateinit var mockSessionHolder: OperatorSessionHolder
     private lateinit var viewModel: MixingViewModel
 
     private val sampleOrder = ProductionOrder(
         docNo = "510019068",
         preMixId = "premix-1",
         lines = listOf(BomLine("MAT-001", "Resin", 1.0))
+    )
+
+    private fun sessionWithActions(vararg actions: String) = OperatorSession(
+        operatorSessionId = "session-id",
+        operatorId = "op-1",
+        operatorName = "Test Operator",
+        role = "Worker",
+        allowedActions = actions.toList()
     )
 
     @Before
@@ -46,6 +57,7 @@ class MixingViewModelTest {
         mockScanEventBus = mock()
         mockMqttRepository = mock()
         mockOfflineQueueRepository = mock()
+        mockSessionHolder = mock()
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
@@ -53,8 +65,11 @@ class MixingViewModelTest {
             .thenReturn(MutableSharedFlow())
         whenever(mockOfflineQueueRepository.pendingCount()).thenReturn(flowOf(0))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
+        whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("cancel_premix")))
 
-        viewModel = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository)
+        viewModel = MixingViewModel(
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder
+        )
     }
 
     @After
@@ -168,7 +183,7 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `cancelJob resets state and scanned ingredients so a new job can be looked up`() = runTest {
+    fun `cancelJob resets state and scanned ingredients on backend confirmation`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
@@ -181,11 +196,76 @@ class MixingViewModelTest {
         advanceUntilIdle()
         assertTrue(viewModel.scannedIngredients.value.isNotEmpty())
 
+        whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
+            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
+        )
+        val outcomes = mutableListOf<CancelOutcome>()
+        val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
+
         viewModel.cancelJob()
+        advanceUntilIdle()
 
         assertEquals(MixingUiState.Idle, viewModel.uiState.value)
         assertTrue(viewModel.scannedIngredients.value.isEmpty())
         assertEquals("", viewModel.hopperCode.value)
+        assertTrue(outcomes.contains(CancelOutcome.Confirmed))
+        job.cancel()
+    }
+
+    @Test
+    fun `cancelJob on rejection keeps the order loaded and emits Failed`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any()))
+            .thenReturn(Result.failure(Exception("Pre-mix has ingredient activity and cannot be closed.")))
+        val outcomes = mutableListOf<CancelOutcome>()
+        val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
+
+        viewModel.cancelJob()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
+        assertEquals(
+            listOf(CancelOutcome.Failed("Pre-mix has ingredient activity and cannot be closed.")),
+            outcomes
+        )
+        job.cancel()
+    }
+
+    @Test
+    fun `cancelJob passes manager credentials through to the use case`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
+            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
+        )
+
+        viewModel.cancelJob(managerUsername = "Manager1", managerPassword = "5678")
+        advanceUntilIdle()
+
+        verify(mockUseCase).cancelJob(
+            eq("premix-1"), eq("510019068"), any(), eq("Manager1"), eq("5678")
+        )
+    }
+
+    @Test
+    fun `operatorCanCancelDirectly reflects the cancel_premix_direct allowed action`() = runTest {
+        whenever(mockSessionHolder.session).thenReturn(
+            MutableStateFlow(sessionWithActions("cancel_premix", "cancel_premix_direct"))
+        )
+        val directViewModel = MixingViewModel(
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder
+        )
+
+        assertTrue(directViewModel.operatorCanCancelDirectly())
+    }
+
+    @Test
+    fun `operatorCanCancelDirectly is false without the capability`() = runTest {
+        assertFalse(viewModel.operatorCanCancelDirectly())
     }
 
     @Test
