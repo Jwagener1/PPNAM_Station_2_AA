@@ -15,6 +15,9 @@ data class BomLine(
     val itemName: String,
     val requiredQty: Double,
     val scannedQty: Double = 0.0,
+    val remainingQty: Double = 0.0,
     val valid: Boolean = true,
     val reason: String? = null
-)
+) {
+    val isFullyAllocated: Boolean get() = remainingQty <= 0.0
+}

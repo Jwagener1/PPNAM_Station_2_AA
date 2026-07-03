@@ -128,6 +128,43 @@ class MixingUseCaseTest {
     }
 
     @Test
+    fun `lookupJob carries remainingQty through for every manual line`() = runTest {
+        val response = BomLoadedResponse(
+            accepted = true,
+            jobCardNumber = "510019068",
+            productionOrderDocumentNumber = "510019068",
+            preMixId = "premix-1",
+            ingredients = listOf(
+                BomLineResponse(
+                    materialCode = "MAT-001", materialName = "Resin",
+                    plannedQuantity = 50.0, issuedQuantity = 50.0, remainingQuantity = 0.0,
+                    issueType = "im_Manual"
+                ),
+                BomLineResponse(
+                    materialCode = "MAT-002", materialName = "Colorant",
+                    plannedQuantity = 10.0, issuedQuantity = 3.0, remainingQuantity = 7.0,
+                    issueType = "im_Manual"
+                )
+            )
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val order = useCase.lookupJob("510019068").getOrThrow()
+
+        val resin = order.lines.single { it.itemCode == "MAT-001" }
+        val colorant = order.lines.single { it.itemCode == "MAT-002" }
+        assertEquals(0.0, resin.remainingQty, 0.0001)
+        assertTrue(resin.isFullyAllocated)
+        assertEquals(7.0, colorant.remainingQty, 0.0001)
+        assertFalse(colorant.isFullyAllocated)
+    }
+
+    @Test
     fun `lookupJob returns failure when rejected`() = runTest {
         val response = BomLoadedResponse(accepted = false, reason = "Job card not found")
         whenever(

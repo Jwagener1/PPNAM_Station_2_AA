@@ -107,7 +107,8 @@ fun IngredientScanScreen(
                     is MixingUiState.OrderLoaded -> {
                         val order = state.order
                         val satisfiedCount = order.lines.count { bomLine ->
-                            scannedIngredients.count { it.itemCode == bomLine.itemCode } >= bomLine.requiredQty.toInt()
+                            bomLine.isFullyAllocated ||
+                                scannedIngredients.count { it.itemCode == bomLine.itemCode } >= bomLine.requiredQty.toInt()
                         }
                         val allSatisfied = satisfiedCount == order.lines.size
 
@@ -144,7 +145,7 @@ fun IngredientScanScreen(
                             items(order.lines) { bomLine ->
                                 val scannedCount = scannedIngredients.count { it.itemCode == bomLine.itemCode }
                                 val required = bomLine.requiredQty.toInt().coerceAtLeast(1)
-                                val satisfied = scannedCount >= required
+                                val satisfied = bomLine.isFullyAllocated || scannedCount >= required
                                 val fraction = (scannedCount.toFloat() / required.toFloat()).coerceIn(0f, 1f)
                                 val displayName = bomLine.itemName.ifBlank { bomLine.itemCode }
 
@@ -179,21 +180,23 @@ fun IngredientScanScreen(
                                                 Spacer(Modifier.width(6.dp))
                                             }
                                             Text(
-                                                text = "$scannedCount / $required",
+                                                text = if (bomLine.isFullyAllocated) "Fully Allocated" else "$scannedCount / $required",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = if (satisfied) SuccessGreen else TextMuted
                                             )
                                         }
-                                        Spacer(Modifier.height(8.dp))
-                                        LinearProgressIndicator(
-                                            progress = { fraction },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(6.dp)
-                                                .clip(RoundedCornerShape(3.dp)),
-                                            color = if (satisfied) SuccessGreen else AmberPrimary,
-                                            trackColor = GraphiteBorder
-                                        )
+                                        if (!bomLine.isFullyAllocated) {
+                                            Spacer(Modifier.height(8.dp))
+                                            LinearProgressIndicator(
+                                                progress = { fraction },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(6.dp)
+                                                    .clip(RoundedCornerShape(3.dp)),
+                                                color = if (satisfied) SuccessGreen else AmberPrimary,
+                                                trackColor = GraphiteBorder
+                                            )
+                                        }
                                     }
                                 }
                             }
