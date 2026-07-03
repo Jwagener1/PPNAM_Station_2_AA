@@ -30,6 +30,7 @@ fun IngredientScanScreen(
     val scannedIngredients by viewModel.scannedIngredients.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
+    var showCancelDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -41,11 +42,35 @@ fun IngredientScanScreen(
 
     LaunchedEffect(orderNo) { viewModel.startListeningForScans(orderNo) }
 
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("Cancel this job card?", color = TextPrimary) },
+            text = {
+                Text(
+                    "Any scanned ingredients on this job will be discarded. You can look up the correct job card afterwards.",
+                    color = TextMuted
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCancelDialog = false
+                    viewModel.cancelJob()
+                    onBack()
+                }) { Text("Cancel Job", color = DangerRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) { Text("Keep Scanning") }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
     AppScaffold(
         title = "Scan Ingredients",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = onBack
+        onBack = { showCancelDialog = true }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -98,6 +123,10 @@ fun IngredientScanScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text("Order $orderNo", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                order.productBeingMade?.let { productName ->
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(productName, style = MaterialTheme.typography.bodyMedium, color = AmberPrimary)
+                                }
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     "$satisfiedCount of ${order.lines.size} lines satisfied",

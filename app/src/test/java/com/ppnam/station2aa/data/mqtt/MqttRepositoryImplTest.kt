@@ -34,18 +34,17 @@ class MqttRepositoryImplTest {
     }
 
     @Test
-    fun `send queues message when disconnected`() = runTest {
-        whenever(mockQueueDao.insert(any())).thenReturn(Unit)
+    fun `send fails fast when disconnected instead of queuing`() = runTest {
         val result = repo.sendWithTimeout("complete-premix", "{}", timeoutMs = 100L)
-        assertTrue(result is MqttResult.Queued)
-        verify(mockQueueDao).insert(any())
+        assertTrue(result is MqttResult.Error)
+        verify(mockQueueDao, never()).insert(any())
     }
 
     @Test
-    fun `send queues message on timeout`() = runTest {
-        whenever(mockQueueDao.insert(any())).thenReturn(Unit)
-        val result = repo.sendWithTimeout("lookup-job", "{}", timeoutMs = 100L)
-        assertTrue(result is MqttResult.Queued)
+    fun `send fails fast when disconnected regardless of action`() = runTest {
+        val result = repo.sendWithTimeout("lookup-pallet", "{}", timeoutMs = 100L)
+        assertTrue(result is MqttResult.Error)
+        verify(mockQueueDao, never()).insert(any())
     }
 
     @Test
@@ -79,6 +78,12 @@ class MqttRepositoryImplTest {
             allowOfflineQueue = false
         )
         assertTrue(result is MqttTypedResult.Disconnected)
+        verify(mockQueueDao, never()).insert(any())
+    }
+
+    @Test
+    fun `publishTyped is a silent no-op when disconnected`() = runTest {
+        repo.publishTyped("premix_cancelled", "{}")
         verify(mockQueueDao, never()).insert(any())
     }
 

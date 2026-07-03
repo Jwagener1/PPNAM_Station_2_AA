@@ -198,4 +198,23 @@ class MixingViewModel @Inject constructor(
     fun clearError() {
         if (_uiState.value is MixingUiState.Error) _uiState.value = MixingUiState.Idle
     }
+
+    // Lets an operator back out of a wrongly-loaded job card. Resets local state and
+    // notifies the backend best-effort (there's no handler for this yet — see
+    // MixingUseCase.notifyJobCardCancelled — so this is forward-looking, not a
+    // guarantee the server does anything with it today).
+    fun cancelJob() {
+        scanJob?.cancel()
+        val jobCardNumber = currentOrderNo
+        val preMixId = cachedOrder?.preMixId ?: ""
+        if (jobCardNumber.isNotBlank()) {
+            viewModelScope.launch { useCase.notifyJobCardCancelled(jobCardNumber, preMixId) }
+        }
+        currentOrderNo = ""
+        cachedOrder = null
+        _scannedIngredients.value = emptyList()
+        _hopperCode.value = ""
+        _isQueuedOffline.value = false
+        _uiState.value = MixingUiState.Idle
+    }
 }

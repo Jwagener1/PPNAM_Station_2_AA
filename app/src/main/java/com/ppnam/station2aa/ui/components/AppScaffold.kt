@@ -29,6 +29,7 @@ fun AppScaffold(
     onBack: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
     operatorName: String? = null,
+    operatorRole: String? = null,
     onLogout: (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -83,7 +84,11 @@ fun AppScaffold(
                 actions = {
                     if (operatorName != null) {
                         TextButton(onClick = { showLogoutDialog = true }) {
-                            Text(operatorName, color = TextPrimary, style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                text = if (!operatorRole.isNullOrBlank()) "$operatorName · $operatorRole" else operatorName,
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.labelMedium
+                            )
                         }
                     }
                     if (onSettings != null) {

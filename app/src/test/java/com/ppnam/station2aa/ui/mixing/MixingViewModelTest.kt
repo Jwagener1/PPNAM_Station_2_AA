@@ -35,8 +35,7 @@ class MixingViewModelTest {
 
     private val sampleOrder = ProductionOrder(
         docNo = "510019068",
-        itemCode = "9000002064",
-        plannedQty = 100.0,
+        preMixId = "premix-1",
         lines = listOf(BomLine("MAT-001", "Resin", 1.0))
     )
 
@@ -166,5 +165,26 @@ class MixingViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state is MixingUiState.HopperUnavailable)
         assertEquals("Already in use", (state as MixingUiState.HopperUnavailable).reason)
+    }
+
+    @Test
+    fun `cancelJob resets state and scanned ingredients so a new job can be looked up`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        val exceptionIngredient = ScannedIngredient("TAG-001", "MAT-001", 1.0)
+        whenever(mockUseCase.approveIngredientException(any(), any(), any()))
+            .thenReturn(Result.success(exceptionIngredient))
+        viewModel.requestSupervisorOverride("TAG-001", "Not in BOM")
+        viewModel.submitSupervisorTag("510019068", "TAG-001", "SUP-001")
+        advanceUntilIdle()
+        assertTrue(viewModel.scannedIngredients.value.isNotEmpty())
+
+        viewModel.cancelJob()
+
+        assertEquals(MixingUiState.Idle, viewModel.uiState.value)
+        assertTrue(viewModel.scannedIngredients.value.isEmpty())
+        assertEquals("", viewModel.hopperCode.value)
     }
 }

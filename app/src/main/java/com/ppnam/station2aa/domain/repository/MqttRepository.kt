@@ -20,6 +20,7 @@ interface MqttRepository {
         responseClass: Class<T>,
         allowOfflineQueue: Boolean
     ): MqttTypedResult<T>
+    suspend fun publishTyped(requestType: String, requestJson: String)
     suspend fun connect()
     fun disconnect()
     suspend fun reconnectWith(settings: AppSettings): Result<Unit>

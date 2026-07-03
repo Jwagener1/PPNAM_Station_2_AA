@@ -4,19 +4,28 @@ import com.google.gson.Gson
 import com.ppnam.station2aa.data.local.BomCacheDao
 import com.ppnam.station2aa.data.local.BomCacheEntity
 import com.ppnam.station2aa.data.mqtt.MqttResult
+import com.ppnam.station2aa.data.mqtt.MqttTypedResult
+import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
+import com.ppnam.station2aa.data.mqtt.dto.JobCardSubmittedRequest
+import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelledRequest
+import com.ppnam.station2aa.data.session.OperatorSessionHolder
+import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class MixingUseCase @Inject constructor(
     private val mqttRepository: MqttRepository,
-    private val bomCacheDao: BomCacheDao
+    private val bomCacheDao: BomCacheDao,
+    private val settingsRepository: SettingsRepository,
+    private val sessionHolder: OperatorSessionHolder
 ) {
     private val gson = Gson()
 
@@ -32,17 +41,74 @@ class MixingUseCase @Inject constructor(
         val reason: String?
     )
 
-    suspend fun lookupJob(orderNo: String): Result<ProductionOrder> {
-        val payload = gson.toJson(mapOf("orderNo" to orderNo))
-        return when (val result = mqttRepository.send("lookup-job", payload)) {
-            is MqttResult.Success -> {
-                val order = gson.fromJson(result.dataJson, ProductionOrder::class.java)
-                bomCacheDao.put(BomCacheEntity(orderNo, result.dataJson, Instant.now().toEpochMilli()))
-                Result.success(order)
+    suspend fun lookupJob(jobCardNumber: String): Result<ProductionOrder> {
+        val deviceId = settingsRepository.current().deviceId
+        val requestJson = gson.toJson(
+            JobCardSubmittedRequest(
+                messageId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
+                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+                timestampUtc = Instant.now().toString(),
+                correlationKey = jobCardNumber,
+                jobCardNumber = jobCardNumber
+            )
+        )
+
+        val result = mqttRepository.sendTyped(
+            requestType = "job_card_submitted",
+            responseType = "bom_loaded",
+            requestJson = requestJson,
+            responseClass = BomLoadedResponse::class.java,
+            allowOfflineQueue = false
+        )
+
+        return when (result) {
+            is MqttTypedResult.Success -> {
+                val response = result.response
+                if (response.accepted) {
+                    val order = ProductionOrder(
+                        docNo = response.productionOrderDocumentNumber,
+                        preMixId = response.preMixId,
+                        productBeingMade = response.ingredients
+                            .firstOrNull { it.issueType == "im_Backflush" }
+                            ?.materialName,
+                        lines = response.ingredients
+                            .filter { it.issueType != "im_Backflush" }
+                            .map { line ->
+                                BomLine(
+                                    itemCode = line.materialCode,
+                                    itemName = line.materialName,
+                                    requiredQty = line.plannedQuantity,
+                                    scannedQty = line.issuedQuantity
+                                )
+                            }
+                    )
+                    bomCacheDao.put(BomCacheEntity(jobCardNumber, gson.toJson(order), Instant.now().toEpochMilli()))
+                    Result.success(order)
+                } else {
+                    Result.failure(Exception(response.reason ?: "Job card rejected"))
+                }
             }
-            is MqttResult.Error -> Result.failure(Exception(result.message))
-            is MqttResult.Queued -> Result.failure(Exception("No connection — reconnecting"))
+            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
+            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
+            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
         }
+    }
+
+    suspend fun notifyJobCardCancelled(jobCardNumber: String, preMixId: String) {
+        val deviceId = settingsRepository.current().deviceId
+        val requestJson = gson.toJson(
+            PreMixCancelledRequest(
+                messageId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
+                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+                timestampUtc = Instant.now().toString(),
+                correlationKey = preMixId.ifBlank { jobCardNumber },
+                preMixId = preMixId,
+                jobCardNumber = jobCardNumber
+            )
+        )
+        mqttRepository.publishTyped("premix_cancelled", requestJson)
     }
 
     suspend fun validateIngredient(orderNo: String, tagId: String): Result<IngredientValidationResult> {

@@ -31,9 +31,11 @@ class MqttRepositoryImpl @Inject constructor(
         // presence-only, so payloads are plain "online"/"offline" bytes.
         private val STATUS_ONLINE = "online".toByteArray()
         private val STATUS_OFFLINE = "offline".toByteArray()
+        private const val RECONNECT_RETRY_DELAY_MS = 5_000L
     }
 
     private val gson = Gson()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _connectionState = MutableStateFlow(MqttConnectionState.DISCONNECTED)
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
@@ -48,58 +50,121 @@ class MqttRepositoryImpl @Inject constructor(
     private var currentStationName: String = AppSettings().stationName
     private var currentDeviceId: String = AppSettings().deviceId
     private var requestTimeoutMs: Long = AppSettings().requestTimeoutMs
+    private var retryJob: Job? = null
+
+    // The HiveMQ client's automaticReconnect() only takes over once a connection has
+    // succeeded at least once — it does not retry a failed *initial* connect. Each built
+    // client also gets connected/disconnected listeners so that later drops/restores
+    // (whether from automaticReconnect or a network blip) keep _connectionState honest
+    // and re-run the subscribe step, since MQTT5 sessions aren't configured to persist
+    // subscriptions across a disconnect (no sessionExpiryInterval set).
+    private fun buildClient(settings: AppSettings): Mqtt5AsyncClient {
+        lateinit var client: Mqtt5AsyncClient
+        var initialConnectHandled = false
+        client = clientFactory.build(
+            settings,
+            onConnected = {
+                scope.launch {
+                    if (mqttClient !== client) return@launch
+                    if (!initialConnectHandled) {
+                        // First CONNACK for this client is handled synchronously by the
+                        // caller (connect()/reconnectWith()) so it can report success/failure.
+                        initialConnectHandled = true
+                        return@launch
+                    }
+                    try {
+                        subscribeAndAnnounce(client, settings.stationName, settings.deviceId)
+                        _connectionState.value = MqttConnectionState.CONNECTED
+                    } catch (e: Exception) {
+                        _connectionState.value = MqttConnectionState.DISCONNECTED
+                        scheduleReconnectRetry()
+                    }
+                }
+            },
+            onDisconnected = {
+                if (mqttClient === client) {
+                    _connectionState.value = MqttConnectionState.DISCONNECTED
+                }
+            }
+        )
+        return client
+    }
+
+    private fun scheduleReconnectRetry() {
+        if (retryJob?.isActive == true) return
+        retryJob = scope.launch {
+            delay(RECONNECT_RETRY_DELAY_MS)
+            if (_connectionState.value != MqttConnectionState.CONNECTED) {
+                connect()
+            }
+        }
+    }
+
+    private suspend fun subscribeAndAnnounce(client: Mqtt5AsyncClient, stationName: String, deviceId: String) {
+        client.subscribeWith()
+            .topicFilter(MqttTopics.response(stationName, deviceId))
+            .callback { publish -> handleIncoming(publish.payloadAsBytes) }
+            .send()
+            .await()
+        client.subscribeWith()
+            .topicFilter(MqttTopics.hopperStatus(stationName))
+            .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
+            .send()
+            .await()
+        client.subscribeWith()
+            .topicFilter(MqttTopics.contractResponseWildcard(deviceId))
+            .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
+            .send()
+            .await()
+        client.publishWith()
+            .topic(MqttTopics.deviceStatus(deviceId))
+            .payload(STATUS_ONLINE)
+            .qos(MqttQos.AT_LEAST_ONCE)
+            .retain(true)
+            .send()
+            .await()
+    }
 
     override suspend fun connect() {
+        if (_connectionState.value == MqttConnectionState.CONNECTED) return
+        retryJob?.cancel()
         _connectionState.value = MqttConnectionState.RECONNECTING
-        try {
-            val settings = settingsRepository.current()
-            currentStationName = settings.stationName
-            currentDeviceId = settings.deviceId
-            requestTimeoutMs = settings.requestTimeoutMs
+        val settings = settingsRepository.current()
+        currentStationName = settings.stationName
+        currentDeviceId = settings.deviceId
+        requestTimeoutMs = settings.requestTimeoutMs
+        // buildClient()/connectWith() do synchronous SSLContext/Netty setup (disk I/O +
+        // crypto init) before the first suspension point — running that on the caller's
+        // dispatcher (Main, via viewModelScope) blocks the UI thread long enough to trip
+        // the input-dispatch ANR watchdog. Dispatchers.IO keeps it off Main.
+        withContext(Dispatchers.IO) {
             if (mqttClient == null) {
-                mqttClient = clientFactory.build(settings)
+                mqttClient = buildClient(settings)
             }
-            val client = mqttClient!!
-            client.connectWith()
-                .cleanStart(false)
-                .keepAlive(30)
-                .willPublish()
-                    .topic(MqttTopics.deviceStatus(currentDeviceId))
-                    .payload(STATUS_OFFLINE)
-                    .qos(MqttQos.AT_LEAST_ONCE)
-                    .retain(true)
-                    .applyWillPublish()
-                .send()
-                .await()
-            client.subscribeWith()
-                .topicFilter(MqttTopics.response(currentStationName, currentDeviceId))
-                .callback { publish -> handleIncoming(publish.payloadAsBytes) }
-                .send()
-                .await()
-            client.subscribeWith()
-                .topicFilter(MqttTopics.hopperStatus(currentStationName))
-                .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
-                .send()
-                .await()
-            client.subscribeWith()
-                .topicFilter(MqttTopics.contractResponseWildcard(currentDeviceId))
-                .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
-                .send()
-                .await()
-            client.publishWith()
-                .topic(MqttTopics.deviceStatus(currentDeviceId))
-                .payload(STATUS_ONLINE)
-                .qos(MqttQos.AT_LEAST_ONCE)
-                .retain(true)
-                .send()
-                .await()
-            _connectionState.value = MqttConnectionState.CONNECTED
-        } catch (e: Exception) {
-            _connectionState.value = MqttConnectionState.DISCONNECTED
+            try {
+                val client = mqttClient!!
+                client.connectWith()
+                    .cleanStart(false)
+                    .keepAlive(30)
+                    .willPublish()
+                        .topic(MqttTopics.deviceStatus(currentDeviceId))
+                        .payload(STATUS_OFFLINE)
+                        .qos(MqttQos.AT_LEAST_ONCE)
+                        .retain(true)
+                        .applyWillPublish()
+                    .send()
+                    .await()
+                subscribeAndAnnounce(client, currentStationName, currentDeviceId)
+                _connectionState.value = MqttConnectionState.CONNECTED
+            } catch (e: Exception) {
+                _connectionState.value = MqttConnectionState.DISCONNECTED
+                scheduleReconnectRetry()
+            }
         }
     }
 
     override fun disconnect() {
+        retryJob?.cancel()
         publishOfflineBestEffort(mqttClient, currentDeviceId)
         mqttClient?.disconnect()
         _connectionState.value = MqttConnectionState.DISCONNECTED
@@ -109,62 +174,52 @@ class MqttRepositoryImpl @Inject constructor(
         sendWithTimeout(action, dataJson, requestTimeoutMs)
 
     override suspend fun reconnectWith(settings: AppSettings): Result<Unit> {
-        val candidate = clientFactory.build(settings)
-        return try {
-            withTimeout(15_000L) {
-                candidate.connectWith()
-                    .cleanStart(false)
-                    .keepAlive(30)
-                    .willPublish()
-                        .topic(MqttTopics.deviceStatus(settings.deviceId))
-                        .payload(STATUS_OFFLINE)
-                        .qos(MqttQos.AT_LEAST_ONCE)
-                        .retain(true)
-                        .applyWillPublish()
-                    .send()
-                    .await()
-                candidate.subscribeWith()
-                    .topicFilter(MqttTopics.response(settings.stationName, settings.deviceId))
-                    .callback { publish -> handleIncoming(publish.payloadAsBytes) }
-                    .send()
-                    .await()
-                candidate.subscribeWith()
-                    .topicFilter(MqttTopics.hopperStatus(settings.stationName))
-                    .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
-                    .send()
-                    .await()
-                candidate.subscribeWith()
-                    .topicFilter(MqttTopics.contractResponseWildcard(settings.deviceId))
-                    .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
-                    .send()
-                    .await()
-                candidate.publishWith()
-                    .topic(MqttTopics.deviceStatus(settings.deviceId))
-                    .payload(STATUS_ONLINE)
-                    .qos(MqttQos.AT_LEAST_ONCE)
-                    .retain(true)
-                    .send()
-                    .await()
+        retryJob?.cancel()
+        // See connect() — buildClient()/connectWith() block synchronously before their
+        // first suspension point, so this must run off the caller's (Main) dispatcher.
+        return withContext(Dispatchers.IO) {
+            val candidate = buildClient(settings)
+            try {
+                withTimeout(15_000L) {
+                    candidate.connectWith()
+                        .cleanStart(false)
+                        .keepAlive(30)
+                        .willPublish()
+                            .topic(MqttTopics.deviceStatus(settings.deviceId))
+                            .payload(STATUS_OFFLINE)
+                            .qos(MqttQos.AT_LEAST_ONCE)
+                            .retain(true)
+                            .applyWillPublish()
+                        .send()
+                        .await()
+                    subscribeAndAnnounce(candidate, settings.stationName, settings.deviceId)
+                }
+                val old = mqttClient
+                val oldDeviceId = currentDeviceId
+                mqttClient = candidate
+                currentStationName = settings.stationName
+                currentDeviceId = settings.deviceId
+                requestTimeoutMs = settings.requestTimeoutMs
+                _connectionState.value = MqttConnectionState.CONNECTED
+                publishOfflineBestEffort(old, oldDeviceId)
+                try { old?.disconnect() } catch (_: Exception) { }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                try { candidate.disconnect() } catch (_: Exception) { }
+                Result.failure(e)
             }
-            val old = mqttClient
-            val oldDeviceId = currentDeviceId
-            mqttClient = candidate
-            currentStationName = settings.stationName
-            currentDeviceId = settings.deviceId
-            requestTimeoutMs = settings.requestTimeoutMs
-            _connectionState.value = MqttConnectionState.CONNECTED
-            publishOfflineBestEffort(old, oldDeviceId)
-            try { old?.disconnect() } catch (_: Exception) { }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            try { candidate.disconnect() } catch (_: Exception) { }
-            Result.failure(e)
         }
     }
 
+    // The backend (RfidMqttService.RequestSuffixes) has never subscribed to the
+    // {station}/request topic this legacy action-string protocol publishes to — only
+    // per-device PPNAM/{deviceId}/{suffix} contract topics are handled. Every call here
+    // has therefore always silently timed out. Previously that meant a permanent retry
+    // queued via OfflineQueueRepository; now it just fails fast instead of queuing
+    // traffic that a fixed backend would never answer either way.
     internal suspend fun sendWithTimeout(action: String, dataJson: String, timeoutMs: Long): MqttResult {
         if (_connectionState.value != MqttConnectionState.CONNECTED) {
-            return queue(action, dataJson)
+            return MqttResult.Error("Not connected to Station 2")
         }
 
         val correlationId = UUID.randomUUID().toString()
@@ -191,9 +246,9 @@ class MqttRepositoryImpl @Inject constructor(
                 }
             }
         } catch (e: TimeoutCancellationException) {
-            queue(action, dataJson)
+            MqttResult.Error("Request timed out")
         } catch (e: Exception) {
-            queue(action, dataJson)
+            MqttResult.Error(e.message ?: "Unknown error")
         }
     }
 
@@ -243,6 +298,21 @@ class MqttRepositoryImpl @Inject constructor(
         }
     }
 
+    // Fire-and-forget: publishes to a contract request topic without waiting for (or
+    // expecting) a response. For request types the backend doesn't yet handle, it just
+    // publishes best-effort and gives up silently rather than hanging until timeout.
+    override suspend fun publishTyped(requestType: String, requestJson: String) {
+        if (_connectionState.value != MqttConnectionState.CONNECTED) return
+        try {
+            mqttClient!!.publishWith()
+                .topic(MqttTopics.contractRequest(currentDeviceId, requestType))
+                .payload(requestJson.toByteArray())
+                .send()
+                .await()
+        } catch (_: Exception) {
+        }
+    }
+
     // OfflineQueueRepository.drainQueue() replays queued items via the old
     // sendWithTimeout()/`{station}/request` path, not sendTyped()'s contract
     // topics/envelope. No caller sets allowOfflineQueue=true on sendTyped yet
@@ -260,9 +330,6 @@ class MqttRepositoryImpl @Inject constructor(
         )
         return id
     }
-
-    private suspend fun queue(action: String, dataJson: String): MqttResult.Queued =
-        MqttResult.Queued(enqueue(action, dataJson))
 
     private fun handleIncoming(bytes: ByteArray) {
         try {

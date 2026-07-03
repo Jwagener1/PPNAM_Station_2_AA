@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ppnam.station2aa.LocalWindowSize
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.theme.*
@@ -36,6 +37,8 @@ fun HomeScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
     val session by viewModel.session.collectAsState()
+    val windowSize = LocalWindowSize.current
+    val isExpanded = (windowSize != androidx.compose.ui.unit.DpSize.Unspecified) && (windowSize.width > 600.dp)
 
     LaunchedEffect(Unit) {
         viewModel.logoutEvent.collect { onLogout() }
@@ -48,6 +51,7 @@ fun HomeScreen(
         onBack = null,
         onSettings = onNavigateSettings,
         operatorName = session?.operatorName,
+        operatorRole = session?.role,
         onLogout = viewModel::logout
     ) { padding ->
         Column(
@@ -57,51 +61,97 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                HomeTile(
-                    title = "Mixing",
-                    subtitle = "Pre-Mix Flow",
-                    icon = Icons.Filled.Science,
-                    accentColor = AmberPrimary,
-                    height = 220.dp,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateMixing
-                )
-                HomeTile(
-                    title = "Rajoo",
-                    subtitle = "Allocation",
-                    icon = Icons.Filled.Factory,
-                    accentColor = SuccessGreen,
-                    height = 220.dp,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateRajoo
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                HomeTile(
-                    title = "RFID Recovery",
-                    subtitle = null,
-                    icon = Icons.Filled.WifiTethering,
-                    accentColor = InfoBlue,
-                    height = 110.dp,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateRfidRecovery
-                )
-                HomeTile(
-                    title = "Dashboard",
-                    subtitle = null,
-                    icon = Icons.Filled.BarChart,
-                    accentColor = IndigoAccent,
-                    height = 110.dp,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateDashboard
-                )
+            if (isExpanded) {
+                // Tablet layout: All tiles in one row or more spread out
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HomeTile(
+                        title = "Mixing",
+                        subtitle = "Pre-Mix Flow",
+                        icon = Icons.Filled.Science,
+                        accentColor = AmberPrimary,
+                        height = 220.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateMixing
+                    )
+                    HomeTile(
+                        title = "Rajoo",
+                        subtitle = "Allocation",
+                        icon = Icons.Filled.Factory,
+                        accentColor = SuccessGreen,
+                        height = 220.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateRajoo
+                    )
+                    HomeTile(
+                        title = "RFID Recovery",
+                        subtitle = null,
+                        icon = Icons.Filled.WifiTethering,
+                        accentColor = InfoBlue,
+                        height = 220.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateRfidRecovery
+                    )
+                    HomeTile(
+                        title = "Dashboard",
+                        subtitle = null,
+                        icon = Icons.Filled.BarChart,
+                        accentColor = IndigoAccent,
+                        height = 220.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateDashboard
+                    )
+                }
+            } else {
+                // Phone layout: 2x2 grid (as before)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HomeTile(
+                        title = "Mixing",
+                        subtitle = "Pre-Mix Flow",
+                        icon = Icons.Filled.Science,
+                        accentColor = AmberPrimary,
+                        height = 220.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateMixing
+                    )
+                    HomeTile(
+                        title = "Rajoo",
+                        subtitle = "Allocation",
+                        icon = Icons.Filled.Factory,
+                        accentColor = SuccessGreen,
+                        height = 220.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateRajoo
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HomeTile(
+                        title = "RFID Recovery",
+                        subtitle = null,
+                        icon = Icons.Filled.WifiTethering,
+                        accentColor = InfoBlue,
+                        height = 110.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateRfidRecovery
+                    )
+                    HomeTile(
+                        title = "Dashboard",
+                        subtitle = null,
+                        icon = Icons.Filled.BarChart,
+                        accentColor = IndigoAccent,
+                        height = 110.dp,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateDashboard
+                    )
+                }
             }
         }
     }

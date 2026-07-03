@@ -29,7 +29,8 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     navController.navigate(NavRoutes.HOME) {
                         popUpTo(NavRoutes.LOGIN) { inclusive = true }
                     }
-                }
+                },
+                onNavigateSettings = { navController.navigate(NavRoutes.SETTINGS) }
             )
         }
         composable(NavRoutes.HOME) {

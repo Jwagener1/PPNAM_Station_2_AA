@@ -10,11 +10,17 @@ import javax.inject.Singleton
 @Singleton
 class MqttClientFactory @Inject constructor() {
 
-    fun build(settings: AppSettings): Mqtt5AsyncClient {
+    fun build(
+        settings: AppSettings,
+        onConnected: () -> Unit = {},
+        onDisconnected: () -> Unit = {}
+    ): Mqtt5AsyncClient {
         val builder = MqttClient.builder()
             .useMqttVersion5()
             .serverHost(settings.mqttHost)
             .serverPort(settings.mqttPort)
+            .addConnectedListener { onConnected() }
+            .addDisconnectedListener { onDisconnected() }
 
         if (settings.mqttUseWebSocket) {
             builder.webSocketConfig()

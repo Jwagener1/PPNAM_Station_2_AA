@@ -28,6 +28,8 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.ppnam.station2aa.ACTION_SCAN" />
+                <action android:name="com.scanner.broadcast" />
+                <action android:name="com.rscja.scanner.action.scanner.RFID" />
             </intent-filter>
         </receiver>
     </application>

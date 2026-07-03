@@ -19,6 +19,7 @@ import com.ppnam.station2aa.ui.theme.*
 @Composable
 fun LoginScreen(
     onLoggedIn: () -> Unit,
+    onNavigateSettings: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -36,7 +37,8 @@ fun LoginScreen(
     AppScaffold(
         title = "Log In",
         connectionState = connectionState,
-        pendingCount = pendingCount
+        pendingCount = pendingCount,
+        onSettings = onNavigateSettings
     ) { padding ->
         Column(
             modifier = Modifier

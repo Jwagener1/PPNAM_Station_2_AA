@@ -21,6 +21,15 @@ class OfflineQueueRepository @Inject constructor(
 
     init {
         scope.launch {
+            // One-time cleanup: until now, the only producer of offline_queue rows was
+            // the legacy send()/sendWithTimeout() path, which publishes to a
+            // {station}/request topic the backend has never subscribed to (see
+            // MqttRepositoryImpl.sendWithTimeout). Every row here is permanently
+            // undeliverable — clear the backlog so it stops being replayed on every
+            // reconnect. sendWithTimeout no longer enqueues on failure, so this table
+            // should stay empty going forward. Revisit if typed-contract offline
+            // queuing (MqttRepositoryImpl.enqueue) is ever wired up.
+            dao.deletePending()
             mqttRepository.connectionState
                 .filter { it == MqttConnectionState.CONNECTED }
                 .collect { drainQueue() }

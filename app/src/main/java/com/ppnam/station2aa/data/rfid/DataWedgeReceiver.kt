@@ -27,6 +27,14 @@ class DataWedgeReceiver : BroadcastReceiver() {
                 }
                 scanEventBus.emit(event)
             }
+            ACTION_CHAINWAY_BARCODE -> {
+                val data = intent.getStringExtra(EXTRA_CHAINWAY_DATA) ?: return
+                scanEventBus.emit(ScanEvent.Barcode(value = data, format = "", timestamp = Instant.now()))
+            }
+            ACTION_CHAINWAY_RFID -> {
+                val data = intent.getStringExtra(EXTRA_CHAINWAY_DATA) ?: return
+                scanEventBus.emit(ScanEvent.RfidTag(tagId = data, timestamp = Instant.now()))
+            }
         }
     }
 
@@ -35,5 +43,10 @@ class DataWedgeReceiver : BroadcastReceiver() {
         const val EXTRA_DATA = "com.symbol.datawedge.data_string"
         const val EXTRA_SOURCE = "com.symbol.datawedge.source"
         const val EXTRA_LABEL_TYPE = "com.symbol.datawedge.label_type"
+
+        // Chainway RFID/barcode reader broadcasts — the actual hardware in use.
+        const val ACTION_CHAINWAY_BARCODE = "com.scanner.broadcast"
+        const val ACTION_CHAINWAY_RFID = "com.rscja.scanner.action.scanner.RFID"
+        const val EXTRA_CHAINWAY_DATA = "data"
     }
 }

@@ -2,8 +2,11 @@ package com.ppnam.station2aa.domain.model
 
 data class ProductionOrder(
     val docNo: String,
-    val itemCode: String,
-    val plannedQty: Double,
+    val preMixId: String = "",
+    // The backflush BOM line (issueType "im_Backflush") represents the product being
+    // made, not a component the operator scans — it's surfaced separately here rather
+    // than in `lines`, and isn't always present in the response.
+    val productBeingMade: String? = null,
     val lines: List<BomLine>
 )
 
