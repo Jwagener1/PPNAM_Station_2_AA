@@ -10,6 +10,7 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsRequest
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardSubmittedRequest
+import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelledRequest
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
@@ -131,7 +132,13 @@ class MixingUseCase @Inject constructor(
         }
     }
 
-    suspend fun notifyJobCardCancelled(jobCardNumber: String, preMixId: String) {
+    suspend fun cancelJob(
+        preMixId: String,
+        jobCardNumber: String,
+        reason: String,
+        managerUsername: String = "",
+        managerPassword: String = ""
+    ): Result<PreMixCancelResultResponse> {
         val deviceId = settingsRepository.current().deviceId
         val requestJson = gson.toJson(
             PreMixCancelledRequest(
@@ -141,10 +148,31 @@ class MixingUseCase @Inject constructor(
                 timestampUtc = Instant.now().toString(),
                 correlationKey = preMixId.ifBlank { jobCardNumber },
                 preMixId = preMixId,
-                jobCardNumber = jobCardNumber
+                jobCardNumber = jobCardNumber,
+                reason = reason,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword
             )
         )
-        mqttRepository.publishTyped("premix_cancelled", requestJson)
+
+        val result = mqttRepository.sendTyped(
+            requestType = "premix_cancelled",
+            responseType = "premix_cancel_result",
+            requestJson = requestJson,
+            responseClass = PreMixCancelResultResponse::class.java,
+            allowOfflineQueue = false
+        )
+
+        return when (result) {
+            is MqttTypedResult.Success -> {
+                val response = result.response
+                if (response.accepted) Result.success(response)
+                else Result.failure(Exception(response.reason ?: "Cancel rejected"))
+            }
+            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
+            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
+            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+        }
     }
 
     suspend fun validateIngredient(orderNo: String, tagId: String): Result<IngredientValidationResult> {

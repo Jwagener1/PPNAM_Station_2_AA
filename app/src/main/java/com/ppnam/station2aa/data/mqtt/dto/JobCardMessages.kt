@@ -69,10 +69,6 @@ data class ActiveJobCardsListResponse(
     val jobs: List<ActiveJobCardSummary> = emptyList()
 )
 
-// Not part of the current RFID_MQTT_CONTRACT — the backend has a PreMixStatus.Cancelled
-// value but nothing sets it yet, and RfidWorkflowMessageProcessor has no handler for this
-// request type, so it is silently dropped for now. Sent best-effort so the app is ready
-// the moment the backend adds a handler.
 data class PreMixCancelledRequest(
     val messageId: String,
     val schemaVersion: String = "1.0",
@@ -82,5 +78,26 @@ data class PreMixCancelledRequest(
     val correlationKey: String,
     val preMixId: String,
     val jobCardNumber: String,
-    val reason: String = "Operator cancelled — incorrect job card"
+    val reason: String = "Operator cancelled — incorrect job card",
+    val managerUsername: String = "",
+    val managerPassword: String = "",
+    val managerBadgeTag: String = ""
+)
+
+data class PreMixCancelResultResponse(
+    val messageId: String = "",
+    val schemaVersion: String = "1.0",
+    val deviceId: String = "",
+    val operatorSessionId: String? = null,
+    val timestampUtc: String = "",
+    val correlationKey: String = "",
+    val accepted: Boolean = false,
+    val reason: String? = null,
+    val preMixId: String = "",
+    val jobCardNumber: String = "",
+    val preMixStatus: String = "",
+    val nextAction: String = "",
+    val approverUserId: String = "",
+    val approverDisplayName: String = "",
+    val approverRole: String = ""
 )

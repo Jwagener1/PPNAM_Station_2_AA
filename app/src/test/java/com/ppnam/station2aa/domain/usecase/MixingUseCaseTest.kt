@@ -7,6 +7,7 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
+import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
@@ -215,26 +216,79 @@ class MixingUseCaseTest {
         assertTrue(captor.firstValue.contains("\"deviceId\":\"handheld_1\""))
     }
 
-    // --- notifyJobCardCancelled ---
+    // --- cancelJob ---
 
     @Test
-    fun `notifyJobCardCancelled publishes with preMixId as correlationKey when present`() = runTest {
-        useCase.notifyJobCardCancelled("510019068", "premix-1")
+    fun `cancelJob succeeds without manager credentials when not required`() = runTest {
+        val response = PreMixCancelResultResponse(
+            accepted = true,
+            preMixId = "premix-1",
+            jobCardNumber = "510019068",
+            preMixStatus = "Cancelled",
+            nextAction = "scan_job_card"
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("premix_cancelled"), eq("premix_cancel_result"), any(),
+                eq(PreMixCancelResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
 
-        val captor = argumentCaptor<String>()
-        verify(mockMqtt).publishTyped(eq("premix_cancelled"), captor.capture())
-        assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
-        assertTrue(captor.firstValue.contains("\"jobCardNumber\":\"510019068\""))
-        assertTrue(captor.firstValue.contains("\"correlationKey\":\"premix-1\""))
+        val result = useCase.cancelJob("premix-1", "510019068", "Operator cancelled — incorrect job card")
+
+        assertTrue(result.isSuccess)
+        assertEquals("Cancelled", result.getOrThrow().preMixStatus)
     }
 
     @Test
-    fun `notifyJobCardCancelled falls back to jobCardNumber as correlationKey when no preMixId`() = runTest {
-        useCase.notifyJobCardCancelled("510019068", "")
+    fun `cancelJob sends manager credentials in the request payload when provided`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("premix_cancelled"), eq("premix_cancel_result"), any(),
+                eq(PreMixCancelResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(PreMixCancelResultResponse(accepted = true)))
+
+        useCase.cancelJob("premix-1", "510019068", "reason", managerUsername = "Manager1", managerPassword = "5678")
 
         val captor = argumentCaptor<String>()
-        verify(mockMqtt).publishTyped(eq("premix_cancelled"), captor.capture())
-        assertTrue(captor.firstValue.contains("\"correlationKey\":\"510019068\""))
+        verify(mockMqtt).sendTyped(
+            eq("premix_cancelled"), eq("premix_cancel_result"), captor.capture(),
+            eq(PreMixCancelResultResponse::class.java), eq(false)
+        )
+        assertTrue(captor.firstValue.contains("\"managerUsername\":\"Manager1\""))
+        assertTrue(captor.firstValue.contains("\"managerPassword\":\"5678\""))
+    }
+
+    @Test
+    fun `cancelJob returns failure with backend reason when rejected`() = runTest {
+        val response = PreMixCancelResultResponse(accepted = false, reason = "Manager or admin approval is required.")
+        whenever(
+            mockMqtt.sendTyped(
+                eq("premix_cancelled"), eq("premix_cancel_result"), any(),
+                eq(PreMixCancelResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.cancelJob("premix-1", "510019068", "reason")
+
+        assertTrue(result.isFailure)
+        assertEquals("Manager or admin approval is required.", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `cancelJob returns failure when disconnected`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("premix_cancelled"), eq("premix_cancel_result"), any(),
+                eq(PreMixCancelResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Disconnected)
+
+        val result = useCase.cancelJob("premix-1", "510019068", "reason")
+
+        assertTrue(result.isFailure)
+        assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
     }
 
     // --- fetchActiveJobCards ---
