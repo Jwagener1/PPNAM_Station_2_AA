@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
@@ -31,6 +32,9 @@ fun IngredientScanScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showApprovalDialog by remember { mutableStateOf(false) }
+    var managerUsername by remember { mutableStateOf("") }
+    var managerPassword by remember { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -40,27 +44,104 @@ fun IngredientScanScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.cancelOutcome.collect { outcome ->
+            when (outcome) {
+                is CancelOutcome.Confirmed -> onBack()
+                is CancelOutcome.Failed -> {
+                    managerUsername = ""
+                    managerPassword = ""
+                    snackbarHostState.showSnackbar(outcome.reason)
+                }
+            }
+        }
+    }
+
     LaunchedEffect(orderNo) { viewModel.startListeningForScans(orderNo) }
+
+    val isCancelling = uiState is MixingUiState.Cancelling
 
     if (showCancelDialog) {
         AlertDialog(
-            onDismissRequest = { showCancelDialog = false },
+            onDismissRequest = { if (!isCancelling) showCancelDialog = false },
             title = { Text("Cancel this job card?", color = TextPrimary) },
             text = {
                 Text(
-                    "Any scanned ingredients on this job will be discarded. You can look up the correct job card afterwards.",
+                    "This closes the job card if it hasn't had any activity yet (ingredients scanned, hopper assigned, SAP issue, etc). You'll be notified if it can't be cancelled.",
                     color = TextMuted
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    showCancelDialog = false
-                    viewModel.cancelJob()
-                    onBack()
-                }) { Text("Cancel Job", color = DangerRed) }
+                TextButton(
+                    enabled = !isCancelling,
+                    onClick = {
+                        if (viewModel.operatorCanCancelDirectly()) {
+                            showCancelDialog = false
+                            viewModel.cancelJob()
+                        } else {
+                            showCancelDialog = false
+                            showApprovalDialog = true
+                        }
+                    }
+                ) { Text("Cancel Job", color = DangerRed) }
             },
             dismissButton = {
-                TextButton(onClick = { showCancelDialog = false }) { Text("Keep Scanning") }
+                TextButton(enabled = !isCancelling, onClick = { showCancelDialog = false }) { Text("Keep Scanning") }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    if (showApprovalDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isCancelling) showApprovalDialog = false },
+            title = { Text("Manager or admin approval required", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Your role can't cancel a job card directly. Ask a manager or admin to enter their credentials to approve this cancellation.",
+                        color = TextMuted
+                    )
+                    OutlinedTextField(
+                        value = managerUsername,
+                        onValueChange = { managerUsername = it },
+                        label = { Text("Manager/Admin Username") },
+                        singleLine = true,
+                        enabled = !isCancelling,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = managerPassword,
+                        onValueChange = { managerPassword = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        enabled = !isCancelling,
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isCancelling && managerUsername.isNotBlank() && managerPassword.isNotBlank(),
+                    onClick = { viewModel.cancelJob(managerUsername, managerPassword) }
+                ) {
+                    if (isCancelling) CircularProgressIndicator(Modifier.size(16.dp), color = AmberPrimary)
+                    else Text("Confirm Cancel", color = DangerRed)
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !isCancelling, onClick = { showApprovalDialog = false }) { Text("Back") }
             },
             containerColor = GraphiteSurface
         )
