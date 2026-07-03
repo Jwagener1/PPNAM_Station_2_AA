@@ -1,6 +1,10 @@
 package com.ppnam.station2aa.ui.mixing
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -12,6 +16,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
+import com.ppnam.station2aa.ui.theme.GraphiteBorder
+import com.ppnam.station2aa.ui.theme.GraphiteSurface
+import com.ppnam.station2aa.ui.theme.TextMuted
+import com.ppnam.station2aa.ui.theme.TextPrimary
 
 @Composable
 fun JobLookupScreen(
@@ -22,7 +30,11 @@ fun JobLookupScreen(
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
+    val activeJobs by viewModel.activeJobs.collectAsState()
+    val activeJobsError by viewModel.activeJobsError.collectAsState()
     var orderInput by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) { viewModel.loadActiveJobs() }
 
     LaunchedEffect(uiState) {
         if (uiState is MixingUiState.OrderLoaded) {
@@ -43,9 +55,46 @@ fun JobLookupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp)
         ) {
+            if (activeJobs.isNotEmpty()) {
+                Text(
+                    "Active Jobs",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextMuted
+                )
+                Spacer(Modifier.height(8.dp))
+                LazyColumn(
+                    modifier = Modifier.weight(1f, fill = false).heightIn(max = 240.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(activeJobs) { job ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = !isLoading) { viewModel.lookupJob(job.jobCardNumber) },
+                            colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+                            border = BorderStroke(1.dp, GraphiteBorder)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(job.jobCardNumber, style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                if (job.productName.isNotBlank()) {
+                                    Text(job.productName, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            } else if (activeJobsError != null) {
+                Text(
+                    text = activeJobsError ?: "",
+                    color = DangerRed,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
             OutlinedTextField(
                 value = orderInput,
                 onValueChange = { orderInput = it },
