@@ -34,6 +34,17 @@ class MqttRepositoryImplTest {
     }
 
     @Test
+    fun `connect is a no-op when transport is already connected`() = runTest {
+        val field = MqttRepositoryImpl::class.java.getDeclaredField("isTransportConnected")
+        field.isAccessible = true
+        (field.get(repo) as java.util.concurrent.atomic.AtomicBoolean).set(true)
+
+        repo.connect()
+
+        verify(mockClientFactory, never()).build(any(), any(), any())
+    }
+
+    @Test
     fun `send fails fast when disconnected instead of queuing`() = runTest {
         val result = repo.sendWithTimeout("complete-premix", "{}", timeoutMs = 100L)
         assertTrue(result is MqttResult.Error)

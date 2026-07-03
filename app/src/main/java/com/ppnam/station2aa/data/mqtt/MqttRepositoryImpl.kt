@@ -16,6 +16,7 @@ import kotlinx.coroutines.future.await
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,6 +48,7 @@ class MqttRepositoryImpl @Inject constructor(
     override val hopperStatusUpdates: SharedFlow<HopperStatus> = _hopperStatusUpdates.asSharedFlow()
 
     private var mqttClient: Mqtt5AsyncClient? = null
+    private val isTransportConnected = AtomicBoolean(false)
     private var currentStationName: String = AppSettings().stationName
     private var currentDeviceId: String = AppSettings().deviceId
     private var requestTimeoutMs: Long = AppSettings().requestTimeoutMs
@@ -126,7 +128,7 @@ class MqttRepositoryImpl @Inject constructor(
     }
 
     override suspend fun connect() {
-        if (_connectionState.value == MqttConnectionState.CONNECTED) return
+        if (isTransportConnected.get()) return
         retryJob?.cancel()
         _connectionState.value = MqttConnectionState.RECONNECTING
         val settings = settingsRepository.current()
