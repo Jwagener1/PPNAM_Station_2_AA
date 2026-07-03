@@ -40,6 +40,35 @@ data class BomLoadedResponse(
     val ingredients: List<BomLineResponse> = emptyList()
 )
 
+data class ActiveJobCardsRequest(
+    val messageId: String,
+    val schemaVersion: String = "1.0",
+    val deviceId: String,
+    val operatorSessionId: String = "",
+    val timestampUtc: String,
+    val correlationKey: String
+)
+
+data class ActiveJobCardSummary(
+    val jobCardNumber: String = "",
+    val productionOrderDocumentNumber: String = "",
+    val preMixId: String = "",
+    val productName: String = "",
+    val status: String = ""
+)
+
+data class ActiveJobCardsListResponse(
+    val messageId: String = "",
+    val schemaVersion: String = "1.0",
+    val deviceId: String = "",
+    val operatorSessionId: String? = null,
+    val timestampUtc: String = "",
+    val correlationKey: String = "",
+    val accepted: Boolean = false,
+    val reason: String? = null,
+    val jobs: List<ActiveJobCardSummary> = emptyList()
+)
+
 // Not part of the current RFID_MQTT_CONTRACT — the backend has a PreMixStatus.Cancelled
 // value but nothing sets it yet, and RfidWorkflowMessageProcessor has no handler for this
 // request type, so it is silently dropped for now. Sent best-effort so the app is ready

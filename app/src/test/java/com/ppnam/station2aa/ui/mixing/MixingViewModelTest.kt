@@ -187,4 +187,31 @@ class MixingViewModelTest {
         assertTrue(viewModel.scannedIngredients.value.isEmpty())
         assertEquals("", viewModel.hopperCode.value)
     }
+
+    @Test
+    fun `loadActiveJobs populates activeJobs on success`() = runTest {
+        val jobs = listOf(
+            com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary(
+                jobCardNumber = "510019068", productName = "Layer Mash", status = "Open"
+            )
+        )
+        whenever(mockUseCase.fetchActiveJobCards()).thenReturn(Result.success(jobs))
+
+        viewModel.loadActiveJobs()
+        advanceUntilIdle()
+
+        assertEquals(jobs, viewModel.activeJobs.value)
+        assertEquals(null, viewModel.activeJobsError.value)
+    }
+
+    @Test
+    fun `loadActiveJobs sets activeJobsError on failure and leaves list untouched`() = runTest {
+        whenever(mockUseCase.fetchActiveJobCards()).thenReturn(Result.failure(Exception("Not connected to Station 2")))
+
+        viewModel.loadActiveJobs()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.activeJobs.value.isEmpty())
+        assertEquals("Not connected to Station 2", viewModel.activeJobsError.value)
+    }
 }

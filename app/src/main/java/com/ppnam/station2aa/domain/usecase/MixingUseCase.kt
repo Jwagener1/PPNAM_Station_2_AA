@@ -5,6 +5,9 @@ import com.ppnam.station2aa.data.local.BomCacheDao
 import com.ppnam.station2aa.data.local.BomCacheEntity
 import com.ppnam.station2aa.data.mqtt.MqttResult
 import com.ppnam.station2aa.data.mqtt.MqttTypedResult
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsRequest
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardSubmittedRequest
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelledRequest
@@ -89,6 +92,38 @@ class MixingUseCase @Inject constructor(
                 } else {
                     Result.failure(Exception(response.reason ?: "Job card rejected"))
                 }
+            }
+            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
+            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
+            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+        }
+    }
+
+    suspend fun fetchActiveJobCards(): Result<List<ActiveJobCardSummary>> {
+        val deviceId = settingsRepository.current().deviceId
+        val requestJson = gson.toJson(
+            ActiveJobCardsRequest(
+                messageId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
+                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+                timestampUtc = Instant.now().toString(),
+                correlationKey = UUID.randomUUID().toString()
+            )
+        )
+
+        val result = mqttRepository.sendTyped(
+            requestType = "active_job_cards_requested",
+            responseType = "active_job_cards_list",
+            requestJson = requestJson,
+            responseClass = ActiveJobCardsListResponse::class.java,
+            allowOfflineQueue = false
+        )
+
+        return when (result) {
+            is MqttTypedResult.Success -> {
+                val response = result.response
+                if (response.accepted) Result.success(response.jobs)
+                else Result.failure(Exception(response.reason ?: "Could not load active jobs"))
             }
             is MqttTypedResult.Error -> Result.failure(Exception(result.message))
             MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))

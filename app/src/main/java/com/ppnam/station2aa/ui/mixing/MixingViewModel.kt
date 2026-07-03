@@ -3,6 +3,7 @@ package com.ppnam.station2aa.ui.mixing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ppnam.station2aa.data.local.OfflineQueueRepository
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.domain.model.HopperStatus
@@ -59,6 +60,12 @@ class MixingViewModel @Inject constructor(
     val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    private val _activeJobs = MutableStateFlow<List<ActiveJobCardSummary>>(emptyList())
+    val activeJobs: StateFlow<List<ActiveJobCardSummary>> = _activeJobs.asStateFlow()
+
+    private val _activeJobsError = MutableStateFlow<String?>(null)
+    val activeJobsError: StateFlow<String?> = _activeJobsError.asStateFlow()
+
     val hopperStatusUpdates: SharedFlow<HopperStatus> = mqttRepository.hopperStatusUpdates
 
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
@@ -81,6 +88,17 @@ class MixingViewModel @Inject constructor(
                     _uiState.value = MixingUiState.OrderLoaded(order)
                 }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Unknown error") }
+        }
+    }
+
+    fun loadActiveJobs() {
+        viewModelScope.launch {
+            useCase.fetchActiveJobCards()
+                .onSuccess { jobs ->
+                    _activeJobs.value = jobs
+                    _activeJobsError.value = null
+                }
+                .onFailure { e -> _activeJobsError.value = e.message ?: "Could not load active jobs" }
         }
     }
 

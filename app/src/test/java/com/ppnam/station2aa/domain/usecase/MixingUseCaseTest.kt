@@ -3,6 +3,8 @@ package com.ppnam.station2aa.domain.usecase
 import com.ppnam.station2aa.data.local.BomCacheDao
 import com.ppnam.station2aa.data.mqtt.MqttResult
 import com.ppnam.station2aa.data.mqtt.MqttTypedResult
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
@@ -233,6 +235,68 @@ class MixingUseCaseTest {
         val captor = argumentCaptor<String>()
         verify(mockMqtt).publishTyped(eq("premix_cancelled"), captor.capture())
         assertTrue(captor.firstValue.contains("\"correlationKey\":\"510019068\""))
+    }
+
+    // --- fetchActiveJobCards ---
+
+    @Test
+    fun `fetchActiveJobCards returns the job list on success`() = runTest {
+        val response = ActiveJobCardsListResponse(
+            accepted = true,
+            jobs = listOf(
+                ActiveJobCardSummary(
+                    jobCardNumber = "510019068",
+                    productionOrderDocumentNumber = "510019068",
+                    preMixId = "premix-1",
+                    productName = "Layer Mash",
+                    status = "Open"
+                )
+            )
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("active_job_cards_requested"), eq("active_job_cards_list"), any(),
+                eq(ActiveJobCardsListResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.fetchActiveJobCards()
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrThrow().size)
+        assertEquals("510019068", result.getOrThrow().first().jobCardNumber)
+        assertEquals("Layer Mash", result.getOrThrow().first().productName)
+    }
+
+    @Test
+    fun `fetchActiveJobCards returns failure when backend rejects`() = runTest {
+        val response = ActiveJobCardsListResponse(accepted = false, reason = "Operator session is not active for this RFID device. Log in again on this reader.")
+        whenever(
+            mockMqtt.sendTyped(
+                eq("active_job_cards_requested"), eq("active_job_cards_list"), any(),
+                eq(ActiveJobCardsListResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.fetchActiveJobCards()
+
+        assertTrue(result.isFailure)
+        assertEquals("Operator session is not active for this RFID device. Log in again on this reader.", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `fetchActiveJobCards returns failure when disconnected`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("active_job_cards_requested"), eq("active_job_cards_list"), any(),
+                eq(ActiveJobCardsListResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Disconnected)
+
+        val result = useCase.fetchActiveJobCards()
+
+        assertTrue(result.isFailure)
+        assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
     }
 
     // --- validateIngredient ---
