@@ -53,6 +53,8 @@ Request `active_job_cards_requested` → response `active_job_cards_list`.
   "operatorSessionId": "session-id",
   "timestampUtc": "2026-07-03T10:30:00Z",
   "correlationKey": "active-jobs-0001",
+  "accepted": true,
+  "reason": null,
   "jobs": [
     {
       "jobCardNumber": "510019068",
@@ -100,6 +102,8 @@ data class ActiveJobCardsListResponse(
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
     val correlationKey: String = "",
+    val accepted: Boolean = false,
+    val reason: String? = null,
     val jobs: List<ActiveJobCardSummary> = emptyList()
 )
 ```
