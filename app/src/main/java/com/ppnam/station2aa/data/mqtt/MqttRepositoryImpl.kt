@@ -36,6 +36,7 @@ class MqttRepositoryImpl @Inject constructor(
         private const val SUBSCRIBE_RETRY_ATTEMPTS = 3
         private const val SUBSCRIBE_RETRY_DELAY_MS = 2_000L
         private const val SUBSCRIBE_TIMEOUT_MS = 10_000L
+        private const val CONNECT_TIMEOUT_MS = 15_000L
     }
 
     private val gson = Gson()
@@ -175,18 +176,20 @@ class MqttRepositoryImpl @Inject constructor(
             }
             try {
                 val client = mqttClient!!
-                client.connectWith()
-                    .cleanStart(false)
-                    .keepAlive(30)
-                    .willPublish()
-                        .topic(MqttTopics.deviceStatus(currentDeviceId))
-                        .payload(STATUS_OFFLINE)
-                        .qos(MqttQos.AT_LEAST_ONCE)
-                        .retain(true)
-                        .applyWillPublish()
-                    .send()
-                    .await()
-                subscribeAndAnnounce(client, currentStationName, currentDeviceId)
+                withTimeout(CONNECT_TIMEOUT_MS) {
+                    client.connectWith()
+                        .cleanStart(false)
+                        .keepAlive(30)
+                        .willPublish()
+                            .topic(MqttTopics.deviceStatus(currentDeviceId))
+                            .payload(STATUS_OFFLINE)
+                            .qos(MqttQos.AT_LEAST_ONCE)
+                            .retain(true)
+                            .applyWillPublish()
+                        .send()
+                        .await()
+                    subscribeAndAnnounce(client, currentStationName, currentDeviceId)
+                }
                 _connectionState.value = MqttConnectionState.CONNECTED
             } catch (e: Exception) {
                 _connectionState.value = MqttConnectionState.DISCONNECTED
