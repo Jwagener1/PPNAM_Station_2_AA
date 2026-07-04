@@ -182,6 +182,10 @@ class MqttRepositoryImplTest {
         mqttClientField.isAccessible = true
         mqttClientField.set(repo, activeClient)
 
+        val transportField = MqttRepositoryImpl::class.java.getDeclaredField("isTransportConnected")
+        transportField.isAccessible = true
+        (transportField.get(repo) as java.util.concurrent.atomic.AtomicBoolean).set(true)
+
         val method = MqttRepositoryImpl::class.java.getDeclaredMethod(
             "handleTransportDisconnected", Mqtt5AsyncClient::class.java
         )
@@ -189,5 +193,10 @@ class MqttRepositoryImplTest {
         method.invoke(repo, staleClient)
 
         assertEquals(MqttConnectionState.DISCONNECTED, repo.connectionState.value)
+        // Regression guard for the reconnectWith() cycle: disconnecting the stale/old
+        // client must NOT clobber isTransportConnected for the still-live active client,
+        // otherwise a later connect() call would bypass the no-op guard and issue a
+        // redundant connectWith() against an already-connected transport.
+        assertTrue((transportField.get(repo) as java.util.concurrent.atomic.AtomicBoolean).get())
     }
 }

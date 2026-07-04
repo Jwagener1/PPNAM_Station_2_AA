@@ -104,8 +104,8 @@ class MqttRepositoryImpl @Inject constructor(
     }
 
     private fun handleTransportDisconnected(client: Mqtt5AsyncClient) {
-        isTransportConnected.set(false)
         if (mqttClient === client) {
+            isTransportConnected.set(false)
             _connectionState.value = MqttConnectionState.RECONNECTING
         }
     }
@@ -174,8 +174,8 @@ class MqttRepositoryImpl @Inject constructor(
             if (mqttClient == null) {
                 mqttClient = buildClient(settings)
             }
+            val client = mqttClient!!
             try {
-                val client = mqttClient!!
                 withTimeout(CONNECT_TIMEOUT_MS) {
                     client.connectWith()
                         .cleanStart(false)
@@ -188,12 +188,28 @@ class MqttRepositoryImpl @Inject constructor(
                             .applyWillPublish()
                         .send()
                         .await()
-                    subscribeAndAnnounce(client, currentStationName, currentDeviceId)
+                }
+            } catch (e: Exception) {
+                _connectionState.value = MqttConnectionState.DISCONNECTED
+                scheduleReconnectRetry()
+                return@withContext
+            }
+            // The transport is now genuinely connected (onConnected already flipped
+            // isTransportConnected to true). A subscribe failure here must NOT fall through
+            // to scheduleReconnectRetry(): that would re-invoke connect(), which immediately
+            // no-ops against the now-live transport (see the isTransportConnected guard
+            // above), permanently stranding the app in DISCONNECTED with a live-but-
+            // unsubscribed client. Retry the subscribe step directly instead, mirroring the
+            // automatic-reconnect path in buildClient()'s onConnected callback.
+            try {
+                retryBounded(SUBSCRIBE_RETRY_ATTEMPTS, SUBSCRIBE_RETRY_DELAY_MS) {
+                    withTimeout(SUBSCRIBE_TIMEOUT_MS) {
+                        subscribeAndAnnounce(client, currentStationName, currentDeviceId)
+                    }
                 }
                 _connectionState.value = MqttConnectionState.CONNECTED
             } catch (e: Exception) {
                 _connectionState.value = MqttConnectionState.DISCONNECTED
-                scheduleReconnectRetry()
             }
         }
     }
