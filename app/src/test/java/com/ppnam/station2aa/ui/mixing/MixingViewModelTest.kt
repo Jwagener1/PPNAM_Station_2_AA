@@ -94,6 +94,14 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `lookupJob forwards preMixId to the use case`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068", "premix-1")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068", "premix-1")
+        advanceUntilIdle()
+        verify(mockUseCase).lookupJob("510019068", "premix-1")
+    }
+
+    @Test
     fun `discardInvalidIngredient resets state to OrderLoaded`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
