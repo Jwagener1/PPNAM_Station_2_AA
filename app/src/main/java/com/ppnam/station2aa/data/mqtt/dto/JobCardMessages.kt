@@ -7,8 +7,7 @@ data class JobCardSubmittedRequest(
     val operatorSessionId: String = "",
     val timestampUtc: String,
     val correlationKey: String,
-    val jobCardNumber: String,
-    val preMixId: String = ""
+    val jobCardNumber: String
 )
 
 data class BomLineResponse(

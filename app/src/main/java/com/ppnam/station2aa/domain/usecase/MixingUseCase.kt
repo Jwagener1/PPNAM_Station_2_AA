@@ -45,7 +45,7 @@ class MixingUseCase @Inject constructor(
         val reason: String?
     )
 
-    suspend fun lookupJob(jobCardNumber: String, preMixId: String = ""): Result<ProductionOrder> {
+    suspend fun lookupJob(jobCardNumber: String): Result<ProductionOrder> {
         val deviceId = settingsRepository.current().deviceId
         val requestJson = gson.toJson(
             JobCardSubmittedRequest(
@@ -54,8 +54,7 @@ class MixingUseCase @Inject constructor(
                 operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
                 timestampUtc = Instant.now().toString(),
                 correlationKey = jobCardNumber,
-                jobCardNumber = jobCardNumber,
-                preMixId = preMixId
+                jobCardNumber = jobCardNumber
             )
         )
 

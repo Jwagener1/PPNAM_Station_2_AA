@@ -89,10 +89,10 @@ class MixingViewModel @Inject constructor(
     private var currentOrderNo: String = ""
     private var cachedOrder: ProductionOrder? = null
 
-    fun lookupJob(orderNo: String, preMixId: String = "") {
+    fun lookupJob(orderNo: String) {
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.lookupJob(orderNo, preMixId)
+            useCase.lookupJob(orderNo)
                 .onSuccess { order ->
                     currentOrderNo = orderNo
                     cachedOrder = order

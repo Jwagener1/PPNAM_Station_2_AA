@@ -1,5 +1,7 @@
 # Resume Active Job by preMixId — Design
 
+> **SUPERSEDED (2026-07-06):** The backend dev confirmed the authoritative contract (`RFID_MQTT_CONTRACT.md`, sibling repo commit `fee0db1`) does **not** add a `preMixId` field to the `job_card_submitted` request — Station 2 already auto-resumes the open pre-mix by `jobCardNumber` + operator + handheld, and returns `preMixId`/`resumedExistingPreMix` in the `bom_loaded` response. The Android-side changes described below (Tasks 2-4 of the companion plan) were implemented, then reverted to match this. Kept here for history; do not re-implement the `preMixId`-in-request approach.
+
 ## Problem
 
 The Job Lookup screen's "Active Jobs" quick-access list already returns each open job's `preMixId` (via `active_job_cards_list`), but tapping a card ignores it and calls `lookupJob(jobCardNumber)` — the same request used for a brand-new job card scan. Per the MQTT contract, `job_card_submitted` always reloads the production order from SAP, even when the pre-mix already exists. Tapping an active job should instead let Station 2 resume that specific pre-mix directly, skipping the redundant SAP product lookup.

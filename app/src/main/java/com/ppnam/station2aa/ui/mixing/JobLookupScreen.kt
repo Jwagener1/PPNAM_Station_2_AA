@@ -72,7 +72,7 @@ fun JobLookupScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(enabled = !isLoading) { viewModel.lookupJob(job.jobCardNumber, job.preMixId) },
+                                .clickable(enabled = !isLoading) { viewModel.lookupJob(job.jobCardNumber) },
                             colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
                             border = BorderStroke(1.dp, GraphiteBorder)
                         ) {

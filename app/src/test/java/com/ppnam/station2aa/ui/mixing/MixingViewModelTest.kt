@@ -85,20 +85,12 @@ class MixingViewModelTest {
 
     @Test
     fun `lookupJob failure sets Error state`() = runTest {
-        whenever(mockUseCase.lookupJob(any(), any())).thenReturn(Result.failure(Exception("Not found")))
+        whenever(mockUseCase.lookupJob(any())).thenReturn(Result.failure(Exception("Not found")))
         viewModel.lookupJob("bad")
         advanceUntilIdle()
         val state = viewModel.uiState.value
         assertTrue(state is MixingUiState.Error)
         assertEquals("Not found", (state as MixingUiState.Error).message)
-    }
-
-    @Test
-    fun `lookupJob forwards preMixId to the use case`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068", "premix-1")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068", "premix-1")
-        advanceUntilIdle()
-        verify(mockUseCase).lookupJob("510019068", "premix-1")
     }
 
     @Test
