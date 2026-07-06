@@ -85,7 +85,7 @@ class MixingViewModelTest {
 
     @Test
     fun `lookupJob failure sets Error state`() = runTest {
-        whenever(mockUseCase.lookupJob(any())).thenReturn(Result.failure(Exception("Not found")))
+        whenever(mockUseCase.lookupJob(any(), any())).thenReturn(Result.failure(Exception("Not found")))
         viewModel.lookupJob("bad")
         advanceUntilIdle()
         val state = viewModel.uiState.value
