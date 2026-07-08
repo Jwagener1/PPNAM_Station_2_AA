@@ -102,6 +102,169 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `startListeningForPalletScans opens EnteringBagDetails on a pallet scan`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+
+        vm.startListeningForPalletScans("510019068")
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(state is MixingUiState.EnteringBagDetails)
+        assertEquals("EPC:300833", (state as MixingUiState.EnteringBagDetails).palletTag)
+    }
+
+    @Test
+    fun `cancelBagEntry returns to OrderLoaded`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+        vm.startListeningForPalletScans("510019068")
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        vm.cancelBagEntry()
+
+        assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
+    }
+
+    @Test
+    fun `confirmIngredientScan on Accepted replaces order lines and returns to OrderLoaded`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0))
+            .thenReturn(Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine))))
+
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is MixingUiState.OrderLoaded)
+        assertEquals(listOf(updatedLine), (state as MixingUiState.OrderLoaded).order.lines)
+    }
+
+    @Test
+    fun `confirmIngredientScan on NeedsManagerApproval sets IngredientExceptionApproval state`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material"))
+        )
+
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is MixingUiState.IngredientExceptionApproval)
+        assertEquals("exception-1", (state as MixingUiState.IngredientExceptionApproval).exceptionId)
+        assertEquals("Wrong material", state.reason)
+    }
+
+    @Test
+    fun `confirmIngredientScan on NeedsRecovery sets PalletRecoveryPrompt state`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
+        )
+
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is MixingUiState.PalletRecoveryPrompt)
+        assertEquals("EPC:300833", (state as MixingUiState.PalletRecoveryPrompt).palletTag)
+    }
+
+    @Test
+    fun `submitManagerApproval on success retries the pending scan with the approvalId`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material"))
+        )
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        whenever(mockUseCase.approveManagerException(eq("exception-1"), eq("premix-1"), eq("EPC:300833"), eq("manager1"), eq("5678"), any()))
+            .thenReturn(Result.success("approval-1"))
+        val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "approval-1")).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
+        )
+
+        viewModel.submitManagerApproval("manager1", "5678")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
+        verify(mockUseCase).scanIngredient("premix-1", "EPC:300833", "full", 2.0, "approval-1")
+    }
+
+    @Test
+    fun `confirmPalletRecovery on success retries the pending scan`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
+        )
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        whenever(mockUseCase.recoverHolding("premix-1", "EPC:300833")).thenReturn(Result.success(Unit))
+        val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
+        )
+
+        viewModel.confirmPalletRecovery()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
+        verify(mockUseCase).recoverHolding("premix-1", "EPC:300833")
+    }
+
+    @Test
+    fun `dismissPalletRecovery returns to OrderLoaded without retrying`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
+        )
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        viewModel.dismissPalletRecovery()
+
+        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
+        verify(mockUseCase, never()).recoverHolding(any(), any())
+    }
+
+    @Test
     fun `discardInvalidIngredient resets state to OrderLoaded`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")

@@ -8,6 +8,7 @@ import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.HopperStatus
+import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.model.ScannedIngredient
@@ -28,6 +29,9 @@ sealed class MixingUiState {
     data class OrderLoaded(val order: ProductionOrder) : MixingUiState()
     data class IngredientInvalid(val tagId: String, val reason: String) : MixingUiState()
     data class WaitingForSupervisor(val tagId: String, val reason: String) : MixingUiState()
+    data class EnteringBagDetails(val palletTag: String) : MixingUiState()
+    data class IngredientExceptionApproval(val exceptionId: String, val reason: String) : MixingUiState()
+    data class PalletRecoveryPrompt(val palletTag: String) : MixingUiState()
     data class HopperUnavailable(val hopperCode: String, val reason: String) : MixingUiState()
     data class Error(val message: String) : MixingUiState()
 }
@@ -180,6 +184,122 @@ class MixingViewModel @Inject constructor(
                     _supervisorError.trySend(e.message ?: "Approval failed")
                     requestSupervisorOverride(tagId, (_uiState.value as? MixingUiState.WaitingForSupervisor)?.reason ?: "")
                 }
+        }
+    }
+
+    private data class PendingIngredientScan(
+        val palletRfidTag: String,
+        val bagSizeOption: String,
+        val bagCount: Double
+    )
+
+    private var pendingScan: PendingIngredientScan? = null
+    private var pendingExceptionId: String = ""
+
+    fun startListeningForPalletScans(orderNo: String) {
+        currentOrderNo = orderNo
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
+            scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
+                _uiState.value = MixingUiState.EnteringBagDetails(event.tagId)
+            }
+        }
+    }
+
+    fun cancelBagEntry() {
+        val order = cachedOrder ?: return
+        _uiState.value = MixingUiState.OrderLoaded(order)
+    }
+
+    fun confirmIngredientScan(palletTag: String, bagSizeOption: String, bagCount: Double) {
+        val order = cachedOrder ?: return
+        pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount)
+        viewModelScope.launch {
+            _uiState.value = MixingUiState.Loading
+            useCase.scanIngredient(order.preMixId, palletTag, bagSizeOption, bagCount)
+                .onSuccess { outcome -> handleScanOutcome(order, outcome) }
+                .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
+        }
+    }
+
+    fun submitManagerApproval(managerUsername: String, managerPassword: String) {
+        val order = cachedOrder ?: return
+        val scan = pendingScan ?: return
+        viewModelScope.launch {
+            useCase.approveManagerException(
+                exceptionId = pendingExceptionId,
+                preMixId = order.preMixId,
+                palletRfidTag = scan.palletRfidTag,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                reason = "Operator-requested exception approval"
+            )
+                .onSuccess { approvalId -> retryPendingScan(order, approvalId) }
+                .onFailure { e -> _supervisorError.trySend(e.message ?: "Approval failed") }
+        }
+    }
+
+    fun cancelManagerApproval() {
+        pendingScan = null
+        pendingExceptionId = ""
+        val order = cachedOrder ?: return
+        _uiState.value = MixingUiState.OrderLoaded(order)
+    }
+
+    fun confirmPalletRecovery() {
+        val order = cachedOrder ?: return
+        val scan = pendingScan ?: return
+        viewModelScope.launch {
+            useCase.recoverHolding(order.preMixId, scan.palletRfidTag)
+                .onSuccess { retryPendingScan(order, "") }
+                .onFailure { e ->
+                    pendingScan = null
+                    _supervisorError.trySend(e.message ?: "Recovery failed")
+                    _uiState.value = MixingUiState.OrderLoaded(order)
+                }
+        }
+    }
+
+    fun dismissPalletRecovery() {
+        pendingScan = null
+        val order = cachedOrder ?: return
+        _uiState.value = MixingUiState.OrderLoaded(order)
+    }
+
+    private fun handleScanOutcome(order: ProductionOrder, outcome: IngredientScanOutcome) {
+        when (outcome) {
+            is IngredientScanOutcome.Accepted -> {
+                val updatedOrder = order.copy(lines = outcome.updatedLines)
+                cachedOrder = updatedOrder
+                pendingScan = null
+                _uiState.value = MixingUiState.OrderLoaded(updatedOrder)
+            }
+            is IngredientScanOutcome.NeedsManagerApproval -> {
+                pendingExceptionId = outcome.exceptionId
+                _uiState.value = MixingUiState.IngredientExceptionApproval(outcome.exceptionId, outcome.reason)
+            }
+            is IngredientScanOutcome.NeedsRecovery -> {
+                _uiState.value = MixingUiState.PalletRecoveryPrompt(pendingScan?.palletRfidTag ?: "")
+            }
+            is IngredientScanOutcome.Rejected -> {
+                pendingScan = null
+                _supervisorError.trySend(outcome.reason)
+                _uiState.value = MixingUiState.OrderLoaded(order)
+            }
+        }
+    }
+
+    private fun retryPendingScan(order: ProductionOrder, approvalId: String) {
+        val scan = pendingScan
+        if (scan == null) {
+            _uiState.value = MixingUiState.OrderLoaded(order)
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = MixingUiState.Loading
+            useCase.scanIngredient(order.preMixId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, approvalId)
+                .onSuccess { outcome -> handleScanOutcome(order, outcome) }
+                .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
     }
 
