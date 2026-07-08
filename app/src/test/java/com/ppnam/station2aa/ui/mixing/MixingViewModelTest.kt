@@ -7,9 +7,7 @@ import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.HopperAvailability
 import com.ppnam.station2aa.domain.model.HopperStatus
-import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
-import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
@@ -265,65 +263,6 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `discardInvalidIngredient resets state to OrderLoaded`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068")
-        advanceUntilIdle()
-
-        viewModel.requestSupervisorOverride("TAG-BAD", "Not in BOM")
-        viewModel.discardInvalidIngredient()
-
-        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
-    }
-
-    @Test
-    fun `requestSupervisorOverride sets WaitingForSupervisor state`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068")
-        advanceUntilIdle()
-
-        viewModel.requestSupervisorOverride("TAG-BAD", "Not in BOM")
-
-        val state = viewModel.uiState.value
-        assertTrue(state is MixingUiState.WaitingForSupervisor)
-        assertEquals("TAG-BAD", (state as MixingUiState.WaitingForSupervisor).tagId)
-    }
-
-    @Test
-    fun `submitSupervisorTag on approval appends exception ingredient and resets to OrderLoaded`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068")
-        advanceUntilIdle()
-
-        val exceptionIngredient = ScannedIngredient("TAG-BAD", "MAT-999", 1.0, isException = true, approvedBy = "Jane")
-        whenever(mockUseCase.approveIngredientException("510019068", "TAG-BAD", "SUP-001"))
-            .thenReturn(Result.success(exceptionIngredient))
-
-        viewModel.requestSupervisorOverride("TAG-BAD", "Not in BOM")
-        viewModel.submitSupervisorTag("510019068", "TAG-BAD", "SUP-001")
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
-        assertTrue(viewModel.scannedIngredients.value.any { it.isException && it.tagId == "TAG-BAD" })
-    }
-
-    @Test
-    fun `submitSupervisorTag on rejection stays WaitingForSupervisor`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068")
-        advanceUntilIdle()
-
-        whenever(mockUseCase.approveIngredientException(any(), any(), any()))
-            .thenReturn(Result.failure(Exception("Tag not a supervisor")))
-
-        viewModel.requestSupervisorOverride("TAG-BAD", "Not in BOM")
-        viewModel.submitSupervisorTag("510019068", "TAG-BAD", "NOT-SUP")
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value is MixingUiState.WaitingForSupervisor)
-    }
-
-    @Test
     fun `checkAndAllocateHopper on success sets hopperCode and fires nav event`() = runTest {
         whenever(mockUseCase.checkHopper("510019068", "H-01")).thenReturn(Result.success(Unit))
 
@@ -354,18 +293,10 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `cancelJob resets state and scanned ingredients on backend confirmation`() = runTest {
+    fun `cancelJob resets state on backend confirmation`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
-
-        val exceptionIngredient = ScannedIngredient("TAG-001", "MAT-001", 1.0)
-        whenever(mockUseCase.approveIngredientException(any(), any(), any()))
-            .thenReturn(Result.success(exceptionIngredient))
-        viewModel.requestSupervisorOverride("TAG-001", "Not in BOM")
-        viewModel.submitSupervisorTag("510019068", "TAG-001", "SUP-001")
-        advanceUntilIdle()
-        assertTrue(viewModel.scannedIngredients.value.isNotEmpty())
 
         whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
             Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
@@ -377,7 +308,6 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(MixingUiState.Idle, viewModel.uiState.value)
-        assertTrue(viewModel.scannedIngredients.value.isEmpty())
         assertEquals("", viewModel.hopperCode.value)
         assertTrue(outcomes.contains(CancelOutcome.Confirmed))
         job.cancel()

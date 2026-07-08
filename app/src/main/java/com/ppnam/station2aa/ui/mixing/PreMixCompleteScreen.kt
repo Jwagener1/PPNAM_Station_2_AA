@@ -1,11 +1,8 @@
 package com.ppnam.station2aa.ui.mixing
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -19,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.ui.components.AppScaffold
-import com.ppnam.station2aa.ui.components.LabelValueRow
 import com.ppnam.station2aa.ui.theme.*
 
 @Composable
@@ -30,7 +26,6 @@ fun PreMixCompleteScreen(
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scannedIngredients by viewModel.scannedIngredients.collectAsState()
     val hopperCode by viewModel.hopperCode.collectAsState()
     val isQueuedOffline by viewModel.isQueuedOffline.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
@@ -94,19 +89,7 @@ fun PreMixCompleteScreen(
                     )
                 )
             }
-            Spacer(Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                border = BorderStroke(1.dp, GraphiteBorder)
-            ) {
-                LazyColumn(modifier = Modifier.padding(8.dp)) {
-                    items(scannedIngredients) { ingredient ->
-                        LabelValueRow(label = ingredient.itemCode, value = "Qty: ${ingredient.qty.toInt()}")
-                        HorizontalDivider(color = GraphiteBorder)
-                    }
-                }
-            }
+            Spacer(Modifier.weight(1f))
             errorMessage?.let { err ->
                 Spacer(Modifier.height(8.dp))
                 Text(err, color = DangerRed, style = MaterialTheme.typography.bodyMedium)

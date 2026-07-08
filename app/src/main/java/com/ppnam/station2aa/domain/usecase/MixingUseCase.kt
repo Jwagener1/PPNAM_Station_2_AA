@@ -22,9 +22,7 @@ import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
-import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
-import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import java.time.Instant
 import java.util.UUID
@@ -39,12 +37,6 @@ class MixingUseCase @Inject constructor(
     private val sessionHolder: OperatorSessionHolder
 ) {
     private val gson = Gson()
-
-    private data class ApprovalResponse(
-        val approved: Boolean,
-        val supervisorName: String?,
-        val reason: String?
-    )
 
     private data class HopperCheckResponse(
         val available: Boolean,
@@ -327,54 +319,6 @@ class MixingUseCase @Inject constructor(
         }
     }
 
-    suspend fun validateIngredient(orderNo: String, tagId: String): Result<IngredientValidationResult> {
-        val payload = gson.toJson(mapOf("orderNo" to orderNo, "tagId" to tagId))
-        return when (val result = mqttRepository.send("validate-ingredient", payload)) {
-            is MqttResult.Success -> {
-                val bomLine = gson.fromJson(result.dataJson, BomLine::class.java)
-                if (bomLine.valid) {
-                    Result.success(IngredientValidationResult.Valid(bomLine))
-                } else {
-                    Result.success(IngredientValidationResult.Invalid(tagId, bomLine.reason ?: "Invalid ingredient"))
-                }
-            }
-            is MqttResult.Error -> Result.failure(Exception(result.message))
-            is MqttResult.Queued -> {
-                // Offline — accept optimistically; WPF validates at complete-premix
-                val offlineBomLine = BomLine(itemCode = tagId, itemName = "Offline scan", requiredQty = 1.0)
-                Result.success(IngredientValidationResult.Valid(offlineBomLine))
-            }
-        }
-    }
-
-    suspend fun approveIngredientException(
-        orderNo: String,
-        tagId: String,
-        supervisorTagId: String
-    ): Result<ScannedIngredient> {
-        val payload = gson.toJson(mapOf("orderNo" to orderNo, "tagId" to tagId, "supervisorTagId" to supervisorTagId))
-        return when (val result = mqttRepository.send("approve-ingredient-exception", payload)) {
-            is MqttResult.Success -> {
-                val response = gson.fromJson(result.dataJson, ApprovalResponse::class.java)
-                if (response.approved) {
-                    Result.success(
-                        ScannedIngredient(
-                            tagId = tagId,
-                            itemCode = tagId,
-                            qty = 1.0,
-                            isException = true,
-                            approvedBy = response.supervisorName
-                        )
-                    )
-                } else {
-                    Result.failure(Exception(response.reason ?: "Approval denied"))
-                }
-            }
-            is MqttResult.Error -> Result.failure(Exception(result.message))
-            is MqttResult.Queued -> Result.failure(Exception("Supervisor approval requires a connection"))
-        }
-    }
-
     suspend fun checkHopper(orderNo: String, hopperCode: String): Result<Unit> {
         val payload = gson.toJson(mapOf("orderNo" to orderNo, "hopperCode" to hopperCode))
         return when (val result = mqttRepository.send("check-hopper", payload)) {
@@ -391,19 +335,9 @@ class MixingUseCase @Inject constructor(
         }
     }
 
-    suspend fun completePremix(
-        orderNo: String,
-        hopperCode: String,
-        ingredients: List<ScannedIngredient>
-    ): Result<Unit> {
+    suspend fun completePremix(orderNo: String, hopperCode: String): Result<Unit> {
         if (hopperCode.isBlank()) return Result.failure(Exception("Hopper code is required"))
-        val exceptions = ingredients.filter { it.isException }
-        val payload = gson.toJson(mapOf(
-            "orderNo" to orderNo,
-            "hopperCode" to hopperCode,
-            "ingredients" to ingredients,
-            "exceptions" to exceptions
-        ))
+        val payload = gson.toJson(mapOf("orderNo" to orderNo, "hopperCode" to hopperCode))
         return when (val result = mqttRepository.send("complete-premix", payload)) {
             is MqttResult.Success -> Result.success(Unit)
             is MqttResult.Queued -> Result.failure(Exception("Queued: will send when online"))

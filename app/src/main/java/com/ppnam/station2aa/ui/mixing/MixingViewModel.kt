@@ -9,9 +9,7 @@ import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
-import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
-import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
@@ -27,8 +25,6 @@ sealed class MixingUiState {
     object Loading : MixingUiState()
     object Cancelling : MixingUiState()
     data class OrderLoaded(val order: ProductionOrder) : MixingUiState()
-    data class IngredientInvalid(val tagId: String, val reason: String) : MixingUiState()
-    data class WaitingForSupervisor(val tagId: String, val reason: String) : MixingUiState()
     data class EnteringBagDetails(val palletTag: String) : MixingUiState()
     data class IngredientExceptionApproval(val exceptionId: String, val reason: String) : MixingUiState()
     data class PalletRecoveryPrompt(val palletTag: String) : MixingUiState()
@@ -57,9 +53,6 @@ class MixingViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<MixingUiState>(MixingUiState.Idle)
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()
-
-    private val _scannedIngredients = MutableStateFlow<List<ScannedIngredient>>(emptyList())
-    val scannedIngredients: StateFlow<List<ScannedIngredient>> = _scannedIngredients.asStateFlow()
 
     private val _hopperCode = MutableStateFlow("")
     val hopperCode: StateFlow<String> = _hopperCode.asStateFlow()
@@ -114,76 +107,6 @@ class MixingViewModel @Inject constructor(
                     _activeJobsError.value = null
                 }
                 .onFailure { e -> _activeJobsError.value = e.message ?: "Could not load active jobs" }
-        }
-    }
-
-    fun startListeningForScans(orderNo: String) {
-        currentOrderNo = orderNo
-        scanJob?.cancel()
-        scanJob = viewModelScope.launch {
-            scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
-                useCase.validateIngredient(orderNo, event.tagId)
-                    .onSuccess { validation ->
-                        when (validation) {
-                            is IngredientValidationResult.Valid -> {
-                                val ingredient = ScannedIngredient(
-                                    tagId = event.tagId,
-                                    itemCode = validation.bomLine.itemCode,
-                                    qty = 1.0
-                                )
-                                _scannedIngredients.update { it + ingredient }
-                            }
-                            is IngredientValidationResult.Invalid -> {
-                                scanJob?.cancel()
-                                _uiState.value = MixingUiState.IngredientInvalid(
-                                    tagId = validation.tagId,
-                                    reason = validation.reason
-                                )
-                            }
-                        }
-                    }
-                    .onFailure { e ->
-                        _uiState.value = MixingUiState.Error(e.message ?: "Validation failed")
-                    }
-            }
-        }
-    }
-
-    fun discardInvalidIngredient() {
-        val order = cachedOrder ?: run {
-            _uiState.value = MixingUiState.Error("Session lost — please re-scan job card")
-            return
-        }
-        startListeningForScans(currentOrderNo)
-        _uiState.value = MixingUiState.OrderLoaded(order)
-    }
-
-    fun requestSupervisorOverride(tagId: String, reason: String) {
-        scanJob?.cancel()
-        _uiState.value = MixingUiState.WaitingForSupervisor(tagId, reason)
-        scanJob = viewModelScope.launch {
-            scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
-                val pendingState = _uiState.value
-                if (pendingState is MixingUiState.WaitingForSupervisor) {
-                    submitSupervisorTag(currentOrderNo, pendingState.tagId, event.tagId)
-                }
-            }
-        }
-    }
-
-    fun submitSupervisorTag(orderNo: String, tagId: String, supervisorTagId: String) {
-        scanJob?.cancel()
-        viewModelScope.launch {
-            useCase.approveIngredientException(orderNo, tagId, supervisorTagId)
-                .onSuccess { ingredient ->
-                    _scannedIngredients.update { it + ingredient }
-                    startListeningForScans(orderNo)
-                    cachedOrder?.let { _uiState.value = MixingUiState.OrderLoaded(it) }
-                }
-                .onFailure { e ->
-                    _supervisorError.trySend(e.message ?: "Approval failed")
-                    requestSupervisorOverride(tagId, (_uiState.value as? MixingUiState.WaitingForSupervisor)?.reason ?: "")
-                }
         }
     }
 
@@ -331,7 +254,7 @@ class MixingViewModel @Inject constructor(
     fun completePremix(orderNo: String) {
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.completePremix(orderNo, _hopperCode.value, _scannedIngredients.value)
+            useCase.completePremix(orderNo, _hopperCode.value)
                 .onSuccess { _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE) }
                 .onFailure { e ->
                     if (e.message?.startsWith("Queued") == true) {
@@ -373,7 +296,6 @@ class MixingViewModel @Inject constructor(
                 .onSuccess {
                     currentOrderNo = ""
                     cachedOrder = null
-                    _scannedIngredients.value = emptyList()
                     _hopperCode.value = ""
                     _isQueuedOffline.value = false
                     _uiState.value = MixingUiState.Idle
@@ -381,7 +303,7 @@ class MixingViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _uiState.value = orderBeforeCancel?.let { MixingUiState.OrderLoaded(it) } ?: MixingUiState.Idle
-                    if (orderBeforeCancel != null) startListeningForScans(jobCardNumber)
+                    if (orderBeforeCancel != null) startListeningForPalletScans(jobCardNumber)
                     _cancelOutcome.send(CancelOutcome.Failed(e.message ?: "Cancel failed"))
                 }
         }
