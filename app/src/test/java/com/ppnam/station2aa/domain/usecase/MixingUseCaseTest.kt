@@ -69,6 +69,29 @@ class MixingUseCaseTest {
     }
 
     @Test
+    fun `lookupJob maps uomCode onto each BomLine's uom`() = runTest {
+        val response = BomLoadedResponse(
+            accepted = true,
+            jobCardNumber = "510019068",
+            productionOrderDocumentNumber = "510019068",
+            preMixId = "premix-1",
+            ingredients = listOf(
+                BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "KG")
+            )
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val order = useCase.lookupJob("510019068").getOrThrow()
+
+        assertEquals("KG", order.lines.single().uom)
+    }
+
+    @Test
     fun `lookupJob separates the backflush line as the product being made`() = runTest {
         val response = BomLoadedResponse(
             accepted = true,

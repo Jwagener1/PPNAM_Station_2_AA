@@ -245,7 +245,11 @@ fun IngredientScanScreen(
                                 val scannedCount = scannedIngredients.count { it.itemCode == bomLine.itemCode }
                                 val required = bomLine.requiredQty.toInt().coerceAtLeast(1)
                                 val satisfied = bomLine.isFullyAllocated || scannedCount >= required
-                                val fraction = (scannedCount.toFloat() / required.toFloat()).coerceIn(0f, 1f)
+                                val fraction = if (bomLine.requiredQty > 0.0) {
+                                    (bomLine.scannedQty / bomLine.requiredQty).toFloat().coerceIn(0f, 1f)
+                                } else {
+                                    0f
+                                }
                                 val displayName = bomLine.itemName.ifBlank { bomLine.itemCode }
 
                                 Card(
@@ -279,7 +283,11 @@ fun IngredientScanScreen(
                                                 Spacer(Modifier.width(6.dp))
                                             }
                                             Text(
-                                                text = if (bomLine.isFullyAllocated) "Fully Allocated" else "$scannedCount / $required",
+                                                text = if (bomLine.isFullyAllocated) {
+                                                    "Fully Allocated"
+                                                } else {
+                                                    "%.2f %s".format(bomLine.remainingQty, bomLine.uom)
+                                                },
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = if (satisfied) SuccessGreen else TextMuted
                                             )

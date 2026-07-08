@@ -84,7 +84,8 @@ class MixingUseCase @Inject constructor(
                                     itemName = line.materialName,
                                     requiredQty = line.plannedQuantity,
                                     scannedQty = line.issuedQuantity,
-                                    remainingQty = line.remainingQuantity
+                                    remainingQty = line.remainingQuantity,
+                                    uom = line.uomCode
                                 )
                             }
                     )

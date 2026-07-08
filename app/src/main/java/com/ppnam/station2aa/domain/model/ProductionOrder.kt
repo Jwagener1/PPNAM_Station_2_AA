@@ -16,6 +16,7 @@ data class BomLine(
     val requiredQty: Double,
     val scannedQty: Double = 0.0,
     val remainingQty: Double = 0.0,
+    val uom: String = "",
     val valid: Boolean = true,
     val reason: String? = null
 ) {
