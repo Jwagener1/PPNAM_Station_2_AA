@@ -9,6 +9,8 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsRequest
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
+import com.ppnam.station2aa.data.mqtt.dto.HoldingRecoveryRequest
+import com.ppnam.station2aa.data.mqtt.dto.HoldingRecoveryResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScannedRequest
 import com.ppnam.station2aa.data.mqtt.dto.JobCardSubmittedRequest
@@ -284,6 +286,40 @@ class MixingUseCase @Inject constructor(
                 val response = result.response
                 if (response.accepted) Result.success(response.approvalId)
                 else Result.failure(Exception(response.reason ?: "Approval denied"))
+            }
+            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
+            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
+            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+        }
+    }
+
+    suspend fun recoverHolding(preMixId: String, palletRfidTag: String): Result<Unit> {
+        val deviceId = settingsRepository.current().deviceId
+        val requestJson = gson.toJson(
+            HoldingRecoveryRequest(
+                messageId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
+                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+                timestampUtc = Instant.now().toString(),
+                correlationKey = preMixId,
+                preMixId = preMixId,
+                palletRfidTag = palletRfidTag
+            )
+        )
+
+        val result = mqttRepository.sendTyped(
+            requestType = "holding_recovery_requested",
+            responseType = "holding_recovery_result",
+            requestJson = requestJson,
+            responseClass = HoldingRecoveryResultResponse::class.java,
+            allowOfflineQueue = false
+        )
+
+        return when (result) {
+            is MqttTypedResult.Success -> {
+                val response = result.response
+                if (response.accepted) Result.success(Unit)
+                else Result.failure(Exception(response.reason ?: "Recovery rejected"))
             }
             is MqttTypedResult.Error -> Result.failure(Exception(result.message))
             MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))

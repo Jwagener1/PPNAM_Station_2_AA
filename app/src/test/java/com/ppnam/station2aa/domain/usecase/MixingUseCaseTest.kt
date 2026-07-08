@@ -8,6 +8,7 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomProgressLineResponse
+import com.ppnam.station2aa.data.mqtt.dto.HoldingRecoveryResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.ManagerApprovalResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
@@ -645,6 +646,74 @@ class MixingUseCaseTest {
         val result = useCase.approveManagerException(
             "exception-1", "premix-1", "EPC:300833", "manager1", "5678", "reason"
         )
+
+        assertTrue(result.isFailure)
+        assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
+    }
+
+    // --- recoverHolding ---
+
+    @Test
+    fun `recoverHolding succeeds when the pallet is recovered`() = runTest {
+        val response = HoldingRecoveryResultResponse(accepted = true, nextAction = "scan_ingredient")
+        whenever(
+            mockMqtt.sendTyped(
+                eq("holding_recovery_requested"), eq("holding_recovery_result"), any(),
+                eq(HoldingRecoveryResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.recoverHolding("premix-1", "EPC:300833")
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `recoverHolding sends preMixId and palletRfidTag in the request`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("holding_recovery_requested"), eq("holding_recovery_result"), any(),
+                eq(HoldingRecoveryResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Error("timeout"))
+
+        useCase.recoverHolding("premix-1", "EPC:300833")
+
+        val captor = argumentCaptor<String>()
+        verify(mockMqtt).sendTyped(
+            eq("holding_recovery_requested"), eq("holding_recovery_result"), captor.capture(),
+            eq(HoldingRecoveryResultResponse::class.java), eq(false)
+        )
+        assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
+        assertTrue(captor.firstValue.contains("\"palletRfidTag\":\"EPC:300833\""))
+    }
+
+    @Test
+    fun `recoverHolding returns failure with backend reason when rejected`() = runTest {
+        val response = HoldingRecoveryResultResponse(accepted = false, reason = "Pallet is blocked", nextAction = "retry_recovery")
+        whenever(
+            mockMqtt.sendTyped(
+                eq("holding_recovery_requested"), eq("holding_recovery_result"), any(),
+                eq(HoldingRecoveryResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.recoverHolding("premix-1", "EPC:300833")
+
+        assertTrue(result.isFailure)
+        assertEquals("Pallet is blocked", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `recoverHolding returns failure when disconnected`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("holding_recovery_requested"), eq("holding_recovery_result"), any(),
+                eq(HoldingRecoveryResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Disconnected)
+
+        val result = useCase.recoverHolding("premix-1", "EPC:300833")
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
