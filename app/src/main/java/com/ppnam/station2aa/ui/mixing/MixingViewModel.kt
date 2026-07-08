@@ -123,8 +123,14 @@ class MixingViewModel @Inject constructor(
         currentOrderNo = orderNo
         scanJob?.cancel()
         scanJob = viewModelScope.launch {
-            scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
-                _uiState.value = MixingUiState.EnteringBagDetails(event.tagId)
+            // Barcode scans are accepted here too as a stand-in for RFID tags until
+            // real RFID hardware is available on this handheld.
+            scanEventBus.events.collect { event ->
+                val palletTag = when (event) {
+                    is ScanEvent.RfidTag -> event.tagId
+                    is ScanEvent.Barcode -> event.value
+                }
+                _uiState.value = MixingUiState.EnteringBagDetails(palletTag)
             }
         }
     }

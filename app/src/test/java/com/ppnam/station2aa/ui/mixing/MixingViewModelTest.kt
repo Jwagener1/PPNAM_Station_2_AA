@@ -118,6 +118,24 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `startListeningForPalletScans opens EnteringBagDetails on a barcode scan too`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+
+        vm.startListeningForPalletScans("510019068")
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.Barcode("123456789012", "EAN13", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(state is MixingUiState.EnteringBagDetails)
+        assertEquals("123456789012", (state as MixingUiState.EnteringBagDetails).palletTag)
+    }
+
+    @Test
     fun `cancelBagEntry returns to OrderLoaded`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
