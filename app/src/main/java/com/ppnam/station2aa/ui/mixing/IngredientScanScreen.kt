@@ -37,7 +37,7 @@ fun IngredientScanScreen(
     var showApprovalDialog by remember { mutableStateOf(false) }
     var managerUsername by remember { mutableStateOf("") }
     var managerPassword by remember { mutableStateOf("") }
-    var selectedBagSize by remember { mutableStateOf("full") }
+    var selectedBagFraction by remember { mutableStateOf(0.0) }
     var bagCountText by remember { mutableStateOf("1") }
     var exceptionUsername by remember { mutableStateOf("") }
     var exceptionPassword by remember { mutableStateOf("") }
@@ -188,7 +188,7 @@ fun IngredientScanScreen(
         )
     }
 
-    val bagSizeOptions = listOf("1/4" to "1/4", "1/2" to "1/2", "3/4" to "3/4", "Full" to "full")
+    val bagFractionOptions = listOf("0" to 0.0, "1/4" to 0.25, "1/2" to 0.5, "3/4" to 0.75)
 
     if (uiState is MixingUiState.EnteringBagDetails) {
         val palletTag = (uiState as MixingUiState.EnteringBagDetails).palletTag
@@ -199,8 +199,8 @@ fun IngredientScanScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Pallet: $palletTag", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        bagSizeOptions.forEach { (label, value) ->
-                            val selected = selectedBagSize == value
+                        bagFractionOptions.forEach { (label, value) ->
+                            val selected = selectedBagFraction == value
                             Text(
                                 text = label,
                                 color = if (selected) GraphiteSurface else TextMuted,
@@ -209,7 +209,7 @@ fun IngredientScanScreen(
                                     .weight(1f)
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(if (selected) AmberPrimary else GraphiteSurfaceVariant)
-                                    .clickable { selectedBagSize = value }
+                                    .clickable { selectedBagFraction = value }
                                     .padding(vertical = 10.dp),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
@@ -235,9 +235,9 @@ fun IngredientScanScreen(
                     enabled = bagCountText.toDoubleOrNull()?.let { it > 0.0 } == true,
                     onClick = {
                         val count = bagCountText.toDoubleOrNull() ?: return@TextButton
-                        viewModel.confirmIngredientScan(palletTag, selectedBagSize, count)
+                        viewModel.confirmIngredientScan(palletTag, "full", count + selectedBagFraction)
                         bagCountText = "1"
-                        selectedBagSize = "full"
+                        selectedBagFraction = 0.0
                     }
                 ) { Text("Confirm Scan", color = AmberPrimary) }
             },
