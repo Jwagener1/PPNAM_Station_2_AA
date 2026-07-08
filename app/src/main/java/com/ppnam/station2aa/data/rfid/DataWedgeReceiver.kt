@@ -4,14 +4,21 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import dagger.hilt.android.AndroidEntryPoint
 import java.time.Instant
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@AndroidEntryPoint
-class DataWedgeReceiver : BroadcastReceiver() {
-
-    @Inject lateinit var scanEventBus: ScanEventBus
+// Registered dynamically at runtime (see PpnamApplication.onCreate), not declared in the
+// manifest. Android 11+ package-visibility filtering silently drops fully-implicit
+// broadcasts (no target package/component set) sent to manifest-declared receivers from
+// apps we're not "visible" to — which is exactly how the Chainway scanner service and its
+// keyboardemulator companion app deliver scans. Dynamic registration bypasses that
+// resolution path, since the OS delivers to live registered receivers directly rather than
+// resolving candidates via a cross-package manifest query.
+@Singleton
+class DataWedgeReceiver @Inject constructor(
+    private val scanEventBus: ScanEventBus
+) : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "onReceive action=${intent.action} extras=${intent.extras?.keySet()?.associateWith { intent.extras?.get(it) }}")

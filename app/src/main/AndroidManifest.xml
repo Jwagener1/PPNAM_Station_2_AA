@@ -22,16 +22,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <receiver
-            android:name=".data.rfid.DataWedgeReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.ppnam.station2aa.ACTION_SCAN" />
-                <action android:name="com.scanner.broadcast" />
-                <action android:name="com.rscja.scanner.action.scanner.RFID" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>
