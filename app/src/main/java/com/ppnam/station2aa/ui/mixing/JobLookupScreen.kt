@@ -36,9 +36,11 @@ fun JobLookupScreen(
 
     LaunchedEffect(Unit) { viewModel.loadActiveJobs() }
 
-    LaunchedEffect(uiState) {
-        if (uiState is MixingUiState.OrderLoaded) {
-            onJobFound((uiState as MixingUiState.OrderLoaded).order.docNo)
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { destination ->
+            if (destination == MixingNavDestination.JOB_LOADED) {
+                (viewModel.uiState.value as? MixingUiState.OrderLoaded)?.let { onJobFound(it.order.docNo) }
+            }
         }
     }
 

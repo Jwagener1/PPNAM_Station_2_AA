@@ -33,6 +33,7 @@ sealed class MixingUiState {
 }
 
 object MixingNavDestination {
+    const val JOB_LOADED = "job_loaded"
     const val PREMIX_COMPLETE = "premix_complete"
     const val HOME = "home"
 }
@@ -94,6 +95,7 @@ class MixingViewModel @Inject constructor(
                     currentOrderNo = orderNo
                     cachedOrder = order
                     _uiState.value = MixingUiState.OrderLoaded(order)
+                    _navigationEvent.send(MixingNavDestination.JOB_LOADED)
                 }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Unknown error") }
         }

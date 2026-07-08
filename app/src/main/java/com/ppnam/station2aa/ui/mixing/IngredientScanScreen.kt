@@ -33,6 +33,7 @@ fun IngredientScanScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showBackConfirmDialog by remember { mutableStateOf(false) }
     var showApprovalDialog by remember { mutableStateOf(false) }
     var managerUsername by remember { mutableStateOf("") }
     var managerPassword by remember { mutableStateOf("") }
@@ -96,6 +97,24 @@ fun IngredientScanScreen(
             },
             dismissButton = {
                 TextButton(enabled = !isCancelling, onClick = { showCancelDialog = false }) { Text("Keep Scanning") }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    if (showBackConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showBackConfirmDialog = false },
+            title = { Text("Go back?", color = TextPrimary) },
+            text = { Text("You'll leave the ingredient scanning screen. Your progress is saved.", color = TextMuted) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackConfirmDialog = false
+                    onBack()
+                }) { Text("Go Back", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBackConfirmDialog = false }) { Text("Stay") }
             },
             containerColor = GraphiteSurface
         )
@@ -310,7 +329,7 @@ fun IngredientScanScreen(
         title = "Scan Ingredients",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = { showCancelDialog = true }
+        onBack = { showBackConfirmDialog = true }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -449,12 +468,25 @@ fun IngredientScanScreen(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = onProceedToHopperScan,
-                    enabled = allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded,
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Proceed to Hopper Scan")
+                    OutlinedButton(
+                        onClick = { showCancelDialog = true },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                        border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f).height(56.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = onProceedToHopperScan,
+                        enabled = allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded,
+                        modifier = Modifier.weight(2f).height(56.dp)
+                    ) {
+                        Text("Proceed to Hopper Scan")
+                    }
                 }
             }
 
