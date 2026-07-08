@@ -9,12 +9,15 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsRequest
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
+import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
+import com.ppnam.station2aa.data.mqtt.dto.IngredientScannedRequest
 import com.ppnam.station2aa.data.mqtt.dto.JobCardSubmittedRequest
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelledRequest
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.BomLine
+import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.model.ScannedIngredient
@@ -170,6 +173,70 @@ class MixingUseCase @Inject constructor(
                 val response = result.response
                 if (response.accepted) Result.success(response)
                 else Result.failure(Exception(response.reason ?: "Cancel rejected"))
+            }
+            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
+            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
+            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+        }
+    }
+
+    suspend fun scanIngredient(
+        preMixId: String,
+        palletRfidTag: String,
+        bagSizeOption: String,
+        bagCount: Double,
+        approvalId: String = ""
+    ): Result<IngredientScanOutcome> {
+        val deviceId = settingsRepository.current().deviceId
+        val requestJson = gson.toJson(
+            IngredientScannedRequest(
+                messageId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
+                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+                timestampUtc = Instant.now().toString(),
+                correlationKey = preMixId,
+                preMixId = preMixId,
+                palletRfidTag = palletRfidTag,
+                bagSizeOption = bagSizeOption,
+                bagCount = bagCount,
+                approvalId = approvalId
+            )
+        )
+
+        val result = mqttRepository.sendTyped(
+            requestType = "ingredient_scanned",
+            responseType = "ingredient_scan_result",
+            requestJson = requestJson,
+            responseClass = IngredientScanResultResponse::class.java,
+            allowOfflineQueue = false
+        )
+
+        return when (result) {
+            is MqttTypedResult.Success -> {
+                val response = result.response
+                val outcome = when {
+                    response.accepted -> IngredientScanOutcome.Accepted(
+                        response.ingredientProgress.map { line ->
+                            BomLine(
+                                itemCode = line.materialCode,
+                                itemName = line.materialName,
+                                requiredQty = line.requiredQuantity,
+                                scannedQty = line.scannedQuantity,
+                                remainingQty = line.remainingQuantity,
+                                uom = line.uomCode,
+                                expectedBags = line.expectedBags,
+                                scannedBags = line.scannedBags,
+                                remainingBags = line.remainingBags
+                            )
+                        }
+                    )
+                    response.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
+                        response.exceptionId, response.reason ?: "Manager approval required"
+                    )
+                    response.nextAction == "recover_holding" -> IngredientScanOutcome.NeedsRecovery(response.reason)
+                    else -> IngredientScanOutcome.Rejected(response.reason ?: "Ingredient scan rejected")
+                }
+                Result.success(outcome)
             }
             is MqttTypedResult.Error -> Result.failure(Exception(result.message))
             MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))

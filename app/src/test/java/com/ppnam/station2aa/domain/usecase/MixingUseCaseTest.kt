@@ -7,10 +7,13 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
+import com.ppnam.station2aa.data.mqtt.dto.BomProgressLineResponse
+import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
+import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.IngredientValidationResult
 import com.ppnam.station2aa.domain.model.ScannedIngredient
 import com.ppnam.station2aa.domain.repository.MqttRepository
@@ -409,6 +412,158 @@ class MixingUseCaseTest {
         ).thenReturn(MqttTypedResult.Disconnected)
 
         val result = useCase.fetchActiveJobCards()
+
+        assertTrue(result.isFailure)
+        assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
+    }
+
+    // --- scanIngredient ---
+
+    @Test
+    fun `scanIngredient accepted maps ingredientProgress into updated BomLine list`() = runTest {
+        val response = IngredientScanResultResponse(
+            accepted = true,
+            preMixId = "premix-1",
+            ingredientProgress = listOf(
+                BomProgressLineResponse(
+                    materialCode = "MAT-001", materialName = "Resin",
+                    plannedQuantity = 50.0, issuedQuantity = 20.0, requiredQuantity = 50.0,
+                    scannedQuantity = 20.0, remainingQuantity = 30.0,
+                    expectedBags = 5.0, scannedBags = 2.0, remainingBags = 3.0,
+                    uomCode = "kg", unit = "kg"
+                )
+            )
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("ingredient_scanned"), eq("ingredient_scan_result"), any(),
+                eq(IngredientScanResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)
+
+        assertTrue(result.isSuccess)
+        val outcome = result.getOrThrow()
+        assertTrue(outcome is IngredientScanOutcome.Accepted)
+        val line = (outcome as IngredientScanOutcome.Accepted).updatedLines.single()
+        assertEquals("MAT-001", line.itemCode)
+        assertEquals(50.0, line.requiredQty, 0.0001)
+        assertEquals(30.0, line.remainingQty, 0.0001)
+        assertEquals(3.0, line.remainingBags, 0.0001)
+        assertEquals("kg", line.uom)
+    }
+
+    @Test
+    fun `scanIngredient sends palletRfidTag, bagSizeOption and bagCount in the request`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("ingredient_scanned"), eq("ingredient_scan_result"), any(),
+                eq(IngredientScanResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Error("timeout"))
+
+        useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)
+
+        val captor = argumentCaptor<String>()
+        verify(mockMqtt).sendTyped(
+            eq("ingredient_scanned"), eq("ingredient_scan_result"), captor.capture(),
+            eq(IngredientScanResultResponse::class.java), eq(false)
+        )
+        assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
+        assertTrue(captor.firstValue.contains("\"palletRfidTag\":\"EPC:300833\""))
+        assertTrue(captor.firstValue.contains("\"bagSizeOption\":\"full\""))
+        assertTrue(captor.firstValue.contains("\"bagCount\":2.0"))
+    }
+
+    @Test
+    fun `scanIngredient includes approvalId when retrying after an approved exception`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("ingredient_scanned"), eq("ingredient_scan_result"), any(),
+                eq(IngredientScanResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Error("timeout"))
+
+        useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, approvalId = "approval-1")
+
+        val captor = argumentCaptor<String>()
+        verify(mockMqtt).sendTyped(
+            eq("ingredient_scanned"), eq("ingredient_scan_result"), captor.capture(),
+            eq(IngredientScanResultResponse::class.java), eq(false)
+        )
+        assertTrue(captor.firstValue.contains("\"approvalId\":\"approval-1\""))
+    }
+
+    @Test
+    fun `scanIngredient rejected with requiresManagerApproval returns NeedsManagerApproval`() = runTest {
+        val response = IngredientScanResultResponse(
+            accepted = false,
+            reason = "Wrong material for this pallet",
+            requiresManagerApproval = true,
+            exceptionId = "exception-1",
+            nextAction = "manager_approval"
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("ingredient_scanned"), eq("ingredient_scan_result"), any(),
+                eq(IngredientScanResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0).getOrThrow()
+
+        assertTrue(outcome is IngredientScanOutcome.NeedsManagerApproval)
+        assertEquals("exception-1", (outcome as IngredientScanOutcome.NeedsManagerApproval).exceptionId)
+        assertEquals("Wrong material for this pallet", outcome.reason)
+    }
+
+    @Test
+    fun `scanIngredient rejected with recover_holding returns NeedsRecovery`() = runTest {
+        val response = IngredientScanResultResponse(
+            accepted = false,
+            reason = "Pallet not in Holding or Mixing",
+            nextAction = "recover_holding"
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("ingredient_scanned"), eq("ingredient_scan_result"), any(),
+                eq(IngredientScanResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0).getOrThrow()
+
+        assertTrue(outcome is IngredientScanOutcome.NeedsRecovery)
+        assertEquals("Pallet not in Holding or Mixing", (outcome as IngredientScanOutcome.NeedsRecovery).reason)
+    }
+
+    @Test
+    fun `scanIngredient plainly rejected returns Rejected`() = runTest {
+        val response = IngredientScanResultResponse(accepted = false, reason = "Unknown pallet")
+        whenever(
+            mockMqtt.sendTyped(
+                eq("ingredient_scanned"), eq("ingredient_scan_result"), any(),
+                eq(IngredientScanResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0).getOrThrow()
+
+        assertTrue(outcome is IngredientScanOutcome.Rejected)
+        assertEquals("Unknown pallet", (outcome as IngredientScanOutcome.Rejected).reason)
+    }
+
+    @Test
+    fun `scanIngredient returns failure when disconnected`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("ingredient_scanned"), eq("ingredient_scan_result"), any(),
+                eq(IngredientScanResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Disconnected)
+
+        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
