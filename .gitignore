@@ -30,3 +30,6 @@ gradle-app.setting
 # OS
 .DS_Store
 Thumbs.db
+
+# Superpowers brainstorming companion (ephemeral mockup sessions)
+/.superpowers/
