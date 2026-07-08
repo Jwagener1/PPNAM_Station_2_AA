@@ -239,6 +239,44 @@ class MixingUseCaseTest {
         assertTrue(captor.firstValue.contains("\"deviceId\":\"handheld_1\""))
     }
 
+    @Test
+    fun `lookupJob includes preMixId in the request envelope when supplied`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Error("timeout"))
+
+        useCase.lookupJob("510019068", "premix-1")
+
+        val captor = argumentCaptor<String>()
+        verify(mockMqtt).sendTyped(
+            eq("job_card_submitted"), eq("bom_loaded"), captor.capture(),
+            eq(BomLoadedResponse::class.java), eq(false)
+        )
+        assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
+    }
+
+    @Test
+    fun `lookupJob sends an empty preMixId when the caller omits it`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Error("timeout"))
+
+        useCase.lookupJob("510019068")
+
+        val captor = argumentCaptor<String>()
+        verify(mockMqtt).sendTyped(
+            eq("job_card_submitted"), eq("bom_loaded"), captor.capture(),
+            eq(BomLoadedResponse::class.java), eq(false)
+        )
+        assertTrue(captor.firstValue.contains("\"preMixId\":\"\""))
+    }
+
     // --- cancelJob ---
 
     @Test
