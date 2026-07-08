@@ -1,10 +1,13 @@
 package com.ppnam.station2aa.ui.mixing
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
@@ -14,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,17 +32,19 @@ fun IngredientScanScreen(
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scannedIngredients by viewModel.scannedIngredients.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
     var showCancelDialog by remember { mutableStateOf(false) }
     var showApprovalDialog by remember { mutableStateOf(false) }
     var managerUsername by remember { mutableStateOf("") }
     var managerPassword by remember { mutableStateOf("") }
+    var selectedBagSize by remember { mutableStateOf("full") }
+    var bagCountText by remember { mutableStateOf("1") }
+    var exceptionUsername by remember { mutableStateOf("") }
+    var exceptionPassword by remember { mutableStateOf("") }
 
     val allIngredientsSatisfied = (uiState as? MixingUiState.OrderLoaded)?.order?.lines?.all { bomLine ->
-        bomLine.isFullyAllocated ||
-            scannedIngredients.count { it.itemCode == bomLine.itemCode } >= bomLine.requiredQty.toInt()
+        bomLine.isBagFullyAllocated
     } ?: false
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,7 +68,7 @@ fun IngredientScanScreen(
         }
     }
 
-    LaunchedEffect(orderNo) { viewModel.startListeningForScans(orderNo) }
+    LaunchedEffect(orderNo) { viewModel.startListeningForPalletScans(orderNo) }
 
     val isCancelling = uiState is MixingUiState.Cancelling
 
@@ -165,6 +171,143 @@ fun IngredientScanScreen(
         )
     }
 
+    val bagSizeOptions = listOf("1/4" to "1/4", "1/2" to "1/2", "3/4" to "3/4", "Full" to "full")
+
+    if (uiState is MixingUiState.EnteringBagDetails) {
+        val palletTag = (uiState as MixingUiState.EnteringBagDetails).palletTag
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelBagEntry() },
+            title = { Text("Bag size & count", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Pallet: $palletTag", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        bagSizeOptions.forEach { (label, value) ->
+                            val selected = selectedBagSize == value
+                            Text(
+                                text = label,
+                                color = if (selected) GraphiteSurface else TextMuted,
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(if (selected) AmberPrimary else GraphiteSurfaceVariant)
+                                    .clickable { selectedBagSize = value }
+                                    .padding(vertical = 10.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = bagCountText,
+                        onValueChange = { bagCountText = it },
+                        label = { Text("Bag count") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = bagCountText.toDoubleOrNull()?.let { it > 0.0 } == true,
+                    onClick = {
+                        val count = bagCountText.toDoubleOrNull() ?: return@TextButton
+                        viewModel.confirmIngredientScan(palletTag, selectedBagSize, count)
+                        bagCountText = "1"
+                        selectedBagSize = "full"
+                    }
+                ) { Text("Confirm Scan", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelBagEntry() }) { Text("Cancel", color = TextPrimary) }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    if (uiState is MixingUiState.IngredientExceptionApproval) {
+        val exceptionReason = (uiState as MixingUiState.IngredientExceptionApproval).reason
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.cancelManagerApproval()
+                exceptionUsername = ""
+                exceptionPassword = ""
+            },
+            title = { Text("Manager or admin approval required", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(exceptionReason, color = TextMuted)
+                    OutlinedTextField(
+                        value = exceptionUsername,
+                        onValueChange = { exceptionUsername = it },
+                        label = { Text("Manager/Admin Username") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = exceptionPassword,
+                        onValueChange = { exceptionPassword = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = exceptionUsername.isNotBlank() && exceptionPassword.isNotBlank(),
+                    onClick = {
+                        viewModel.submitManagerApproval(exceptionUsername, exceptionPassword)
+                        exceptionUsername = ""
+                        exceptionPassword = ""
+                    }
+                ) { Text("Approve", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.cancelManagerApproval()
+                        exceptionUsername = ""
+                        exceptionPassword = ""
+                    }
+                ) { Text("Cancel", color = TextPrimary) }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    if (uiState is MixingUiState.PalletRecoveryPrompt) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissPalletRecovery() },
+            title = { Text("Pallet not in Holding", color = TextPrimary) },
+            text = { Text("This pallet isn't currently in Holding or Mixing. Recover it into Holding?", color = TextMuted) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmPalletRecovery() }) { Text("Recover", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissPalletRecovery() }) { Text("No", color = TextPrimary) }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
     AppScaffold(
         title = "Scan Ingredients",
         connectionState = connectionState,
@@ -205,10 +348,7 @@ fun IngredientScanScreen(
                     }
                     is MixingUiState.OrderLoaded -> {
                         val order = state.order
-                        val satisfiedCount = order.lines.count { bomLine ->
-                            bomLine.isFullyAllocated ||
-                                scannedIngredients.count { it.itemCode == bomLine.itemCode } >= bomLine.requiredQty.toInt()
-                        }
+                        val satisfiedCount = order.lines.count { bomLine -> bomLine.isBagFullyAllocated }
                         val allSatisfied = satisfiedCount == order.lines.size
 
                         Card(
@@ -242,9 +382,7 @@ fun IngredientScanScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(order.lines) { bomLine ->
-                                val scannedCount = scannedIngredients.count { it.itemCode == bomLine.itemCode }
-                                val required = bomLine.requiredQty.toInt().coerceAtLeast(1)
-                                val satisfied = bomLine.isFullyAllocated || scannedCount >= required
+                                val satisfied = bomLine.isBagFullyAllocated
                                 val fraction = if (bomLine.requiredQty > 0.0) {
                                     (bomLine.scannedQty / bomLine.requiredQty).toFloat().coerceIn(0f, 1f)
                                 } else {
@@ -283,7 +421,7 @@ fun IngredientScanScreen(
                                                 Spacer(Modifier.width(6.dp))
                                             }
                                             Text(
-                                                text = if (bomLine.isFullyAllocated) {
+                                                text = if (bomLine.isBagFullyAllocated) {
                                                     "Fully Allocated"
                                                 } else {
                                                     "%.2f %s".format(bomLine.remainingQty, bomLine.uom)
@@ -292,7 +430,7 @@ fun IngredientScanScreen(
                                                 color = if (satisfied) SuccessGreen else TextMuted
                                             )
                                         }
-                                        if (!bomLine.isFullyAllocated) {
+                                        if (!bomLine.isBagFullyAllocated) {
                                             Spacer(Modifier.height(8.dp))
                                             LinearProgressIndicator(
                                                 progress = { fraction },
@@ -308,79 +446,6 @@ fun IngredientScanScreen(
                                 }
                             }
                         }
-                    }
-                    is MixingUiState.IngredientInvalid -> {
-                        Spacer(Modifier.weight(1f))
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = WarningOrange.copy(alpha = 0.12f)),
-                            border = BorderStroke(1.dp, WarningOrange.copy(alpha = 0.35f))
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.Warning, null, tint = WarningOrange, modifier = Modifier.size(20.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Invalid Ingredient", style = MaterialTheme.typography.titleMedium, color = WarningOrange)
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Text("Tag: ${state.tagId}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                                Text(state.reason, style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                            }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedButton(
-                                onClick = { viewModel.discardInvalidIngredient() },
-                                modifier = Modifier.weight(1f).height(56.dp),
-                                border = BorderStroke(1.dp, GraphiteBorder)
-                            ) {
-                                Text("Discard", color = TextPrimary)
-                            }
-                            Button(
-                                onClick = { viewModel.requestSupervisorOverride(state.tagId, state.reason) },
-                                modifier = Modifier.weight(1f).height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = WarningOrange)
-                            ) {
-                                Text("Override")
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                    }
-                    is MixingUiState.WaitingForSupervisor -> {
-                        Spacer(Modifier.weight(1f))
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = AmberPrimary.copy(alpha = 0.08f)),
-                            border = BorderStroke(1.dp, AmberPrimary.copy(alpha = 0.3f))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(Icons.Filled.WifiTethering, null, tint = AmberPrimary, modifier = Modifier.size(36.dp))
-                                Spacer(Modifier.height(12.dp))
-                                Text(
-                                    "Scan supervisor tag to approve",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = TextPrimary
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    "Tag: ${state.tagId}  •  ${state.reason}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextMuted
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        OutlinedButton(
-                            onClick = { viewModel.discardInvalidIngredient() },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            border = BorderStroke(1.dp, GraphiteBorder)
-                        ) {
-                            Text("Cancel Override", color = TextPrimary)
-                        }
-                        Spacer(Modifier.weight(1f))
                     }
                     else -> Spacer(Modifier.weight(1f))
                 }
