@@ -1,6 +1,7 @@
 package com.ppnam.station2aa.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -35,7 +36,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         }
         composable(NavRoutes.HOME) {
             HomeScreen(
-                onNavigateMixing = { navController.navigate(NavRoutes.JOB_LOOKUP) },
+                onNavigateMixing = { navController.navigate(NavRoutes.MIXING) },
                 onNavigateRajoo = { navController.navigate(NavRoutes.MACHINE_SELECT) },
                 onNavigateRfidRecovery = { navController.navigate(NavRoutes.RFID_RECOVERY) },
                 onNavigateDashboard = { navController.navigate(NavRoutes.DASHBOARD) },
@@ -50,18 +51,24 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         composable(NavRoutes.SETTINGS) {
             SettingsScreen(onBack = { navController.popBackStack() })
         }
-        navigation(startDestination = NavRoutes.JOB_LOOKUP, route = "mixing") {
-            composable(NavRoutes.JOB_LOOKUP) {
-                val viewModel: MixingViewModel = hiltViewModel(navController.getBackStackEntry("mixing"))
+        navigation(startDestination = NavRoutes.JOB_LOOKUP, route = NavRoutes.MIXING) {
+            composable(NavRoutes.JOB_LOOKUP) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(NavRoutes.MIXING)
+                }
+                val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 JobLookupScreen(
                     onJobFound = { orderNo -> navController.navigate(NavRoutes.ingredientScan(orderNo)) },
                     onBack = { navController.popBackStack() },
                     viewModel = viewModel
                 )
             }
-            composable(NavRoutes.INGREDIENT_SCAN) { backStack ->
-                val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
-                val viewModel: MixingViewModel = hiltViewModel(navController.getBackStackEntry("mixing"))
+            composable(NavRoutes.INGREDIENT_SCAN) { backStackEntry ->
+                val orderNo = backStackEntry.arguments?.getString("orderNo") ?: return@composable
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(NavRoutes.MIXING)
+                }
+                val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 IngredientScanScreen(
                     orderNo = orderNo,
                     onProceedToHopperScan = { navController.navigate(NavRoutes.hopperScan(orderNo)) },
@@ -69,9 +76,12 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     viewModel = viewModel
                 )
             }
-            composable(NavRoutes.HOPPER_SCAN) { backStack ->
-                val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
-                val viewModel: MixingViewModel = hiltViewModel(navController.getBackStackEntry("mixing"))
+            composable(NavRoutes.HOPPER_SCAN) { backStackEntry ->
+                val orderNo = backStackEntry.arguments?.getString("orderNo") ?: return@composable
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(NavRoutes.MIXING)
+                }
+                val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 HopperScanScreen(
                     orderNo = orderNo,
                     onProceed = { navController.navigate(NavRoutes.premixComplete(orderNo)) },
@@ -79,9 +89,12 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     viewModel = viewModel
                 )
             }
-            composable(NavRoutes.PREMIX_COMPLETE) { backStack ->
-                val orderNo = backStack.arguments?.getString("orderNo") ?: return@composable
-                val viewModel: MixingViewModel = hiltViewModel(navController.getBackStackEntry("mixing"))
+            composable(NavRoutes.PREMIX_COMPLETE) { backStackEntry ->
+                val orderNo = backStackEntry.arguments?.getString("orderNo") ?: return@composable
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(NavRoutes.MIXING)
+                }
+                val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 PreMixCompleteScreen(
                     orderNo = orderNo,
                     onCompleted = {

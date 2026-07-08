@@ -4,6 +4,7 @@ object NavRoutes {
     const val LOGIN = "login"
     const val HOME = "home"
     const val SETTINGS = "settings"
+    const val MIXING = "mixing"
     const val JOB_LOOKUP = "mixing/job_lookup"
     const val INGREDIENT_SCAN = "mixing/ingredient_scan/{orderNo}"
     const val HOPPER_SCAN = "mixing/hopper_scan/{orderNo}"
