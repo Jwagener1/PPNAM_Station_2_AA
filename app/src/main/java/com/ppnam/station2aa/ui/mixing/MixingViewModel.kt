@@ -120,6 +120,7 @@ class MixingViewModel @Inject constructor(
 
     private var pendingScan: PendingIngredientScan? = null
     private var pendingExceptionId: String = ""
+    private var pendingExceptionMaterialCode: String = ""
 
     fun startListeningForPalletScans(orderNo: String) {
         currentOrderNo = orderNo
@@ -161,6 +162,7 @@ class MixingViewModel @Inject constructor(
                 exceptionId = pendingExceptionId,
                 preMixId = order.preMixId,
                 palletRfidTag = scan.palletRfidTag,
+                requestedMaterialCode = pendingExceptionMaterialCode,
                 managerUsername = managerUsername,
                 managerPassword = managerPassword,
                 reason = "Operator-requested exception approval"
@@ -173,6 +175,7 @@ class MixingViewModel @Inject constructor(
     fun cancelManagerApproval() {
         pendingScan = null
         pendingExceptionId = ""
+        pendingExceptionMaterialCode = ""
         val order = cachedOrder ?: return
         _uiState.value = MixingUiState.OrderLoaded(order)
     }
@@ -207,6 +210,7 @@ class MixingViewModel @Inject constructor(
             }
             is IngredientScanOutcome.NeedsManagerApproval -> {
                 pendingExceptionId = outcome.exceptionId
+                pendingExceptionMaterialCode = outcome.requestedMaterialCode
                 _uiState.value = MixingUiState.IngredientExceptionApproval(outcome.exceptionId, outcome.reason)
             }
             is IngredientScanOutcome.NeedsRecovery -> {

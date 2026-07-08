@@ -218,12 +218,12 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
-            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material"))
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material", "MAT-002"))
         )
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
 
-        whenever(mockUseCase.approveManagerException(eq("exception-1"), eq("premix-1"), eq("EPC:300833"), eq("manager1"), eq("5678"), any()))
+        whenever(mockUseCase.approveManagerException(eq("exception-1"), eq("premix-1"), eq("EPC:300833"), eq("MAT-002"), eq("manager1"), eq("5678"), any()))
             .thenReturn(Result.success("approval-1"))
         val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "approval-1")).thenReturn(

@@ -502,7 +502,11 @@ class MixingUseCaseTest {
             reason = "Wrong material for this pallet",
             requiresManagerApproval = true,
             exceptionId = "exception-1",
-            nextAction = "manager_approval"
+            nextAction = "manager_approval",
+            ingredientProgress = listOf(
+                BomProgressLineResponse(materialCode = "MAT-001", requiresManagerApproval = false),
+                BomProgressLineResponse(materialCode = "MAT-002", requiresManagerApproval = true)
+            )
         )
         whenever(
             mockMqtt.sendTyped(
@@ -516,6 +520,7 @@ class MixingUseCaseTest {
         assertTrue(outcome is IngredientScanOutcome.NeedsManagerApproval)
         assertEquals("exception-1", (outcome as IngredientScanOutcome.NeedsManagerApproval).exceptionId)
         assertEquals("Wrong material for this pallet", outcome.reason)
+        assertEquals("MAT-002", outcome.requestedMaterialCode)
     }
 
     @Test
@@ -582,7 +587,7 @@ class MixingUseCaseTest {
         ).thenReturn(MqttTypedResult.Success(response))
 
         val result = useCase.approveManagerException(
-            "exception-1", "premix-1", "EPC:300833", "manager1", "5678", "Operator requested override"
+            "exception-1", "premix-1", "EPC:300833", "MAT-001", "manager1", "5678", "Operator requested override"
         )
 
         assertTrue(result.isSuccess)
@@ -599,7 +604,7 @@ class MixingUseCaseTest {
         ).thenReturn(MqttTypedResult.Error("timeout"))
 
         useCase.approveManagerException(
-            "exception-1", "premix-1", "EPC:300833", "manager1", "5678", "Operator requested override"
+            "exception-1", "premix-1", "EPC:300833", "MAT-001", "manager1", "5678", "Operator requested override"
         )
 
         val captor = argumentCaptor<String>()
@@ -610,6 +615,7 @@ class MixingUseCaseTest {
         assertTrue(captor.firstValue.contains("\"approvalTargetId\":\"exception-1\""))
         assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
         assertTrue(captor.firstValue.contains("\"palletRfidTag\":\"EPC:300833\""))
+        assertTrue(captor.firstValue.contains("\"requestedMaterialCode\":\"MAT-001\""))
         assertTrue(captor.firstValue.contains("\"managerUsername\":\"manager1\""))
         assertTrue(captor.firstValue.contains("\"managerPassword\":\"5678\""))
     }
@@ -625,7 +631,7 @@ class MixingUseCaseTest {
         ).thenReturn(MqttTypedResult.Success(response))
 
         val result = useCase.approveManagerException(
-            "exception-1", "premix-1", "EPC:300833", "baduser", "badpass", "reason"
+            "exception-1", "premix-1", "EPC:300833", "MAT-001", "baduser", "badpass", "reason"
         )
 
         assertTrue(result.isFailure)
@@ -642,7 +648,7 @@ class MixingUseCaseTest {
         ).thenReturn(MqttTypedResult.Disconnected)
 
         val result = useCase.approveManagerException(
-            "exception-1", "premix-1", "EPC:300833", "manager1", "5678", "reason"
+            "exception-1", "premix-1", "EPC:300833", "MAT-001", "manager1", "5678", "reason"
         )
 
         assertTrue(result.isFailure)

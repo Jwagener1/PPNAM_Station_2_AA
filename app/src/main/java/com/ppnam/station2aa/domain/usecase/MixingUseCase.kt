@@ -227,7 +227,12 @@ class MixingUseCase @Inject constructor(
                         }
                     )
                     response.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
-                        response.exceptionId, response.reason ?: "Manager approval required"
+                        exceptionId = response.exceptionId,
+                        reason = response.reason ?: "Manager approval required",
+                        requestedMaterialCode = response.ingredientProgress
+                            .firstOrNull { it.requiresManagerApproval }
+                            ?.materialCode
+                            ?: ""
                     )
                     response.nextAction == "recover_holding" -> IngredientScanOutcome.NeedsRecovery(response.reason)
                     else -> IngredientScanOutcome.Rejected(response.reason ?: "Ingredient scan rejected")
@@ -244,6 +249,7 @@ class MixingUseCase @Inject constructor(
         exceptionId: String,
         preMixId: String,
         palletRfidTag: String,
+        requestedMaterialCode: String,
         managerUsername: String,
         managerPassword: String,
         reason: String
@@ -261,6 +267,7 @@ class MixingUseCase @Inject constructor(
                 approvalTargetId = exceptionId,
                 preMixId = preMixId,
                 palletRfidTag = palletRfidTag,
+                requestedMaterialCode = requestedMaterialCode,
                 reason = reason
             )
         )
