@@ -834,13 +834,13 @@ git commit -m "feat(mixing): add MixingUseCase.recoverHolding against holding_re
 
 **Interfaces:**
 - Consumes: `MixingUseCase.scanIngredient`, `approveManagerException`, `recoverHolding` (Tasks 2-4); `IngredientScanOutcome` (Task 2); `ScanEvent.RfidTag` (existing).
-- Produces: New `MixingUiState` variants `EnteringBagDetails(palletTag: String)`, `IngredientExceptionApproval(exceptionId: String, reason: String)`, `PalletRecoveryPrompt(palletTag: String)`. New `MixingViewModel` methods: `startListeningForPalletScans(orderNo: String)`, `cancelBagEntry()`, `confirmIngredientScan(palletTag: String, bagSizeOption: String, bagCount: Double)`, `submitManagerApproval(managerUsername: String, managerPassword: String)`, `cancelManagerApproval()`, `confirmPalletRecovery()`, `dismissPalletRecovery()` — Task 7 (`IngredientScanScreen`) calls these exact signatures.
+- Produces: New `MixingUiState` variants `EnteringBagDetails(palletTag: String)`, `IngredientExceptionApproval(exceptionId: String, reason: String)`, `PalletRecoveryPrompt(palletTag: String)`. New `MixingViewModel` methods: `startListeningForPalletScans(orderNo: String)`, `cancelBagEntry()`, `confirmIngredientScan(palletTag: String, bagSizeOption: String, bagCount: Double)`, `submitManagerApproval(managerUsername: String, managerPassword: String)`, `cancelManagerApproval()`, `confirmPalletRecovery()`, `dismissPalletRecovery()` — Task 6 (`IngredientScanScreen`) calls these exact signatures.
 
-This task removes `IngredientInvalid`/`WaitingForSupervisor` states and `startListeningForScans`/`discardInvalidIngredient`/`requestSupervisorOverride`/`submitSupervisorTag` methods, and stops populating `_scannedIngredients` from scanning (the field itself is removed in Task 7, once `IngredientScanScreen` no longer reads it — Task 6). For this task, leave `_scannedIngredients`/`scannedIngredients` and `completePremix` untouched; they're addressed in Task 7.
+**Sequencing correction:** this task ADDS the new pallet-scan-driven states/methods *alongside* the existing RFID-tag-scan-count-based ones — it does **not** remove `IngredientInvalid`/`WaitingForSupervisor` or `startListeningForScans`/`discardInvalidIngredient`/`requestSupervisorOverride`/`submitSupervisorTag` yet. `IngredientScanScreen` (not rewired until Task 6) still calls the old methods and reads the old states; deleting them here would leave the module non-compiling between Task 5 and Task 6, violating this plan's own "every task stays green" constraint. The old flow, `_scannedIngredients`, `IngredientValidationResult`, and `completePremix`'s signature are all removed together in Task 7, once Task 6 has fully swapped `IngredientScanScreen` onto the new API. Leave `_scannedIngredients`/`scannedIngredients` and `completePremix` completely untouched in this task.
 
 - [ ] **Step 1: Write the failing tests**
 
-In `MixingViewModelTest.kt`, replace the five tests `discardInvalidIngredient resets state to OrderLoaded`, `requestSupervisorOverride sets WaitingForSupervisor state`, `submitSupervisorTag on approval appends exception ingredient and resets to OrderLoaded`, `submitSupervisorTag on rejection stays WaitingForSupervisor`, and the ingredient-scanning portion of `cancelJob resets state and scanned ingredients on backend confirmation` (the block between `viewModel.lookupJob("510019068")` /`advanceUntilIdle()` at the top and the `cancelJob` call — remove the `requestSupervisorOverride`/`submitSupervisorTag`/`assertTrue(viewModel.scannedIngredients.value.isNotEmpty())` lines, keep the rest) with:
+Add these 8 new tests to `MixingViewModelTest.kt` (append after the existing `lookupJob forwards preMixId to the use case` test, before `discardInvalidIngredient resets state to OrderLoaded`). Do **not** remove or modify any existing test in this file — `discardInvalidIngredient resets state to OrderLoaded`, `requestSupervisorOverride sets WaitingForSupervisor state`, the two `submitSupervisorTag` tests, and `cancelJob resets state and scanned ingredients on backend confirmation` all stay exactly as they are; they're removed in Task 7 alongside the methods they exercise:
 
 ```kotlin
     @Test
@@ -1007,72 +1007,10 @@ In `MixingViewModelTest.kt`, replace the five tests `discardInvalidIngredient re
     }
 ```
 
-Also replace the `cancelJob resets state and scanned ingredients on backend confirmation` test (it calls the now-removed `requestSupervisorOverride`/`submitSupervisorTag`):
-
-```kotlin
-    @Test
-    fun `cancelJob resets state and scanned ingredients on backend confirmation`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068")
-        advanceUntilIdle()
-
-        val exceptionIngredient = ScannedIngredient("TAG-001", "MAT-001", 1.0)
-        whenever(mockUseCase.approveIngredientException(any(), any(), any()))
-            .thenReturn(Result.success(exceptionIngredient))
-        viewModel.requestSupervisorOverride("TAG-001", "Not in BOM")
-        viewModel.submitSupervisorTag("510019068", "TAG-001", "SUP-001")
-        advanceUntilIdle()
-        assertTrue(viewModel.scannedIngredients.value.isNotEmpty())
-
-        whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
-            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
-        )
-        val outcomes = mutableListOf<CancelOutcome>()
-        val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
-
-        viewModel.cancelJob()
-        advanceUntilIdle()
-
-        assertEquals(MixingUiState.Idle, viewModel.uiState.value)
-        assertTrue(viewModel.scannedIngredients.value.isEmpty())
-        assertEquals("", viewModel.hopperCode.value)
-        assertTrue(outcomes.contains(CancelOutcome.Confirmed))
-        job.cancel()
-    }
-```
-
-with:
-
-```kotlin
-    @Test
-    fun `cancelJob resets state and scanned ingredients on backend confirmation`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068")
-        advanceUntilIdle()
-
-        whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
-            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
-        )
-        val outcomes = mutableListOf<CancelOutcome>()
-        val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
-
-        viewModel.cancelJob()
-        advanceUntilIdle()
-
-        assertEquals(MixingUiState.Idle, viewModel.uiState.value)
-        assertTrue(viewModel.scannedIngredients.value.isEmpty())
-        assertEquals("", viewModel.hopperCode.value)
-        assertTrue(outcomes.contains(CancelOutcome.Confirmed))
-        job.cancel()
-    }
-```
-
-(`scannedIngredients` itself is untouched until Task 7, so this assertion stays valid here.)
-
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat testDebugUnitTest --tests "*.MixingViewModelTest"`
-Expected: FAIL to compile — the new states/methods don't exist yet, and the old ones referenced by the removed test bodies are still present (harmless) but the new tests reference `MixingUiState.EnteringBagDetails` etc., which don't exist.
+Expected: FAIL to compile — the new tests reference `MixingUiState.EnteringBagDetails`/`IngredientExceptionApproval`/`PalletRecoveryPrompt` and `viewModel.startListeningForPalletScans`/`confirmIngredientScan`/`submitManagerApproval`/`confirmPalletRecovery`/`dismissPalletRecovery`/`cancelBagEntry`, none of which exist yet.
 
 - [ ] **Step 3: Update MixingUiState and add the new ViewModel methods**
 
@@ -1091,7 +1029,7 @@ sealed class MixingUiState {
 }
 ```
 
-with:
+with (this ADDS the three new variants; `IngredientInvalid` and `WaitingForSupervisor` stay — `IngredientScanScreen` still constructs and matches on them until Task 6):
 
 ```kotlin
 sealed class MixingUiState {
@@ -1099,6 +1037,8 @@ sealed class MixingUiState {
     object Loading : MixingUiState()
     object Cancelling : MixingUiState()
     data class OrderLoaded(val order: ProductionOrder) : MixingUiState()
+    data class IngredientInvalid(val tagId: String, val reason: String) : MixingUiState()
+    data class WaitingForSupervisor(val tagId: String, val reason: String) : MixingUiState()
     data class EnteringBagDetails(val palletTag: String) : MixingUiState()
     data class IngredientExceptionApproval(val exceptionId: String, val reason: String) : MixingUiState()
     data class PalletRecoveryPrompt(val palletTag: String) : MixingUiState()
@@ -1116,7 +1056,7 @@ import com.ppnam.station2aa.domain.model.ProductionOrder
 
 (`ProductionOrder` is likely already imported — leave the existing import line as-is if so.)
 
-Replace the block from `fun startListeningForScans(orderNo: String) {` through the end of `fun submitSupervisorTag(...)` (i.e. replace `startListeningForScans`, `discardInvalidIngredient`, `requestSupervisorOverride`, `submitSupervisorTag` in their entirety) with:
+Add this new code directly after the existing `fun submitSupervisorTag(...)` method's closing brace (before `fun checkAndAllocateHopper`). Do **not** remove or modify `startListeningForScans`, `discardInvalidIngredient`, `requestSupervisorOverride`, or `submitSupervisorTag` — they stay exactly as they are, unused by any new code, until Task 7 deletes them once `IngredientScanScreen` no longer calls them:
 
 ```kotlin
     private data class PendingIngredientScan(
@@ -1239,7 +1179,7 @@ Replace the block from `fun startListeningForScans(orderNo: String) {` through t
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat testDebugUnitTest --tests "*.MixingViewModelTest"`
-Expected: PASS — all tests green, including the 8 new ones.
+Expected: PASS — all tests green: the 8 new tests plus every pre-existing test (including the 4 old supervisor-tag tests, unchanged and still exercising the still-present old methods).
 
 - [ ] **Step 5: Commit**
 
@@ -1707,9 +1647,20 @@ rm app/src/main/java/com/ppnam/station2aa/domain/model/IngredientValidationResul
 rm app/src/main/java/com/ppnam/station2aa/domain/model/PreMix.kt
 ```
 
-- [ ] **Step 5: Remove _scannedIngredients from MixingViewModel and fix completePremix call**
+- [ ] **Step 5: Remove the old RFID-tag-scan states/methods, _scannedIngredients, and fix completePremix call**
 
-In `MixingViewModel.kt`, remove:
+Task 5 deliberately left the old scan-count-based flow in place alongside the new pallet-scan flow, since `IngredientScanScreen` still depended on it until Task 6 rewired the screen. Now that Task 6 is done, remove it.
+
+In `MixingViewModel.kt`, remove these two variants from `sealed class MixingUiState`:
+
+```kotlin
+    data class IngredientInvalid(val tagId: String, val reason: String) : MixingUiState()
+    data class WaitingForSupervisor(val tagId: String, val reason: String) : MixingUiState()
+```
+
+Remove these four methods in their entirety: `startListeningForScans`, `discardInvalidIngredient`, `requestSupervisorOverride`, `submitSupervisorTag`.
+
+Remove:
 
 ```kotlin
     private val _scannedIngredients = MutableStateFlow<List<ScannedIngredient>>(emptyList())
@@ -1740,9 +1691,11 @@ with:
 
 In `cancelJob`'s success branch, remove the line `_scannedIngredients.value = emptyList()` (there is nothing left to clear).
 
-- [ ] **Step 6: Fix remaining ScannedIngredient references in MixingViewModelTest**
+- [ ] **Step 6: Remove old-flow tests and fix remaining ScannedIngredient references in MixingViewModelTest**
 
-In `MixingViewModelTest.kt`, remove `import com.ppnam.station2aa.domain.model.ScannedIngredient` and `import com.ppnam.station2aa.domain.model.IngredientValidationResult`.
+In `MixingViewModelTest.kt`, remove these four tests in their entirety (they exercise the methods just deleted in Step 5): `discardInvalidIngredient resets state to OrderLoaded`, `requestSupervisorOverride sets WaitingForSupervisor state`, `submitSupervisorTag on approval appends exception ingredient and resets to OrderLoaded`, `submitSupervisorTag on rejection stays WaitingForSupervisor`.
+
+Remove `import com.ppnam.station2aa.domain.model.ScannedIngredient` and `import com.ppnam.station2aa.domain.model.IngredientValidationResult`.
 
 Replace the `cancelJob resets state and scanned ingredients on backend confirmation` test (its `scannedIngredients` assertion no longer compiles once the field is removed from `MixingViewModel`):
 
