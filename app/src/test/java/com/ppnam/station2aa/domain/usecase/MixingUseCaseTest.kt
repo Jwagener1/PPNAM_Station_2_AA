@@ -9,6 +9,7 @@ import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomProgressLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
+import com.ppnam.station2aa.data.mqtt.dto.ManagerApprovalResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
@@ -564,6 +565,86 @@ class MixingUseCaseTest {
         ).thenReturn(MqttTypedResult.Disconnected)
 
         val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)
+
+        assertTrue(result.isFailure)
+        assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
+    }
+
+    // --- approveManagerException ---
+
+    @Test
+    fun `approveManagerException returns the approvalId on success`() = runTest {
+        val response = ManagerApprovalResultResponse(accepted = true, approvalId = "approval-1")
+        whenever(
+            mockMqtt.sendTyped(
+                eq("manager_approval_requested"), eq("manager_approval_result"), any(),
+                eq(ManagerApprovalResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.approveManagerException(
+            "exception-1", "premix-1", "EPC:300833", "manager1", "5678", "Operator requested override"
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals("approval-1", result.getOrThrow())
+    }
+
+    @Test
+    fun `approveManagerException sends the exception and pallet in the request`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("manager_approval_requested"), eq("manager_approval_result"), any(),
+                eq(ManagerApprovalResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Error("timeout"))
+
+        useCase.approveManagerException(
+            "exception-1", "premix-1", "EPC:300833", "manager1", "5678", "Operator requested override"
+        )
+
+        val captor = argumentCaptor<String>()
+        verify(mockMqtt).sendTyped(
+            eq("manager_approval_requested"), eq("manager_approval_result"), captor.capture(),
+            eq(ManagerApprovalResultResponse::class.java), eq(false)
+        )
+        assertTrue(captor.firstValue.contains("\"approvalTargetId\":\"exception-1\""))
+        assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
+        assertTrue(captor.firstValue.contains("\"palletRfidTag\":\"EPC:300833\""))
+        assertTrue(captor.firstValue.contains("\"managerUsername\":\"manager1\""))
+        assertTrue(captor.firstValue.contains("\"managerPassword\":\"5678\""))
+    }
+
+    @Test
+    fun `approveManagerException returns failure with backend reason when denied`() = runTest {
+        val response = ManagerApprovalResultResponse(accepted = false, reason = "Invalid manager credentials")
+        whenever(
+            mockMqtt.sendTyped(
+                eq("manager_approval_requested"), eq("manager_approval_result"), any(),
+                eq(ManagerApprovalResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val result = useCase.approveManagerException(
+            "exception-1", "premix-1", "EPC:300833", "baduser", "badpass", "reason"
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals("Invalid manager credentials", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `approveManagerException returns failure when disconnected`() = runTest {
+        whenever(
+            mockMqtt.sendTyped(
+                eq("manager_approval_requested"), eq("manager_approval_result"), any(),
+                eq(ManagerApprovalResultResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Disconnected)
+
+        val result = useCase.approveManagerException(
+            "exception-1", "premix-1", "EPC:300833", "manager1", "5678", "reason"
+        )
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)

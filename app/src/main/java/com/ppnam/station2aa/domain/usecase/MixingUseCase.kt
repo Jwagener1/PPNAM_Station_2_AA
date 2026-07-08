@@ -12,6 +12,8 @@ import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScannedRequest
 import com.ppnam.station2aa.data.mqtt.dto.JobCardSubmittedRequest
+import com.ppnam.station2aa.data.mqtt.dto.ManagerApprovalRequest
+import com.ppnam.station2aa.data.mqtt.dto.ManagerApprovalResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelledRequest
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
@@ -237,6 +239,51 @@ class MixingUseCase @Inject constructor(
                     else -> IngredientScanOutcome.Rejected(response.reason ?: "Ingredient scan rejected")
                 }
                 Result.success(outcome)
+            }
+            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
+            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
+            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+        }
+    }
+
+    suspend fun approveManagerException(
+        exceptionId: String,
+        preMixId: String,
+        palletRfidTag: String,
+        managerUsername: String,
+        managerPassword: String,
+        reason: String
+    ): Result<String> {
+        val deviceId = settingsRepository.current().deviceId
+        val requestJson = gson.toJson(
+            ManagerApprovalRequest(
+                messageId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
+                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+                timestampUtc = Instant.now().toString(),
+                correlationKey = exceptionId,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                approvalTargetId = exceptionId,
+                preMixId = preMixId,
+                palletRfidTag = palletRfidTag,
+                reason = reason
+            )
+        )
+
+        val result = mqttRepository.sendTyped(
+            requestType = "manager_approval_requested",
+            responseType = "manager_approval_result",
+            requestJson = requestJson,
+            responseClass = ManagerApprovalResultResponse::class.java,
+            allowOfflineQueue = false
+        )
+
+        return when (result) {
+            is MqttTypedResult.Success -> {
+                val response = result.response
+                if (response.accepted) Result.success(response.approvalId)
+                else Result.failure(Exception(response.reason ?: "Approval denied"))
             }
             is MqttTypedResult.Error -> Result.failure(Exception(result.message))
             MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
