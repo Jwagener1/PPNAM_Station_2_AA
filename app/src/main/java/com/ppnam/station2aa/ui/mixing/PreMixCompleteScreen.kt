@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +23,7 @@ import com.ppnam.station2aa.ui.theme.*
 fun PreMixCompleteScreen(
     orderNo: String,
     onCompleted: () -> Unit,
+    onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
@@ -30,7 +32,7 @@ fun PreMixCompleteScreen(
     val isQueuedOffline by viewModel.isQueuedOffline.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
-    var showConfirmation by remember { mutableStateOf(false) }
+    var showConfirmation by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { destination ->
@@ -43,7 +45,8 @@ fun PreMixCompleteScreen(
             isQueuedOffline = isQueuedOffline,
             connectionState = connectionState,
             pendingCount = pendingCount,
-            onDone = onCompleted
+            onDone = onCompleted,
+            onRfidLookup = onRfidLookup
         )
         return
     }
@@ -55,7 +58,8 @@ fun PreMixCompleteScreen(
         title = "Review Pre-Mix",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = onBack
+        onBack = onBack,
+        onRfidLookup = onRfidLookup
     ) { padding ->
         Column(
             modifier = Modifier
@@ -112,7 +116,8 @@ private fun PremixConfirmedContent(
     isQueuedOffline: Boolean,
     connectionState: MqttConnectionState,
     pendingCount: Int,
-    onDone: () -> Unit
+    onDone: () -> Unit,
+    onRfidLookup: () -> Unit
 ) {
     val accentColor = if (isQueuedOffline) WarningOrange else SuccessGreen
     val icon = if (isQueuedOffline) Icons.Filled.Schedule else Icons.Filled.CheckCircle
@@ -123,7 +128,8 @@ private fun PremixConfirmedContent(
         title = "Pre-Mix Complete",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = null
+        onBack = null,
+        onRfidLookup = onRfidLookup
     ) { padding ->
         Column(
             modifier = Modifier

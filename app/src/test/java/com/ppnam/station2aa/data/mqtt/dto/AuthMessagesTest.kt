@@ -21,7 +21,7 @@ class AuthMessagesTest {
         )
         val json = JsonParser.parseString(gson.toJson(request)).asJsonObject
         assertEquals("login-0001", json.get("messageId").asString)
-        assertEquals("1.0", json.get("schemaVersion").asString)
+        assertEquals("2.0", json.get("schemaVersion").asString)
         assertEquals("handheld_1", json.get("deviceId").asString)
         assertEquals("", json.get("operatorSessionId").asString)
         assertEquals("2026-06-30T10:30:00Z", json.get("timestampUtc").asString)

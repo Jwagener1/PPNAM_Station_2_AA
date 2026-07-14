@@ -21,6 +21,7 @@ import com.ppnam.station2aa.ui.theme.*
 fun HopperScanScreen(
     orderNo: String,
     onProceed: () -> Unit,
+    onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
@@ -50,7 +51,8 @@ fun HopperScanScreen(
         title = "Scan Hopper",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = onBack
+        onBack = onBack,
+        onRfidLookup = onRfidLookup
     ) { padding ->
         Column(
             modifier = Modifier

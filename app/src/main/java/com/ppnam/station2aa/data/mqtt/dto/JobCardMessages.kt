@@ -2,13 +2,13 @@ package com.ppnam.station2aa.data.mqtt.dto
 
 data class JobCardSubmittedRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
     val correlationKey: String,
     val jobCardNumber: String,
-    val preMixId: String = ""
+    val collectionId: String = ""
 )
 
 data class BomLineResponse(
@@ -20,12 +20,13 @@ data class BomLineResponse(
     val issueType: String = "",
     val requiresIngredientCollection: Boolean = false,
     val uomCode: String = "",
+    val unit: String = "",
     val warehouse: String = ""
 )
 
 data class BomLoadedResponse(
     val messageId: String = "",
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String = "",
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
@@ -34,7 +35,7 @@ data class BomLoadedResponse(
     val reason: String? = null,
     val jobCardNumber: String = "",
     val productionOrderDocumentNumber: String = "",
-    val preMixId: String = "",
+    val collectionId: String = "",
     val resumedExistingPreMix: Boolean = false,
     val bomSnapshotCapturedAtUtc: String? = null,
     val nextAction: String = "",
@@ -43,7 +44,7 @@ data class BomLoadedResponse(
 
 data class ActiveJobCardsRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
@@ -53,26 +54,26 @@ data class ActiveJobCardsRequest(
 data class ActiveJobCardSummary(
     val jobCardNumber: String = "",
     val productionOrderDocumentNumber: String = "",
-    val preMixId: String = "",
+    val collectionId: String = "",
     val productName: String = "",
     val status: String = ""
 )
 
 data class ActiveJobCardsListResponse(
     val messageId: String = "",
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String = "",
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
     val correlationKey: String = "",
     val accepted: Boolean = false,
     val reason: String? = null,
-    val jobs: List<ActiveJobCardSummary> = emptyList()
+    val collections: List<ActiveJobCardSummary> = emptyList()
 )
 
 data class PreMixCancelledRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
@@ -87,7 +88,7 @@ data class PreMixCancelledRequest(
 
 data class PreMixCancelResultResponse(
     val messageId: String = "",
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String = "",
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",

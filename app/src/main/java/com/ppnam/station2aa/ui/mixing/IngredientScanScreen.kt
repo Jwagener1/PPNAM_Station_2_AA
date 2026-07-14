@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,19 +27,20 @@ import com.ppnam.station2aa.ui.theme.*
 fun IngredientScanScreen(
     orderNo: String,
     onProceedToHopperScan: () -> Unit,
+    onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
-    var showCancelDialog by remember { mutableStateOf(false) }
-    var showBackConfirmDialog by remember { mutableStateOf(false) }
-    var showApprovalDialog by remember { mutableStateOf(false) }
+    var showCancelDialog by rememberSaveable { mutableStateOf(false) }
+    var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
+    var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
     var managerUsername by remember { mutableStateOf("") }
     var managerPassword by remember { mutableStateOf("") }
-    var selectedBagFraction by remember { mutableStateOf(0.0) }
-    var bagCountText by remember { mutableStateOf("1") }
+    var selectedBagFraction by rememberSaveable { mutableStateOf(0.0) }
+    var bagCountText by rememberSaveable { mutableStateOf("1") }
     var exceptionUsername by remember { mutableStateOf("") }
     var exceptionPassword by remember { mutableStateOf("") }
 
@@ -329,7 +331,8 @@ fun IngredientScanScreen(
         title = "Scan Ingredients",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = { showBackConfirmDialog = true }
+        onBack = { showBackConfirmDialog = true },
+        onRfidLookup = onRfidLookup
     ) { padding ->
         Box(
             modifier = Modifier
