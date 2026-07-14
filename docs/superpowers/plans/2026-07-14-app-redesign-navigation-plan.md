@@ -326,13 +326,13 @@ git commit -m "feat(ui): add RFID Pallet Lookup action to AppScaffold top bar"
   ```kotlin
   fun JobLookupScreen(
       onJobFound: (orderNo: String) -> Unit,
-      onSettings: () -> Unit,
-      onLogout: () -> Unit,
-      onRfidLookup: () -> Unit,
+      onSettings: () -> Unit = {},
+      onLogout: () -> Unit = {},
+      onRfidLookup: () -> Unit = {},
       viewModel: MixingViewModel = hiltViewModel()
   )
   ```
-  (the `onBack` parameter is removed). Task 7 (AppNavGraph) wires all four new/changed callbacks.
+  (the `onBack` parameter is removed). The three new callbacks default to no-ops so this task compiles standalone; Task 7 (AppNavGraph) wires all three to real navigation.
 
 - [ ] **Step 1: Update imports**
 
@@ -377,9 +377,9 @@ with:
 @Composable
 fun JobLookupScreen(
     onJobFound: (orderNo: String) -> Unit,
-    onSettings: () -> Unit,
-    onLogout: () -> Unit,
-    onRfidLookup: () -> Unit,
+    onSettings: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    onRfidLookup: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -437,7 +437,7 @@ with:
 - [ ] **Step 4: Verify it compiles**
 
 Run: `./gradlew.bat compileDebugKotlin`
-Expected: FAILURE at this point — `AppNavGraph.kt` still calls `JobLookupScreen` with the old `onBack`/`onJobFound`-only signature. That call site is fixed in Task 7; this is expected and will be resolved then. Confirm the *only* errors reported are in `AppNavGraph.kt`'s `JobLookupScreen(...)` call — no errors inside `JobLookupScreen.kt` itself.
+Expected: BUILD SUCCESSFUL. `AppNavGraph.kt` still calls `JobLookupScreen` positionally with just `onJobFound`/`onBack`-style args from before — since `onBack` no longer exists as a parameter, check whether this call site now fails; if `AppNavGraph.kt` passes `onBack = { ... }` by name, that argument is simply unresolved and IS a real compile error (not one masked by defaults), because `onBack` doesn't exist on the new signature at all. Confirm that specific error (unresolved `onBack` reference in `AppNavGraph.kt`'s `JobLookupScreen(...)` call) is the *only* error — it is fixed in Task 7. No errors should appear inside `JobLookupScreen.kt` itself.
 
 - [ ] **Step 5: Commit**
 
@@ -455,7 +455,7 @@ git commit -m "feat(mixing): JobLookupScreen carries operator/logout/settings/RF
 
 **Interfaces:**
 - Consumes: `AppScaffold(onRfidLookup=...)` (Task 2).
-- Produces: new signature `fun IngredientScanScreen(orderNo: String, onProceedToHopperScan: () -> Unit, onRfidLookup: () -> Unit, onBack: () -> Unit = {}, viewModel: MixingViewModel = hiltViewModel())`. Task 7 wires `onRfidLookup`.
+- Produces: new signature `fun IngredientScanScreen(orderNo: String, onProceedToHopperScan: () -> Unit, onRfidLookup: () -> Unit = {}, onBack: () -> Unit = {}, viewModel: MixingViewModel = hiltViewModel())`. `onRfidLookup` defaults to a no-op so this task compiles standalone; Task 7 wires it to real navigation.
 
 - [ ] **Step 1: Update imports**
 
@@ -516,7 +516,7 @@ with:
 fun IngredientScanScreen(
     orderNo: String,
     onProceedToHopperScan: () -> Unit,
-    onRfidLookup: () -> Unit,
+    onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
@@ -548,7 +548,7 @@ with:
 - [ ] **Step 4: Verify it compiles**
 
 Run: `./gradlew.bat compileDebugKotlin`
-Expected: FAILURE only in `AppNavGraph.kt`'s `IngredientScanScreen(...)` call site (missing the new required `onRfidLookup` argument) — fixed in Task 7. No errors inside `IngredientScanScreen.kt` itself.
+Expected: BUILD SUCCESSFUL. `onRfidLookup` defaults to a no-op, so `AppNavGraph.kt`'s existing `IngredientScanScreen(...)` call (which doesn't pass it yet) still compiles; it will actually pass the real callback once Task 7 wires it up.
 
 - [ ] **Step 5: Commit**
 
@@ -566,7 +566,7 @@ git commit -m "feat(mixing): IngredientScanScreen gains RFID lookup button and s
 
 **Interfaces:**
 - Consumes: `AppScaffold(onRfidLookup=...)` (Task 2).
-- Produces: new signature `fun HopperScanScreen(orderNo: String, onProceed: () -> Unit, onRfidLookup: () -> Unit, onBack: () -> Unit = {}, viewModel: MixingViewModel = hiltViewModel())`. Task 7 wires `onRfidLookup`.
+- Produces: new signature `fun HopperScanScreen(orderNo: String, onProceed: () -> Unit, onRfidLookup: () -> Unit = {}, onBack: () -> Unit = {}, viewModel: MixingViewModel = hiltViewModel())`. `onRfidLookup` defaults to a no-op so this task compiles standalone; Task 7 wires it to real navigation.
 
 - [ ] **Step 1: Add the parameter and wire it**
 
@@ -589,7 +589,7 @@ with:
 fun HopperScanScreen(
     orderNo: String,
     onProceed: () -> Unit,
-    onRfidLookup: () -> Unit,
+    onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
@@ -621,7 +621,7 @@ with:
 - [ ] **Step 2: Verify it compiles**
 
 Run: `./gradlew.bat compileDebugKotlin`
-Expected: FAILURE only in `AppNavGraph.kt`'s `HopperScanScreen(...)` call site (missing `onRfidLookup`) — fixed in Task 7.
+Expected: BUILD SUCCESSFUL. `onRfidLookup` defaults to a no-op, so `AppNavGraph.kt`'s existing `HopperScanScreen(...)` call still compiles; Task 7 wires it to real navigation.
 
 - [ ] **Step 3: Commit**
 
@@ -639,7 +639,7 @@ git commit -m "feat(mixing): HopperScanScreen gains RFID lookup button"
 
 **Interfaces:**
 - Consumes: `AppScaffold(onRfidLookup=...)` (Task 2).
-- Produces: new signature `fun PreMixCompleteScreen(orderNo: String, onCompleted: () -> Unit, onRfidLookup: () -> Unit, onBack: () -> Unit = {}, viewModel: MixingViewModel = hiltViewModel())`; the private `PremixConfirmedContent` also gains `onRfidLookup: () -> Unit`. Task 7 wires `onRfidLookup`.
+- Produces: new signature `fun PreMixCompleteScreen(orderNo: String, onCompleted: () -> Unit, onRfidLookup: () -> Unit = {}, onBack: () -> Unit = {}, viewModel: MixingViewModel = hiltViewModel())`; the private `PremixConfirmedContent` also gains `onRfidLookup: () -> Unit` (no default needed — its only caller, `PreMixCompleteScreen`, is updated in this same task). `PreMixCompleteScreen.onRfidLookup` defaults to a no-op so this task compiles standalone; Task 7 wires it to real navigation.
 
 - [ ] **Step 1: Update imports**
 
@@ -676,7 +676,7 @@ with:
 fun PreMixCompleteScreen(
     orderNo: String,
     onCompleted: () -> Unit,
-    onRfidLookup: () -> Unit,
+    onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
@@ -793,7 +793,7 @@ with:
 - [ ] **Step 4: Verify it compiles**
 
 Run: `./gradlew.bat compileDebugKotlin`
-Expected: FAILURE only in `AppNavGraph.kt`'s `PreMixCompleteScreen(...)` call site (missing `onRfidLookup`) — fixed in Task 7.
+Expected: BUILD SUCCESSFUL. `onRfidLookup` defaults to a no-op, so `AppNavGraph.kt`'s existing `PreMixCompleteScreen(...)` call still compiles; Task 7 wires it to real navigation.
 
 - [ ] **Step 5: Commit**
 
