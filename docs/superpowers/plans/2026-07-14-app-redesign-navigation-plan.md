@@ -487,13 +487,15 @@ with:
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
-    var managerUsername by rememberSaveable { mutableStateOf("") }
-    var managerPassword by rememberSaveable { mutableStateOf("") }
+    var managerUsername by remember { mutableStateOf("") }
+    var managerPassword by remember { mutableStateOf("") }
     var selectedBagFraction by rememberSaveable { mutableStateOf(0.0) }
     var bagCountText by rememberSaveable { mutableStateOf("1") }
-    var exceptionUsername by rememberSaveable { mutableStateOf("") }
-    var exceptionPassword by rememberSaveable { mutableStateOf("") }
+    var exceptionUsername by remember { mutableStateOf("") }
+    var exceptionPassword by remember { mutableStateOf("") }
 ```
+
+**Amended post-implementation (security review):** `managerUsername`, `managerPassword`, `exceptionUsername`, and `exceptionPassword` stay on plain `remember`, not `rememberSaveable` — `rememberSaveable` persists into Android's saved-instance-state Bundle, which can be written to disk across process death, and these are credential fields. Only the 5 non-credential fields above (`showCancelDialog`, `showBackConfirmDialog`, `showApprovalDialog`, `selectedBagFraction`, `bagCountText`) use `rememberSaveable`. This means a partially-typed manager/exception username or password resets if the operator opens RFID Pallet Lookup mid-dialog — an accepted, deliberate tradeoff against persisting credentials.
 
 - [ ] **Step 3: Add the `onRfidLookup` parameter and wire it**
 
