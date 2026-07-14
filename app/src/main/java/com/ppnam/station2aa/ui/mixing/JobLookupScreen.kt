@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -24,7 +25,9 @@ import com.ppnam.station2aa.ui.theme.TextPrimary
 @Composable
 fun JobLookupScreen(
     onJobFound: (orderNo: String) -> Unit,
-    onBack: () -> Unit = {},
+    onSettings: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    onRfidLookup: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -32,7 +35,8 @@ fun JobLookupScreen(
     val pendingCount by viewModel.pendingCount.collectAsState()
     val activeJobs by viewModel.activeJobs.collectAsState()
     val activeJobsError by viewModel.activeJobsError.collectAsState()
-    var orderInput by remember { mutableStateOf("") }
+    val session by viewModel.session.collectAsState()
+    var orderInput by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(Unit) { viewModel.loadActiveJobs() }
 
@@ -44,6 +48,10 @@ fun JobLookupScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.logoutEvent.collect { onLogout() }
+    }
+
     val isLoading = uiState is MixingUiState.Loading
     val errorMessage = if (uiState is MixingUiState.Error) (uiState as MixingUiState.Error).message else null
 
@@ -51,7 +59,12 @@ fun JobLookupScreen(
         title = "Job Lookup",
         connectionState = connectionState,
         pendingCount = pendingCount,
-        onBack = onBack
+        onBack = null,
+        onRfidLookup = onRfidLookup,
+        onSettings = onSettings,
+        operatorName = session?.operatorName,
+        operatorRole = session?.role,
+        onLogout = viewModel::logout
     ) { padding ->
         Column(
             modifier = Modifier
@@ -74,7 +87,7 @@ fun JobLookupScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(enabled = !isLoading) { viewModel.lookupJob(job.jobCardNumber, job.preMixId) },
+                                .clickable(enabled = !isLoading) { viewModel.lookupJob(job.jobCardNumber, job.collectionId) },
                             colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
                             border = BorderStroke(1.dp, GraphiteBorder)
                         ) {

@@ -74,10 +74,12 @@ Two mechanisms are needed so "return to the state it was in before" actually hol
 **2. Local UI state surviving the round trip.** Because the underlying screen's composition is disposed while RFID Pallet Lookup is on top, any state held in plain `remember { mutableStateOf(...) }` is lost — it resets to its initial value when the screen recomposes on return. `rememberSaveable` state, by contrast, is persisted per back-stack entry by Navigation-Compose and correctly restored. The following existing `remember` calls must become `rememberSaveable` so they survive opening/closing the RFID lookup:
 
   - `JobLookupScreen.kt`: `orderInput`
-  - `IngredientScanScreen.kt`: `showCancelDialog`, `showBackConfirmDialog`, `showApprovalDialog`, `managerUsername`, `managerPassword`, `selectedBagFraction`, `bagCountText`, `exceptionUsername`, `exceptionPassword`
+  - `IngredientScanScreen.kt`: `showCancelDialog`, `showBackConfirmDialog`, `showApprovalDialog`, `selectedBagFraction`, `bagCountText`
   - `PreMixCompleteScreen.kt`: `showConfirmation`
 
   `HopperScanScreen.kt` has no local `remember` state and needs no change here.
+
+  **Amended post-implementation (security review):** `IngredientScanScreen.kt`'s `managerUsername`, `managerPassword`, `exceptionUsername`, and `exceptionPassword` are credential fields and stay on plain `remember`, not `rememberSaveable` — `rememberSaveable` persists into Android's saved-instance-state Bundle, which can be written to disk across process death, and credentials should not go through it. A partially-typed manager/exception username or password resets if the operator opens RFID Pallet Lookup mid-dialog; this is an accepted tradeoff against persisting credentials.
 
 ### Job Lookup top-bar parity (operator name, Logout, Settings)
 

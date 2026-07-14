@@ -50,14 +50,14 @@ class MixingUseCaseTest {
             accepted = true,
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            preMixId = "premix-1",
+            collectionId = "premix-1",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0)
             )
         )
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -67,24 +67,24 @@ class MixingUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals("510019068", result.getOrThrow().docNo)
-        assertEquals("premix-1", result.getOrThrow().preMixId)
+        assertEquals("premix-1", result.getOrThrow().collectionId)
         verify(mockBomCacheDao).put(any())
     }
 
     @Test
-    fun `lookupJob maps uomCode onto each BomLine's uom`() = runTest {
+    fun `lookupJob falls back to uomCode when unit is blank`() = runTest {
         val response = BomLoadedResponse(
             accepted = true,
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            preMixId = "premix-1",
+            collectionId = "premix-1",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "KG")
             )
         )
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -95,12 +95,58 @@ class MixingUseCaseTest {
     }
 
     @Test
+    fun `lookupJob prefers the humanized unit over the raw SAP uomCode`() = runTest {
+        // Real Station 2 schema 2.0 responses send the raw SAP code ("269") in uomCode
+        // and the humanized value ("kg") in a separate unit field.
+        val response = BomLoadedResponse(
+            accepted = true,
+            jobCardNumber = "510019068",
+            collectionId = "premix-1",
+            ingredients = listOf(
+                BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "269", unit = "kg")
+            )
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val order = useCase.lookupJob("510019068").getOrThrow()
+
+        assertEquals("kg", order.lines.single().uom)
+    }
+
+    @Test
+    fun `lookupJob uses jobCardNumber as docNo since productionOrderDocumentNumber is no longer returned`() = runTest {
+        // Real Station 2 schema 2.0 ingredient_collection_loaded responses omit
+        // productionOrderDocumentNumber entirely — only jobCardNumber comes back.
+        val response = BomLoadedResponse(
+            accepted = true,
+            jobCardNumber = "510019359",
+            collectionId = "COL_000004",
+            ingredients = emptyList()
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val order = useCase.lookupJob("510019359").getOrThrow()
+
+        assertEquals("510019359", order.docNo)
+    }
+
+    @Test
     fun `lookupJob separates the backflush line as the product being made`() = runTest {
         val response = BomLoadedResponse(
             accepted = true,
             jobCardNumber = "510019231",
             productionOrderDocumentNumber = "510019231",
-            preMixId = "premix-1",
+            collectionId = "premix-1",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "1500000326",
@@ -120,7 +166,7 @@ class MixingUseCaseTest {
         )
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -138,14 +184,14 @@ class MixingUseCaseTest {
             accepted = true,
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            preMixId = "premix-1",
+            collectionId = "premix-1",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", issueType = "im_Manual")
             )
         )
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -162,7 +208,7 @@ class MixingUseCaseTest {
             accepted = true,
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            preMixId = "premix-1",
+            collectionId = "premix-1",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
@@ -178,7 +224,7 @@ class MixingUseCaseTest {
         )
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -198,7 +244,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(accepted = false, reason = "Job card not found")
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -212,7 +258,7 @@ class MixingUseCaseTest {
     fun `lookupJob returns failure on MQTT error`() = runTest {
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Error("Not found"))
@@ -225,7 +271,7 @@ class MixingUseCaseTest {
     fun `lookupJob sends job_card_submitted on the correct request envelope`() = runTest {
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Error("timeout"))
@@ -234,7 +280,7 @@ class MixingUseCaseTest {
 
         val captor = argumentCaptor<String>()
         verify(mockMqtt).sendTyped(
-            eq("job_card_submitted"), eq("bom_loaded"), captor.capture(),
+            eq("job_card_submitted"), eq("ingredient_collection_loaded"), captor.capture(),
             eq(BomLoadedResponse::class.java), eq(false)
         )
         assertTrue(captor.firstValue.contains("\"jobCardNumber\":\"510019068\""))
@@ -243,10 +289,10 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `lookupJob includes preMixId in the request envelope when supplied`() = runTest {
+    fun `lookupJob includes collectionId in the request envelope when supplied`() = runTest {
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Error("timeout"))
@@ -255,17 +301,17 @@ class MixingUseCaseTest {
 
         val captor = argumentCaptor<String>()
         verify(mockMqtt).sendTyped(
-            eq("job_card_submitted"), eq("bom_loaded"), captor.capture(),
+            eq("job_card_submitted"), eq("ingredient_collection_loaded"), captor.capture(),
             eq(BomLoadedResponse::class.java), eq(false)
         )
-        assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
+        assertTrue(captor.firstValue.contains("\"collectionId\":\"premix-1\""))
     }
 
     @Test
-    fun `lookupJob sends an empty preMixId when the caller omits it`() = runTest {
+    fun `lookupJob sends an empty collectionId when the caller omits it`() = runTest {
         whenever(
             mockMqtt.sendTyped(
-                eq("job_card_submitted"), eq("bom_loaded"), any(),
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
                 eq(BomLoadedResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Error("timeout"))
@@ -274,10 +320,10 @@ class MixingUseCaseTest {
 
         val captor = argumentCaptor<String>()
         verify(mockMqtt).sendTyped(
-            eq("job_card_submitted"), eq("bom_loaded"), captor.capture(),
+            eq("job_card_submitted"), eq("ingredient_collection_loaded"), captor.capture(),
             eq(BomLoadedResponse::class.java), eq(false)
         )
-        assertTrue(captor.firstValue.contains("\"preMixId\":\"\""))
+        assertTrue(captor.firstValue.contains("\"collectionId\":\"\""))
     }
 
     // --- cancelJob ---
@@ -361,11 +407,11 @@ class MixingUseCaseTest {
     fun `fetchActiveJobCards returns the job list on success`() = runTest {
         val response = ActiveJobCardsListResponse(
             accepted = true,
-            jobs = listOf(
+            collections = listOf(
                 ActiveJobCardSummary(
                     jobCardNumber = "510019068",
                     productionOrderDocumentNumber = "510019068",
-                    preMixId = "premix-1",
+                    collectionId = "premix-1",
                     productName = "Layer Mash",
                     status = "Open"
                 )
@@ -373,7 +419,7 @@ class MixingUseCaseTest {
         )
         whenever(
             mockMqtt.sendTyped(
-                eq("active_job_cards_requested"), eq("active_job_cards_list"), any(),
+                eq("active_ingredient_collections_requested"), eq("active_ingredient_collections_list"), any(),
                 eq(ActiveJobCardsListResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -391,7 +437,7 @@ class MixingUseCaseTest {
         val response = ActiveJobCardsListResponse(accepted = false, reason = "Operator session is not active for this RFID device. Log in again on this reader.")
         whenever(
             mockMqtt.sendTyped(
-                eq("active_job_cards_requested"), eq("active_job_cards_list"), any(),
+                eq("active_ingredient_collections_requested"), eq("active_ingredient_collections_list"), any(),
                 eq(ActiveJobCardsListResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Success(response))
@@ -406,7 +452,7 @@ class MixingUseCaseTest {
     fun `fetchActiveJobCards returns failure when disconnected`() = runTest {
         whenever(
             mockMqtt.sendTyped(
-                eq("active_job_cards_requested"), eq("active_job_cards_list"), any(),
+                eq("active_ingredient_collections_requested"), eq("active_ingredient_collections_list"), any(),
                 eq(ActiveJobCardsListResponse::class.java), eq(false)
             )
         ).thenReturn(MqttTypedResult.Disconnected)
@@ -423,7 +469,7 @@ class MixingUseCaseTest {
     fun `scanIngredient accepted maps ingredientProgress into updated BomLine list`() = runTest {
         val response = IngredientScanResultResponse(
             accepted = true,
-            preMixId = "premix-1",
+            collectionId = "premix-1",
             ingredientProgress = listOf(
                 BomProgressLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
@@ -470,7 +516,7 @@ class MixingUseCaseTest {
             eq("ingredient_scanned"), eq("ingredient_scan_result"), captor.capture(),
             eq(IngredientScanResultResponse::class.java), eq(false)
         )
-        assertTrue(captor.firstValue.contains("\"preMixId\":\"premix-1\""))
+        assertTrue(captor.firstValue.contains("\"collectionId\":\"premix-1\""))
         assertTrue(captor.firstValue.contains("\"palletRfidTag\":\"EPC:300833\""))
         assertTrue(captor.firstValue.contains("\"bagSizeOption\":\"full\""))
         assertTrue(captor.firstValue.contains("\"bagCount\":2.0"))

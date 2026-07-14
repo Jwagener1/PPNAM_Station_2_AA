@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +28,7 @@ fun AppScaffold(
     connectionState: MqttConnectionState,
     pendingCount: Int,
     onBack: (() -> Unit)? = null,
+    onRfidLookup: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
     operatorName: String? = null,
     operatorRole: String? = null,
@@ -88,6 +90,15 @@ fun AppScaffold(
                                 text = if (!operatorRole.isNullOrBlank()) "$operatorName · $operatorRole" else operatorName,
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                    if (onRfidLookup != null) {
+                        IconButton(onClick = onRfidLookup) {
+                            Icon(
+                                imageVector = Icons.Filled.WifiTethering,
+                                contentDescription = "RFID Pallet Lookup",
+                                tint = TextMuted
                             )
                         }
                     }

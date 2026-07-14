@@ -6,12 +6,14 @@ import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
+import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
+import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -49,6 +51,7 @@ class MixingViewModel @Inject constructor(
     private val scanEventBus: ScanEventBus,
     private val mqttRepository: MqttRepository,
     private val offlineQueueRepository: OfflineQueueRepository,
+    private val authUseCase: AuthUseCase,
     private val sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
 
@@ -65,6 +68,18 @@ class MixingViewModel @Inject constructor(
 
     val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val session: StateFlow<OperatorSession?> = sessionHolder.session
+
+    private val _logoutEvent = Channel<Unit>(Channel.BUFFERED)
+    val logoutEvent: Flow<Unit> = _logoutEvent.receiveAsFlow()
+
+    fun logout() {
+        viewModelScope.launch {
+            authUseCase.logout()
+            _logoutEvent.send(Unit)
+        }
+    }
 
     private val _activeJobs = MutableStateFlow<List<ActiveJobCardSummary>>(emptyList())
     val activeJobs: StateFlow<List<ActiveJobCardSummary>> = _activeJobs.asStateFlow()
@@ -87,10 +102,10 @@ class MixingViewModel @Inject constructor(
     private var currentOrderNo: String = ""
     private var cachedOrder: ProductionOrder? = null
 
-    fun lookupJob(orderNo: String, preMixId: String = "") {
+    fun lookupJob(orderNo: String, collectionId: String = "") {
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.lookupJob(orderNo, preMixId)
+            useCase.lookupJob(orderNo, collectionId)
                 .onSuccess { order ->
                     currentOrderNo = orderNo
                     cachedOrder = order
@@ -122,6 +137,10 @@ class MixingViewModel @Inject constructor(
     private var pendingExceptionId: String = ""
     private var pendingExceptionMaterialCode: String = ""
 
+    fun pauseScanning() {
+        scanJob?.cancel()
+    }
+
     fun startListeningForPalletScans(orderNo: String) {
         currentOrderNo = orderNo
         scanJob?.cancel()
@@ -148,7 +167,7 @@ class MixingViewModel @Inject constructor(
         pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount)
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.scanIngredient(order.preMixId, palletTag, bagSizeOption, bagCount)
+            useCase.scanIngredient(order.collectionId, palletTag, bagSizeOption, bagCount)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
@@ -160,7 +179,7 @@ class MixingViewModel @Inject constructor(
         viewModelScope.launch {
             useCase.approveManagerException(
                 exceptionId = pendingExceptionId,
-                preMixId = order.preMixId,
+                collectionId = order.collectionId,
                 palletRfidTag = scan.palletRfidTag,
                 requestedMaterialCode = pendingExceptionMaterialCode,
                 managerUsername = managerUsername,
@@ -184,7 +203,7 @@ class MixingViewModel @Inject constructor(
         val order = cachedOrder ?: return
         val scan = pendingScan ?: return
         viewModelScope.launch {
-            useCase.recoverHolding(order.preMixId, scan.palletRfidTag)
+            useCase.recoverHolding(order.collectionId, scan.palletRfidTag)
                 .onSuccess { retryPendingScan(order, "") }
                 .onFailure { e ->
                     pendingScan = null
@@ -232,7 +251,7 @@ class MixingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.scanIngredient(order.preMixId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, approvalId)
+            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, approvalId)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
@@ -292,14 +311,14 @@ class MixingViewModel @Inject constructor(
     // "only an untouched JC load can be closed" rule.
     fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
         val jobCardNumber = currentOrderNo
-        val preMixId = cachedOrder?.preMixId ?: ""
+        val collectionId = cachedOrder?.collectionId ?: ""
         if (jobCardNumber.isBlank()) return
         scanJob?.cancel()
         val orderBeforeCancel = cachedOrder
         viewModelScope.launch {
             _uiState.value = MixingUiState.Cancelling
             useCase.cancelJob(
-                preMixId,
+                collectionId,
                 jobCardNumber,
                 "Operator cancelled — incorrect job card",
                 managerUsername,

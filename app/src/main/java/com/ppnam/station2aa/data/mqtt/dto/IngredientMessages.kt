@@ -2,12 +2,12 @@ package com.ppnam.station2aa.data.mqtt.dto
 
 data class IngredientScannedRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
     val correlationKey: String,
-    val preMixId: String,
+    val collectionId: String,
     val palletRfidTag: String,
     val bagSizeOption: String? = null,
     val bagCount: Double? = null,
@@ -36,14 +36,14 @@ data class BomProgressLineResponse(
 
 data class IngredientScanResultResponse(
     val messageId: String = "",
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String = "",
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
     val correlationKey: String = "",
     val accepted: Boolean = false,
     val reason: String? = null,
-    val preMixId: String = "",
+    val collectionId: String = "",
     val scannedQuantity: Double = 0.0,
     val isRequirementSatisfied: Boolean = false,
     val hasApprovedException: Boolean = false,
@@ -56,7 +56,7 @@ data class IngredientScanResultResponse(
 
 data class ManagerApprovalRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
@@ -76,7 +76,7 @@ data class ManagerApprovalRequest(
 
 data class ManagerApprovalResultResponse(
     val messageId: String = "",
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String = "",
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
@@ -96,7 +96,7 @@ data class ManagerApprovalResultResponse(
 
 data class HoldingRecoveryRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
@@ -109,7 +109,7 @@ data class HoldingRecoveryRequest(
 
 data class HoldingRecoveryResultResponse(
     val messageId: String = "",
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String = "",
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
