@@ -8,16 +8,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.ppnam.station2aa.ui.dashboard.DashboardScreen
-import com.ppnam.station2aa.ui.home.HomeScreen
 import com.ppnam.station2aa.ui.login.LoginScreen
 import com.ppnam.station2aa.ui.mixing.HopperScanScreen
 import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
 import com.ppnam.station2aa.ui.mixing.MixingViewModel
 import com.ppnam.station2aa.ui.mixing.PreMixCompleteScreen
-import com.ppnam.station2aa.ui.rajoo.MachineSelectScreen
-import com.ppnam.station2aa.ui.rajoo.PalletAllocScreen
 import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 import com.ppnam.station2aa.ui.settings.SettingsScreen
 
@@ -27,25 +23,11 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         composable(NavRoutes.LOGIN) {
             LoginScreen(
                 onLoggedIn = {
-                    navController.navigate(NavRoutes.HOME) {
+                    navController.navigate(NavRoutes.MIXING) {
                         popUpTo(NavRoutes.LOGIN) { inclusive = true }
                     }
                 },
                 onNavigateSettings = { navController.navigate(NavRoutes.SETTINGS) }
-            )
-        }
-        composable(NavRoutes.HOME) {
-            HomeScreen(
-                onNavigateMixing = { navController.navigate(NavRoutes.MIXING) },
-                onNavigateRajoo = { navController.navigate(NavRoutes.MACHINE_SELECT) },
-                onNavigateRfidRecovery = { navController.navigate(NavRoutes.RFID_RECOVERY) },
-                onNavigateDashboard = { navController.navigate(NavRoutes.DASHBOARD) },
-                onNavigateSettings = { navController.navigate(NavRoutes.SETTINGS) },
-                onLogout = {
-                    navController.navigate(NavRoutes.LOGIN) {
-                        popUpTo(0)
-                    }
-                }
             )
         }
         composable(NavRoutes.SETTINGS) {
@@ -59,7 +41,16 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 JobLookupScreen(
                     onJobFound = { orderNo -> navController.navigate(NavRoutes.ingredientScan(orderNo)) },
-                    onBack = { navController.popBackStack() },
+                    onSettings = { navController.navigate(NavRoutes.SETTINGS) },
+                    onLogout = {
+                        navController.navigate(NavRoutes.LOGIN) {
+                            popUpTo(0)
+                        }
+                    },
+                    onRfidLookup = {
+                        viewModel.pauseScanning()
+                        navController.navigate(NavRoutes.RFID_RECOVERY)
+                    },
                     viewModel = viewModel
                 )
             }
@@ -72,6 +63,10 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 IngredientScanScreen(
                     orderNo = orderNo,
                     onProceedToHopperScan = { navController.navigate(NavRoutes.hopperScan(orderNo)) },
+                    onRfidLookup = {
+                        viewModel.pauseScanning()
+                        navController.navigate(NavRoutes.RFID_RECOVERY)
+                    },
                     onBack = { navController.popBackStack() },
                     viewModel = viewModel
                 )
@@ -85,6 +80,10 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 HopperScanScreen(
                     orderNo = orderNo,
                     onProceed = { navController.navigate(NavRoutes.premixComplete(orderNo)) },
+                    onRfidLookup = {
+                        viewModel.pauseScanning()
+                        navController.navigate(NavRoutes.RFID_RECOVERY)
+                    },
                     onBack = { navController.popBackStack() },
                     viewModel = viewModel
                 )
@@ -98,45 +97,24 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 PreMixCompleteScreen(
                     orderNo = orderNo,
                     onCompleted = {
-                        navController.navigate(NavRoutes.HOME) {
-                            popUpTo(NavRoutes.HOME) { inclusive = true }
+                        navController.navigate(NavRoutes.MIXING) {
+                            popUpTo(NavRoutes.MIXING) { inclusive = true }
                         }
+                    },
+                    onRfidLookup = {
+                        viewModel.pauseScanning()
+                        navController.navigate(NavRoutes.RFID_RECOVERY)
                     },
                     onBack = { navController.popBackStack() },
                     viewModel = viewModel
                 )
             }
         }
-        composable(NavRoutes.MACHINE_SELECT) {
-            MachineSelectScreen(
-                onMachineSelected = { machineCode -> navController.navigate(NavRoutes.palletAlloc(machineCode)) },
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable(NavRoutes.PALLET_ALLOC) { backStack ->
-            val machineCode = backStack.arguments?.getString("machineCode") ?: return@composable
-            PalletAllocScreen(
-                machineCode = machineCode,
-                onDone = {
-                    navController.navigate(NavRoutes.HOME) {
-                        popUpTo(NavRoutes.HOME) { inclusive = true }
-                    }
-                },
-                onBack = { navController.popBackStack() }
-            )
-        }
         composable(NavRoutes.RFID_RECOVERY) {
             RfidRecoveryScreen(
-                onDone = {
-                    navController.navigate(NavRoutes.HOME) {
-                        popUpTo(NavRoutes.HOME) { inclusive = true }
-                    }
-                },
+                onDone = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
-        }
-        composable(NavRoutes.DASHBOARD) {
-            DashboardScreen(onBack = { navController.popBackStack() })
         }
     }
 }
