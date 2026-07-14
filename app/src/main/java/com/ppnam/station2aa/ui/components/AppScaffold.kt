@@ -1,4 +1,4 @@
-﻿package com.ppnam.station2aa.ui.components
+package com.ppnam.station2aa.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -39,7 +39,7 @@ fun AppScaffold(
         MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
         MqttConnectionState.RECONNECTING -> WarningOrange to "Reconnecting"
         MqttConnectionState.DISCONNECTED ->
-            DangerRed to if (pendingCount > 0) "Offline —  queued" else "Offline"
+            DangerRed to if (pendingCount > 0) "Offline — $pendingCount queued" else "Offline"
     }
 
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -87,7 +87,7 @@ fun AppScaffold(
                     if (operatorName != null) {
                         TextButton(onClick = { showLogoutDialog = true }) {
                             Text(
-                                text = if (!operatorRole.isNullOrBlank()) " · " else operatorName,
+                                text = if (!operatorRole.isNullOrBlank()) "$operatorName · $operatorRole" else operatorName,
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.labelMedium
                             )
