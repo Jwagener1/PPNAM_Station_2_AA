@@ -37,12 +37,12 @@ fun IngredientScanScreen(
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
-    var managerUsername by rememberSaveable { mutableStateOf("") }
-    var managerPassword by rememberSaveable { mutableStateOf("") }
+    var managerUsername by remember { mutableStateOf("") }
+    var managerPassword by remember { mutableStateOf("") }
     var selectedBagFraction by rememberSaveable { mutableStateOf(0.0) }
     var bagCountText by rememberSaveable { mutableStateOf("1") }
-    var exceptionUsername by rememberSaveable { mutableStateOf("") }
-    var exceptionPassword by rememberSaveable { mutableStateOf("") }
+    var exceptionUsername by remember { mutableStateOf("") }
+    var exceptionPassword by remember { mutableStateOf("") }
 
     val allIngredientsSatisfied = (uiState as? MixingUiState.OrderLoaded)?.order?.lines?.all { bomLine ->
         bomLine.isBagFullyAllocated
