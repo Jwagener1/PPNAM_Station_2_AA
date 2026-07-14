@@ -6,12 +6,14 @@ import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
+import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
+import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -49,6 +51,7 @@ class MixingViewModel @Inject constructor(
     private val scanEventBus: ScanEventBus,
     private val mqttRepository: MqttRepository,
     private val offlineQueueRepository: OfflineQueueRepository,
+    private val authUseCase: AuthUseCase,
     private val sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
 
@@ -65,6 +68,18 @@ class MixingViewModel @Inject constructor(
 
     val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val session: StateFlow<OperatorSession?> = sessionHolder.session
+
+    private val _logoutEvent = Channel<Unit>(Channel.BUFFERED)
+    val logoutEvent: Flow<Unit> = _logoutEvent.receiveAsFlow()
+
+    fun logout() {
+        viewModelScope.launch {
+            authUseCase.logout()
+            _logoutEvent.send(Unit)
+        }
+    }
 
     private val _activeJobs = MutableStateFlow<List<ActiveJobCardSummary>>(emptyList())
     val activeJobs: StateFlow<List<ActiveJobCardSummary>> = _activeJobs.asStateFlow()
@@ -121,6 +136,10 @@ class MixingViewModel @Inject constructor(
     private var pendingScan: PendingIngredientScan? = null
     private var pendingExceptionId: String = ""
     private var pendingExceptionMaterialCode: String = ""
+
+    fun pauseScanning() {
+        scanJob?.cancel()
+    }
 
     fun startListeningForPalletScans(orderNo: String) {
         currentOrderNo = orderNo

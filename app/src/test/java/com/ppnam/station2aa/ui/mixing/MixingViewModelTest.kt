@@ -10,6 +10,7 @@ import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
+import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,6 +32,7 @@ class MixingViewModelTest {
     private lateinit var mockScanEventBus: ScanEventBus
     private lateinit var mockMqttRepository: MqttRepository
     private lateinit var mockOfflineQueueRepository: OfflineQueueRepository
+    private lateinit var mockAuthUseCase: AuthUseCase
     private lateinit var mockSessionHolder: OperatorSessionHolder
     private lateinit var viewModel: MixingViewModel
 
@@ -55,6 +57,7 @@ class MixingViewModelTest {
         mockScanEventBus = mock()
         mockMqttRepository = mock()
         mockOfflineQueueRepository = mock()
+        mockAuthUseCase = mock()
         mockSessionHolder = mock()
 
         whenever(mockMqttRepository.connectionState)
@@ -66,7 +69,7 @@ class MixingViewModelTest {
         whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("cancel_premix")))
 
         viewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
         )
     }
 
@@ -103,7 +106,7 @@ class MixingViewModelTest {
     fun `startListeningForPalletScans opens EnteringBagDetails on a pallet scan`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -121,7 +124,7 @@ class MixingViewModelTest {
     fun `startListeningForPalletScans opens EnteringBagDetails on a barcode scan too`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -143,7 +146,7 @@ class MixingViewModelTest {
 
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -376,7 +379,7 @@ class MixingViewModelTest {
             MutableStateFlow(sessionWithActions("cancel_premix", "cancel_premix_direct"))
         )
         val directViewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
         )
 
         assertTrue(directViewModel.operatorCanCancelDirectly())
@@ -412,5 +415,42 @@ class MixingViewModelTest {
 
         assertTrue(viewModel.activeJobs.value.isEmpty())
         assertEquals("Not connected to Station 2", viewModel.activeJobsError.value)
+    }
+
+    @Test
+    fun `session reflects the operator session holder`() = runTest {
+        assertEquals("Test Operator", viewModel.session.value?.operatorName)
+    }
+
+    @Test
+    fun `logout calls AuthUseCase and fires logoutEvent`() = runTest {
+        val events = mutableListOf<Unit>()
+        val job = launch(testDispatcher) { viewModel.logoutEvent.collect { events.add(it) } }
+
+        viewModel.logout()
+        advanceUntilIdle()
+
+        verify(mockAuthUseCase).logout()
+        assertEquals(1, events.size)
+        job.cancel()
+    }
+
+    @Test
+    fun `pauseScanning cancels the active scan job so further scans are ignored`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
+        )
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+
+        vm.startListeningForPalletScans("510019068")
+        vm.pauseScanning()
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
     }
 }
