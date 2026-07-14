@@ -71,7 +71,7 @@ class MixingUseCase @Inject constructor(
                 val response = result.response
                 if (response.accepted) {
                     val order = ProductionOrder(
-                        docNo = response.productionOrderDocumentNumber,
+                        docNo = response.jobCardNumber,
                         collectionId = response.collectionId,
                         productBeingMade = response.ingredients
                             .firstOrNull { it.issueType == "im_Backflush" }
@@ -85,7 +85,7 @@ class MixingUseCase @Inject constructor(
                                     requiredQty = line.plannedQuantity,
                                     scannedQty = line.issuedQuantity,
                                     remainingQty = line.remainingQuantity,
-                                    uom = line.uomCode
+                                    uom = line.unit.ifBlank { line.uomCode }
                                 )
                             }
                     )
@@ -124,7 +124,7 @@ class MixingUseCase @Inject constructor(
         return when (result) {
             is MqttTypedResult.Success -> {
                 val response = result.response
-                if (response.accepted) Result.success(response.jobs)
+                if (response.accepted) Result.success(response.collections)
                 else Result.failure(Exception(response.reason ?: "Could not load active jobs"))
             }
             is MqttTypedResult.Error -> Result.failure(Exception(result.message))

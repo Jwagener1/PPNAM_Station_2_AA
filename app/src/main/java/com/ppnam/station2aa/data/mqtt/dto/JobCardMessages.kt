@@ -20,6 +20,7 @@ data class BomLineResponse(
     val issueType: String = "",
     val requiresIngredientCollection: Boolean = false,
     val uomCode: String = "",
+    val unit: String = "",
     val warehouse: String = ""
 )
 
@@ -67,7 +68,7 @@ data class ActiveJobCardsListResponse(
     val correlationKey: String = "",
     val accepted: Boolean = false,
     val reason: String? = null,
-    val jobs: List<ActiveJobCardSummary> = emptyList()
+    val collections: List<ActiveJobCardSummary> = emptyList()
 )
 
 data class PreMixCancelledRequest(

@@ -72,7 +72,7 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `lookupJob maps uomCode onto each BomLine's uom`() = runTest {
+    fun `lookupJob falls back to uomCode when unit is blank`() = runTest {
         val response = BomLoadedResponse(
             accepted = true,
             jobCardNumber = "510019068",
@@ -92,6 +92,52 @@ class MixingUseCaseTest {
         val order = useCase.lookupJob("510019068").getOrThrow()
 
         assertEquals("KG", order.lines.single().uom)
+    }
+
+    @Test
+    fun `lookupJob prefers the humanized unit over the raw SAP uomCode`() = runTest {
+        // Real Station 2 schema 2.0 responses send the raw SAP code ("269") in uomCode
+        // and the humanized value ("kg") in a separate unit field.
+        val response = BomLoadedResponse(
+            accepted = true,
+            jobCardNumber = "510019068",
+            collectionId = "premix-1",
+            ingredients = listOf(
+                BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "269", unit = "kg")
+            )
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val order = useCase.lookupJob("510019068").getOrThrow()
+
+        assertEquals("kg", order.lines.single().uom)
+    }
+
+    @Test
+    fun `lookupJob uses jobCardNumber as docNo since productionOrderDocumentNumber is no longer returned`() = runTest {
+        // Real Station 2 schema 2.0 ingredient_collection_loaded responses omit
+        // productionOrderDocumentNumber entirely — only jobCardNumber comes back.
+        val response = BomLoadedResponse(
+            accepted = true,
+            jobCardNumber = "510019359",
+            collectionId = "COL_000004",
+            ingredients = emptyList()
+        )
+        whenever(
+            mockMqtt.sendTyped(
+                eq("job_card_submitted"), eq("ingredient_collection_loaded"), any(),
+                eq(BomLoadedResponse::class.java), eq(false)
+            )
+        ).thenReturn(MqttTypedResult.Success(response))
+
+        val order = useCase.lookupJob("510019359").getOrThrow()
+
+        assertEquals("510019359", order.docNo)
     }
 
     @Test
@@ -361,7 +407,7 @@ class MixingUseCaseTest {
     fun `fetchActiveJobCards returns the job list on success`() = runTest {
         val response = ActiveJobCardsListResponse(
             accepted = true,
-            jobs = listOf(
+            collections = listOf(
                 ActiveJobCardSummary(
                     jobCardNumber = "510019068",
                     productionOrderDocumentNumber = "510019068",
