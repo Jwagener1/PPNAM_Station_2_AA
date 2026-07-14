@@ -38,7 +38,7 @@ class MixingViewModelTest {
 
     private val sampleOrder = ProductionOrder(
         docNo = "510019068",
-        preMixId = "premix-1",
+        collectionId = "premix-1",
         lines = listOf(BomLine("MAT-001", "Resin", 1.0))
     )
 

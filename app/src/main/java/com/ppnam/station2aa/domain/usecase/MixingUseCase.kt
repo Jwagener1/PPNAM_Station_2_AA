@@ -44,7 +44,7 @@ class MixingUseCase @Inject constructor(
         val reason: String?
     )
 
-    suspend fun lookupJob(jobCardNumber: String, preMixId: String = ""): Result<ProductionOrder> {
+    suspend fun lookupJob(jobCardNumber: String, collectionId: String = ""): Result<ProductionOrder> {
         val deviceId = settingsRepository.current().deviceId
         val requestJson = gson.toJson(
             JobCardSubmittedRequest(
@@ -54,13 +54,13 @@ class MixingUseCase @Inject constructor(
                 timestampUtc = Instant.now().toString(),
                 correlationKey = jobCardNumber,
                 jobCardNumber = jobCardNumber,
-                preMixId = preMixId
+                collectionId = collectionId
             )
         )
 
         val result = mqttRepository.sendTyped(
             requestType = "job_card_submitted",
-            responseType = "bom_loaded",
+            responseType = "ingredient_collection_loaded",
             requestJson = requestJson,
             responseClass = BomLoadedResponse::class.java,
             allowOfflineQueue = false
@@ -72,7 +72,7 @@ class MixingUseCase @Inject constructor(
                 if (response.accepted) {
                     val order = ProductionOrder(
                         docNo = response.productionOrderDocumentNumber,
-                        preMixId = response.preMixId,
+                        collectionId = response.collectionId,
                         productBeingMade = response.ingredients
                             .firstOrNull { it.issueType == "im_Backflush" }
                             ?.materialName,
@@ -114,8 +114,8 @@ class MixingUseCase @Inject constructor(
         )
 
         val result = mqttRepository.sendTyped(
-            requestType = "active_job_cards_requested",
-            responseType = "active_job_cards_list",
+            requestType = "active_ingredient_collections_requested",
+            responseType = "active_ingredient_collections_list",
             requestJson = requestJson,
             responseClass = ActiveJobCardsListResponse::class.java,
             allowOfflineQueue = false
@@ -134,7 +134,7 @@ class MixingUseCase @Inject constructor(
     }
 
     suspend fun cancelJob(
-        preMixId: String,
+        collectionId: String,
         jobCardNumber: String,
         reason: String,
         managerUsername: String = "",
@@ -147,8 +147,8 @@ class MixingUseCase @Inject constructor(
                 deviceId = deviceId,
                 operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
                 timestampUtc = Instant.now().toString(),
-                correlationKey = preMixId.ifBlank { jobCardNumber },
-                preMixId = preMixId,
+                correlationKey = collectionId.ifBlank { jobCardNumber },
+                preMixId = collectionId,
                 jobCardNumber = jobCardNumber,
                 reason = reason,
                 managerUsername = managerUsername,
@@ -177,7 +177,7 @@ class MixingUseCase @Inject constructor(
     }
 
     suspend fun scanIngredient(
-        preMixId: String,
+        collectionId: String,
         palletRfidTag: String,
         bagSizeOption: String,
         bagCount: Double,
@@ -190,8 +190,8 @@ class MixingUseCase @Inject constructor(
                 deviceId = deviceId,
                 operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
                 timestampUtc = Instant.now().toString(),
-                correlationKey = preMixId,
-                preMixId = preMixId,
+                correlationKey = collectionId,
+                collectionId = collectionId,
                 palletRfidTag = palletRfidTag,
                 bagSizeOption = bagSizeOption,
                 bagCount = bagCount,
@@ -247,7 +247,7 @@ class MixingUseCase @Inject constructor(
 
     suspend fun approveManagerException(
         exceptionId: String,
-        preMixId: String,
+        collectionId: String,
         palletRfidTag: String,
         requestedMaterialCode: String,
         managerUsername: String,
@@ -265,7 +265,7 @@ class MixingUseCase @Inject constructor(
                 managerUsername = managerUsername,
                 managerPassword = managerPassword,
                 approvalTargetId = exceptionId,
-                preMixId = preMixId,
+                preMixId = collectionId,
                 palletRfidTag = palletRfidTag,
                 requestedMaterialCode = requestedMaterialCode,
                 reason = reason
@@ -292,7 +292,7 @@ class MixingUseCase @Inject constructor(
         }
     }
 
-    suspend fun recoverHolding(preMixId: String, palletRfidTag: String): Result<Unit> {
+    suspend fun recoverHolding(collectionId: String, palletRfidTag: String): Result<Unit> {
         val deviceId = settingsRepository.current().deviceId
         val requestJson = gson.toJson(
             HoldingRecoveryRequest(
@@ -300,8 +300,8 @@ class MixingUseCase @Inject constructor(
                 deviceId = deviceId,
                 operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
                 timestampUtc = Instant.now().toString(),
-                correlationKey = preMixId,
-                preMixId = preMixId,
+                correlationKey = collectionId,
+                preMixId = collectionId,
                 palletRfidTag = palletRfidTag
             )
         )

@@ -2,7 +2,7 @@ package com.ppnam.station2aa.data.mqtt.dto
 
 data class ReaderLoginRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
@@ -13,7 +13,7 @@ data class ReaderLoginRequest(
 
 data class LoginTagScannedRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String = "",
     val timestampUtc: String,
@@ -23,7 +23,7 @@ data class LoginTagScannedRequest(
 
 data class ReaderLogoutRequest(
     val messageId: String,
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String,
     val operatorSessionId: String,
     val timestampUtc: String,
@@ -32,7 +32,7 @@ data class ReaderLogoutRequest(
 
 data class OperatorContextResponse(
     val messageId: String = "",
-    val schemaVersion: String = "1.0",
+    val schemaVersion: String = "2.0",
     val deviceId: String = "",
     val operatorSessionId: String? = null,
     val timestampUtc: String = "",
