@@ -1,4 +1,4 @@
-package com.ppnam.station2aa.ui.components
+﻿package com.ppnam.station2aa.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +28,7 @@ fun AppScaffold(
     connectionState: MqttConnectionState,
     pendingCount: Int,
     onBack: (() -> Unit)? = null,
+    onRfidLookup: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
     operatorName: String? = null,
     operatorRole: String? = null,
@@ -37,7 +39,7 @@ fun AppScaffold(
         MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
         MqttConnectionState.RECONNECTING -> WarningOrange to "Reconnecting"
         MqttConnectionState.DISCONNECTED ->
-            DangerRed to if (pendingCount > 0) "Offline — $pendingCount queued" else "Offline"
+            DangerRed to if (pendingCount > 0) "Offline —  queued" else "Offline"
     }
 
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -85,9 +87,18 @@ fun AppScaffold(
                     if (operatorName != null) {
                         TextButton(onClick = { showLogoutDialog = true }) {
                             Text(
-                                text = if (!operatorRole.isNullOrBlank()) "$operatorName · $operatorRole" else operatorName,
+                                text = if (!operatorRole.isNullOrBlank()) " · " else operatorName,
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                    if (onRfidLookup != null) {
+                        IconButton(onClick = onRfidLookup) {
+                            Icon(
+                                imageVector = Icons.Filled.WifiTethering,
+                                contentDescription = "RFID Pallet Lookup",
+                                tint = TextMuted
                             )
                         }
                     }
