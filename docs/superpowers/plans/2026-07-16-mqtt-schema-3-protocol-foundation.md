@@ -1460,6 +1460,11 @@ Replace the body of `request()` between `pending[messageId] = waiter` and the `f
                 val publishOk = try {
                     publishFn(topic, bytes)
                     true
+                } catch (e: CancellationException) {
+                    // CancellationException is an Exception in Kotlin, so the generic catch below
+                    // would swallow it and report a normal failure — breaking structured
+                    // concurrency when a caller's scope is torn down mid-publish. Rethrow first.
+                    throw e
                 } catch (e: Exception) {
                     Log.w(TAG, "publish attempt ${attempt + 1} failed for $requestType", e)
                     false
