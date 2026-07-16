@@ -15,24 +15,10 @@ data class IngredientScanPayload(
     val quantity: Double? = null,
 )
 
-data class BomProgressLineResponse(
-    val materialCode: String = "",
-    val materialName: String = "",
-    val plannedQuantity: Double = 0.0,
-    val issuedQuantity: Double = 0.0,
-    val requiredQuantity: Double = 0.0,
-    val scannedQuantity: Double = 0.0,
-    val remainingQuantity: Double = 0.0,
-    val expectedBags: Double = 0.0,
-    val scannedBags: Double = 0.0,
-    val approvedExtraBags: Double = 0.0,
-    val approvedShortBags: Double = 0.0,
-    val remainingBags: Double = 0.0,
-    val requiresManagerApproval: Boolean = false,
-    val uomCode: String = "",
-    val unit: String = ""
-)
-
+/**
+ * BomLineResponse (JobCardMessages.kt) is the same shape returned here — the contract's
+ * ingredient_scan_result carries the full refreshed ingredients[], identical to bom_loaded's.
+ */
 data class IngredientScanResultResponse(
     val collectionId: String = "",
     val scannedQuantity: Double = 0.0,
@@ -41,5 +27,5 @@ data class IngredientScanResultResponse(
     val requiresManagerApproval: Boolean = false,
     val exceptionId: String = "",
     val consumedApprovalId: String = "",
-    val ingredientProgress: List<BomProgressLineResponse> = emptyList()
+    val ingredientProgress: List<BomLineResponse> = emptyList()
 )

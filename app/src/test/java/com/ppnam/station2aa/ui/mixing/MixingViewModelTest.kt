@@ -34,7 +34,7 @@ class MixingViewModelTest {
     private val sampleOrder = ProductionOrder(
         docNo = "510019068",
         collectionId = "premix-1",
-        lines = listOf(BomLine("MAT-001", "Resin", 1.0))
+        lines = listOf(BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0))
     )
 
     private fun sessionWithActions(vararg actions: String) = OperatorSession(
@@ -158,7 +158,7 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
+        val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0))
             .thenReturn(Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine))))
 
@@ -221,7 +221,7 @@ class MixingViewModelTest {
 
         whenever(mockUseCase.approveManagerException(eq("exception-1"), eq("premix-1"), eq("EPC:300833"), eq("MAT-002"), eq("manager1"), eq("5678"), any()))
             .thenReturn(Result.success("approval-1"))
-        val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
+        val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )
@@ -248,7 +248,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         whenever(mockUseCase.recoverHolding("premix-1", "EPC:300833")).thenReturn(Result.success(Unit))
-        val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
+        val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )

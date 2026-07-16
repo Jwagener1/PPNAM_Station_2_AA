@@ -44,7 +44,7 @@ fun IngredientScanScreen(
     var exceptionPassword by remember { mutableStateOf("") }
 
     val allIngredientsSatisfied = (uiState as? MixingUiState.OrderLoaded)?.order?.lines?.all { bomLine ->
-        bomLine.isBagFullyAllocated
+        bomLine.isSatisfied
     } ?: false
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -362,7 +362,7 @@ fun IngredientScanScreen(
                     }
                     is MixingUiState.OrderLoaded -> {
                         val order = state.order
-                        val satisfiedCount = order.lines.count { bomLine -> bomLine.isBagFullyAllocated }
+                        val satisfiedCount = order.lines.count { bomLine -> bomLine.isSatisfied }
                         val allSatisfied = satisfiedCount == order.lines.size
 
                         Card(
@@ -396,9 +396,9 @@ fun IngredientScanScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(order.lines) { bomLine ->
-                                val satisfied = bomLine.isBagFullyAllocated
+                                val satisfied = bomLine.isSatisfied
                                 val fraction = if (bomLine.requiredQty > 0.0) {
-                                    (bomLine.scannedQty / bomLine.requiredQty).toFloat().coerceIn(0f, 1f)
+                                    (bomLine.collectedQty / bomLine.requiredQty).toFloat().coerceIn(0f, 1f)
                                 } else {
                                     0f
                                 }
@@ -435,7 +435,7 @@ fun IngredientScanScreen(
                                                 Spacer(Modifier.width(6.dp))
                                             }
                                             Text(
-                                                text = if (bomLine.isBagFullyAllocated) {
+                                                text = if (bomLine.isSatisfied) {
                                                     "Fully Allocated"
                                                 } else {
                                                     "%.2f %s".format(bomLine.remainingQty, bomLine.uom)
@@ -444,7 +444,7 @@ fun IngredientScanScreen(
                                                 color = if (satisfied) SuccessGreen else TextMuted
                                             )
                                         }
-                                        if (!bomLine.isBagFullyAllocated) {
+                                        if (!bomLine.isSatisfied) {
                                             Spacer(Modifier.height(8.dp))
                                             LinearProgressIndicator(
                                                 progress = { fraction },

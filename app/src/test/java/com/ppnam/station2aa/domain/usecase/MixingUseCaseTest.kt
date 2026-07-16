@@ -8,7 +8,6 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
-import com.ppnam.station2aa.data.mqtt.dto.BomProgressLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
@@ -431,10 +430,10 @@ class MixingUseCaseTest {
         val response = IngredientScanResultResponse(
             collectionId = "premix-1",
             ingredientProgress = listOf(
-                BomProgressLineResponse(
+                BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
                     plannedQuantity = 50.0, issuedQuantity = 20.0, requiredQuantity = 50.0,
-                    scannedQuantity = 20.0, remainingQuantity = 30.0,
+                    collectedQuantity = 20.0, remainingQuantity = 30.0,
                     expectedBags = 5.0, scannedBags = 2.0, remainingBags = 3.0,
                     uomCode = "kg", unit = "kg"
                 )
@@ -456,7 +455,7 @@ class MixingUseCaseTest {
         assertEquals("MAT-001", line.itemCode)
         assertEquals(50.0, line.requiredQty, 0.0001)
         assertEquals(30.0, line.remainingQty, 0.0001)
-        assertEquals(3.0, line.remainingBags, 0.0001)
+        assertEquals(3.0, line.remainingBags ?: 0.0, 0.0001)
         assertEquals("kg", line.uom)
     }
 
@@ -489,7 +488,7 @@ class MixingUseCaseTest {
             requiresManagerApproval = true,
             exceptionId = "EXC-1",
             ingredientProgress = listOf(
-                BomProgressLineResponse(materialCode = "1600000301", requiresManagerApproval = true)
+                BomLineResponse(materialCode = "1600000301", requiresManagerApproval = true)
             ),
         )
         whenever(

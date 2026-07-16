@@ -8,8 +8,8 @@ import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
+import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
-import com.ppnam.station2aa.data.mqtt.dto.BomProgressLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse
@@ -76,10 +76,11 @@ class MixingUseCase @Inject constructor(
             .filter { it.issueType != "im_Backflush" }
             .map { line ->
                 BomLine(
+                    lineNumber = line.lineNumber,
                     itemCode = line.materialCode,
                     itemName = line.materialName,
                     requiredQty = line.plannedQuantity,
-                    scannedQty = line.issuedQuantity,
+                    collectedQty = line.issuedQuantity,
                     remainingQty = line.remainingQuantity,
                     // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
                     uom = line.unit.ifBlank { line.uomCode },
@@ -177,14 +178,16 @@ class MixingUseCase @Inject constructor(
         }
     }
 
-    private fun List<BomProgressLineResponse>.toBomLines(): List<BomLine> = map { line ->
+    private fun List<BomLineResponse>.toBomLines(): List<BomLine> = map { line ->
         BomLine(
+            lineNumber = line.lineNumber,
             itemCode = line.materialCode,
             itemName = line.materialName,
             requiredQty = line.requiredQuantity,
-            scannedQty = line.scannedQuantity,
+            collectedQty = line.collectedQuantity,
             remainingQty = line.remainingQuantity,
             uom = line.unit.ifBlank { line.uomCode },
+            bagSize = line.bagSize,
             expectedBags = line.expectedBags,
             scannedBags = line.scannedBags,
             remainingBags = line.remainingBags,
