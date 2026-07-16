@@ -29,13 +29,11 @@ sealed class MixingUiState {
     data class EnteringBagDetails(val palletTag: String) : MixingUiState()
     data class IngredientExceptionApproval(val exceptionId: String, val reason: String) : MixingUiState()
     data class PalletRecoveryPrompt(val palletTag: String) : MixingUiState()
-    data class HopperUnavailable(val hopperCode: String, val reason: String) : MixingUiState()
     data class Error(val message: String) : MixingUiState()
 }
 
 object MixingNavDestination {
     const val JOB_LOADED = "job_loaded"
-    const val PREMIX_COMPLETE = "premix_complete"
     const val HOME = "home"
 }
 
@@ -56,12 +54,6 @@ class MixingViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<MixingUiState>(MixingUiState.Idle)
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()
-
-    private val _hopperCode = MutableStateFlow("")
-    val hopperCode: StateFlow<String> = _hopperCode.asStateFlow()
-
-    private val _isQueuedOffline = MutableStateFlow(false)
-    val isQueuedOffline: StateFlow<Boolean> = _isQueuedOffline.asStateFlow()
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
 
@@ -254,47 +246,6 @@ class MixingViewModel @Inject constructor(
         }
     }
 
-    fun checkAndAllocateHopper(orderNo: String, hopperCode: String) {
-        viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
-            useCase.checkHopper(orderNo, hopperCode)
-                .onSuccess {
-                    _hopperCode.value = hopperCode
-                    _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
-                }
-                .onFailure { e ->
-                    _uiState.value = MixingUiState.HopperUnavailable(hopperCode, e.message ?: "Unavailable")
-                }
-        }
-    }
-
-    fun startListeningForHopperBarcode(orderNo: String) {
-        scanJob?.cancel()
-        scanJob = viewModelScope.launch {
-            scanEventBus.events.filterIsInstance<ScanEvent.Barcode>().collect { event ->
-                if (_hopperCode.value.isBlank()) {
-                    checkAndAllocateHopper(orderNo, event.value)
-                }
-            }
-        }
-    }
-
-    fun completePremix(orderNo: String) {
-        viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
-            useCase.completePremix(orderNo, _hopperCode.value)
-                .onSuccess { _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE) }
-                .onFailure { e ->
-                    if (e.message?.startsWith("Queued") == true) {
-                        _isQueuedOffline.value = true
-                        _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
-                    } else {
-                        _uiState.value = MixingUiState.Error(e.message ?: "Failed to complete pre-mix")
-                    }
-                }
-        }
-    }
-
     fun clearError() {
         if (_uiState.value is MixingUiState.Error) _uiState.value = MixingUiState.Idle
     }
@@ -325,8 +276,6 @@ class MixingViewModel @Inject constructor(
                 .onSuccess {
                     currentOrderNo = ""
                     cachedOrder = null
-                    _hopperCode.value = ""
-                    _isQueuedOffline.value = false
                     _uiState.value = MixingUiState.Idle
                     _cancelOutcome.send(CancelOutcome.Confirmed)
                 }

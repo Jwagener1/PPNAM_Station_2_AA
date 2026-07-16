@@ -5,7 +5,6 @@ import com.ppnam.station2aa.data.local.BomCacheDao
 import com.ppnam.station2aa.data.local.BomCacheEntity
 import com.ppnam.station2aa.data.mqtt.EmptyPayload
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
-import com.ppnam.station2aa.data.mqtt.MqttResult
 import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
@@ -32,14 +31,6 @@ class MixingUseCase @Inject constructor(
     private val palletUseCase: PalletUseCase,
 ) {
     private val gson = Gson()
-
-    // TODO(Task 14): checkHopper/completePremix and this private DTO are removed with the rest of
-    // the pre-mix hopper-completion flow; left untouched here since this task is a mechanical port.
-    private data class HopperCheckResponse(
-        val available: Boolean,
-        val hopperCode: String,
-        val reason: String?
-    )
 
     /**
      * Loads a job card, or resumes an exact existing collection when [collectionId] is supplied.
@@ -226,30 +217,4 @@ class MixingUseCase @Inject constructor(
     ): Result<String> = Result.failure(
         UnsupportedOperationException("Manager approval is reimplemented in sub-project 3")
     )
-
-    suspend fun checkHopper(orderNo: String, hopperCode: String): Result<Unit> {
-        val payload = gson.toJson(mapOf("orderNo" to orderNo, "hopperCode" to hopperCode))
-        return when (val result = mqttRepository.send("check-hopper", payload)) {
-            is MqttResult.Success -> {
-                val response = gson.fromJson(result.dataJson, HopperCheckResponse::class.java)
-                if (response.available) {
-                    Result.success(Unit)
-                } else {
-                    Result.failure(Exception(response.reason ?: "Hopper unavailable"))
-                }
-            }
-            is MqttResult.Error -> Result.failure(Exception(result.message))
-            is MqttResult.Queued -> Result.failure(Exception("Hopper check requires a connection"))
-        }
-    }
-
-    suspend fun completePremix(orderNo: String, hopperCode: String): Result<Unit> {
-        if (hopperCode.isBlank()) return Result.failure(Exception("Hopper code is required"))
-        val payload = gson.toJson(mapOf("orderNo" to orderNo, "hopperCode" to hopperCode))
-        return when (val result = mqttRepository.send("complete-premix", payload)) {
-            is MqttResult.Success -> Result.success(Unit)
-            is MqttResult.Queued -> Result.failure(Exception("Queued: will send when online"))
-            is MqttResult.Error -> Result.failure(Exception(result.message))
-        }
-    }
 }

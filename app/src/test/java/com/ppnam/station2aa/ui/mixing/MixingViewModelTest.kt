@@ -282,36 +282,6 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `checkAndAllocateHopper on success sets hopperCode and fires nav event`() = runTest {
-        whenever(mockUseCase.checkHopper("510019068", "H-01")).thenReturn(Result.success(Unit))
-
-        val navEvents = mutableListOf<String>()
-        val job = launch(testDispatcher) {
-            viewModel.navigationEvent.collect { navEvents.add(it) }
-        }
-
-        viewModel.checkAndAllocateHopper("510019068", "H-01")
-        advanceUntilIdle()
-
-        assertEquals("H-01", viewModel.hopperCode.value)
-        assertTrue(navEvents.contains(MixingNavDestination.PREMIX_COMPLETE))
-        job.cancel()
-    }
-
-    @Test
-    fun `checkAndAllocateHopper on failure sets HopperUnavailable state`() = runTest {
-        whenever(mockUseCase.checkHopper(any(), any()))
-            .thenReturn(Result.failure(Exception("Already in use")))
-
-        viewModel.checkAndAllocateHopper("510019068", "H-01")
-        advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-        assertTrue(state is MixingUiState.HopperUnavailable)
-        assertEquals("Already in use", (state as MixingUiState.HopperUnavailable).reason)
-    }
-
-    @Test
     fun `cancelJob resets state on backend confirmation`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
@@ -327,7 +297,6 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(MixingUiState.Idle, viewModel.uiState.value)
-        assertEquals("", viewModel.hopperCode.value)
         assertTrue(outcomes.contains(CancelOutcome.Confirmed))
         job.cancel()
     }
