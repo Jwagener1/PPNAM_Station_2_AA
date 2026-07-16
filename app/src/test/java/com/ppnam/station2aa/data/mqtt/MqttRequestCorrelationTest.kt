@@ -6,7 +6,10 @@ import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
@@ -47,6 +50,13 @@ class MqttRequestCorrelationTest {
 
     private fun messageIdOf(index: Int): String =
         JsonParser.parseString(String(published[index].second)).asJsonObject.get("messageId").asString
+
+    @Suppress("UNCHECKED_CAST")
+    private fun pendingMap(): Map<String, *> {
+        val field = MqttRepositoryImpl::class.java.getDeclaredField("pending")
+        field.isAccessible = true
+        return field.get(repo) as Map<String, *>
+    }
 
     private fun respond(inResponseTo: String, accepted: Boolean = true, value: String = "ok") {
         val json = """
@@ -210,5 +220,66 @@ class MqttRequestCorrelationTest {
             """{"inResponseToMessageId":"$id","accepted":true,"value":{"nested":1}}""".toByteArray()
         )
         assertEquals(MqttOutcome.NoResponse(FailureKind.MalformedResponse), call.await())
+    }
+
+    @Test
+    fun `cancelling a caller mid-publish propagates rather than reporting a publish failure`() = runTest {
+        // Note: a plain `job.await()` throws CancellationException whether or not request()
+        // rethrows it, because JobSupport forces a cancelled Deferred to finalize as Cancelled
+        // once cancel() has been called, no matter what value the coroutine body returns. That
+        // makes it the wrong probe for this bug. The actual bug is that, without the fix,
+        // request() *swallows* the CancellationException and returns a normal MqttOutcome value
+        // instead of rethrowing — so code sequenced after the request() call keeps running with
+        // a bogus "result" during the window before the coroutine reaches its next suspension
+        // point and is torn down. This test proves that code-after-the-call does NOT run.
+        val started = CompletableDeferred<Unit>()
+        repo.publishFn = { _, _ ->
+            started.complete(Unit)
+            awaitCancellation() // suspend here until the caller's scope is cancelled
+        }
+
+        var ranAfterRequestReturned = false
+        val job = async {
+            repo.request("a_requested", "test_result", EmptyPayload, null, TestBody::class.java)
+            // If request() swallows the cancellation and returns normally instead of
+            // rethrowing, execution reaches here even though the job was cancelled.
+            ranAfterRequestReturned = true
+        }
+        started.await()
+        job.cancel()
+
+        var threw: CancellationException? = null
+        try {
+            job.await()
+        } catch (e: CancellationException) {
+            threw = e
+        }
+        assertTrue("job.await() should have thrown CancellationException", threw != null)
+        assertTrue(
+            "code after request() must not run once the caller was cancelled mid-publish",
+            !ranAfterRequestReturned
+        )
+    }
+
+    @Test
+    fun `cancelling a caller mid-publish does not leak the pending entry`() = runTest {
+        val started = CompletableDeferred<Unit>()
+        repo.publishFn = { _, _ ->
+            started.complete(Unit)
+            awaitCancellation()
+        }
+
+        val job = async {
+            repo.request("a_requested", "test_result", EmptyPayload, null, TestBody::class.java)
+        }
+        started.await()
+        job.cancel()
+        try {
+            job.await()
+        } catch (_: CancellationException) {
+            // expected; assertion below is what matters for this test
+        }
+
+        assertTrue("pending map should not leak the cancelled request's entry", pendingMap().isEmpty())
     }
 }

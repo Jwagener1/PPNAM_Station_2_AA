@@ -379,6 +379,11 @@ class MqttRepositoryImpl @Inject constructor(
         try {
             try {
                 publishFn(topic, json.toByteArray())
+            } catch (e: CancellationException) {
+                // CancellationException is an Exception in Kotlin, so the generic catch below would swallow
+                // it and report a normal failure — breaking structured concurrency when a caller's scope is
+                // torn down mid-publish. Rethrow first.
+                throw e
             } catch (e: Exception) {
                 Log.w(TAG, "publish failed for $requestType", e)
                 return MqttOutcome.NoResponse(FailureKind.NotConnected)
