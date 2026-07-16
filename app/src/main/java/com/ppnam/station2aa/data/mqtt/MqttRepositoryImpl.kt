@@ -49,6 +49,9 @@ class MqttRepositoryImpl @Inject constructor(
         // without repeating the workflow action. Keep the total budget well inside Station 2's
         // timestamp acceptance window — a retry must not outlive its own timestampUtc.
         internal const val REQUEST_MAX_ATTEMPTS = 3
+
+        // Beyond this the device clock is a plausible cause of blanket message_expired rejections.
+        internal const val CLOCK_SKEW_WARN_MS = 30_000L
     }
 
     private val gson = Gson()
@@ -59,6 +62,13 @@ class MqttRepositoryImpl @Inject constructor(
 
     private val _stationOnline = MutableStateFlow(false)
     override val stationOnline: StateFlow<Boolean> = _stationOnline.asStateFlow()
+
+    private val _clockSkewMillis = MutableStateFlow<Long?>(null)
+    override val clockSkewMillis: StateFlow<Long?> = _clockSkewMillis.asStateFlow()
+
+    /** Test seam for the device clock. */
+    @VisibleForTesting
+    internal var nowFn: () -> Instant = { Instant.now() }
 
     // Correlation registry: messageId -> the caller awaiting that exact response. The contract is
     // explicit that inResponseToMessageId is the ONLY correct way to match a response to a request
@@ -340,7 +350,7 @@ class MqttRepositoryImpl @Inject constructor(
             messageId = messageId,
             deviceId = currentDeviceId,
             operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-            timestampUtc = Instant.now().toString(),
+            timestampUtc = nowFn().toString(),
             correlationKey = correlationKey,
         )
         val topic = MqttTopics.request(currentDeviceId, requestType)
@@ -400,6 +410,27 @@ class MqttRepositoryImpl @Inject constructor(
         MqttOutcome.NoResponse(FailureKind.MalformedResponse)
     }
 
+    // Measured from every response we can parse a timestamp out of, including ones that match no
+    // pending request: a late or duplicate response is still evidence about our own clock.
+    private fun recordClockSkew(serverTimestampUtc: String) {
+        if (serverTimestampUtc.isBlank()) return
+        val serverTime = try {
+            Instant.parse(serverTimestampUtc)
+        } catch (e: Exception) {
+            Log.w(TAG, "Unparseable response timestampUtc: '$serverTimestampUtc'")
+            return
+        }
+        val skew = serverTime.toEpochMilli() - nowFn().toEpochMilli()
+        _clockSkewMillis.value = skew
+        if (kotlin.math.abs(skew) > CLOCK_SKEW_WARN_MS) {
+            Log.w(
+                TAG,
+                "Device clock is out of sync with Station 2 by ${skew}ms " +
+                    "(threshold ${CLOCK_SKEW_WARN_MS}ms). Requests may be rejected as message_expired."
+            )
+        }
+    }
+
     @VisibleForTesting
     internal fun handleIncomingResponse(topic: String, bytes: ByteArray) {
         val raw = String(bytes)
@@ -409,6 +440,7 @@ class MqttRepositoryImpl @Inject constructor(
             Log.w(TAG, "Dropping unparseable response on $topic", e)
             return
         }
+        recordClockSkew(envelope?.timestampUtc ?: "")
         val id = envelope?.inResponseToMessageId
         if (id.isNullOrBlank()) {
             Log.w(TAG, "Dropping response on $topic with no inResponseToMessageId")

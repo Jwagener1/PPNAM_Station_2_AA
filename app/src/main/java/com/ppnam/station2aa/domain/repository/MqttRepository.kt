@@ -17,6 +17,15 @@ interface MqttRepository {
      * while Station 2 is down, in which case every request will time out.
      */
     val stationOnline: StateFlow<Boolean>
+    /**
+     * Station 2's clock minus this device's clock, in milliseconds, as of the last response
+     * carrying a parseable timestamp. `null` when no such response has arrived yet.
+     *
+     * Every request must carry a `timestampUtc` inside Station 2's acceptance window, so a badly
+     * drifted device clock fails every message with `message_expired`. This surfaces that as a
+     * clock problem rather than a generic request failure. Detection only — never auto-correct.
+     */
+    val clockSkewMillis: StateFlow<Long?>
     suspend fun send(action: String, dataJson: String): MqttResult
     suspend fun <T> sendTyped(
         requestType: String,
