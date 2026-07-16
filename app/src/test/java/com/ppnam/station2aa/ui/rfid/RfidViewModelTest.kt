@@ -65,6 +65,8 @@ class RfidViewModelTest {
                 com.ppnam.station2aa.domain.repository.MqttConnectionState.CONNECTED
             )
         )
+        whenever(mqtt.stationOnline).thenReturn(kotlinx.coroutines.flow.MutableStateFlow(true))
+        whenever(mqtt.clockSkewMillis).thenReturn(kotlinx.coroutines.flow.MutableStateFlow<Long?>(null))
         bus = mock()
         whenever(bus.events).thenReturn(MutableSharedFlow())
         viewModel = RfidViewModel(useCase, bus, mqtt)

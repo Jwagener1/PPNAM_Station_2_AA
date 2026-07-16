@@ -32,7 +32,7 @@ fun IngredientScanScreen(
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val connectionState by viewModel.connectionState.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
@@ -324,7 +324,7 @@ fun IngredientScanScreen(
 
     AppScaffold(
         title = "Scan Ingredients",
-        connectionState = connectionState,
+        status = connectionStatus,
         onBack = { showBackConfirmDialog = true },
         onRfidLookup = onRfidLookup
     ) { padding ->

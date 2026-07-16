@@ -33,6 +33,8 @@ class HomeViewModelTest {
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
+        whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
+        whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
         whenever(mockSessionHolder.session).thenReturn(
             MutableStateFlow(OperatorSession("sess-1", "OP-1", "Jane Smith", "Operator"))
         )

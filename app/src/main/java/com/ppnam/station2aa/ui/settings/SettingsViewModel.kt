@@ -7,9 +7,14 @@ import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
+import com.ppnam.station2aa.ui.components.ConnectionStatus
+import com.ppnam.station2aa.ui.components.resolveConnectionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -45,6 +50,14 @@ class SettingsViewModel @Inject constructor(
         private set
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
+
+    val connectionStatus: StateFlow<ConnectionStatus> = combine(
+        mqttRepository.connectionState,
+        mqttRepository.stationOnline,
+        mqttRepository.clockSkewMillis,
+    ) { state, stationOnline, skew ->
+        resolveConnectionStatus(state, stationOnline, skew)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
 
     init {
         viewModelScope.launch {

@@ -46,6 +46,8 @@ class LoginViewModelTest {
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
+        whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
+        whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
         whenever(mockScanEventBus.events).thenReturn(scanEvents)
 
         viewModel = LoginViewModel(mockAuthUseCase, mockScanEventBus, mockMqttRepository)

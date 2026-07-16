@@ -33,6 +33,8 @@ class SettingsViewModelTest {
         runBlocking { whenever(mockSettingsRepository.current()).thenReturn(AppSettings()) }
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
+        whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
+        whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
 
         viewModel = SettingsViewModel(mockSettingsRepository, mockMqttRepository)
     }

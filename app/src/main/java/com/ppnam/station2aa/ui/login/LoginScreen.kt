@@ -23,7 +23,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val connectionState by viewModel.connectionState.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -35,7 +35,7 @@ fun LoginScreen(
 
     AppScaffold(
         title = "Log In",
-        connectionState = connectionState,
+        status = connectionStatus,
         onSettings = onNavigateSettings
     ) { padding ->
         Column(

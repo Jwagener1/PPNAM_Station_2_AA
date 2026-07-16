@@ -13,6 +13,8 @@ import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
+import com.ppnam.station2aa.ui.components.ConnectionStatus
+import com.ppnam.station2aa.ui.components.resolveConnectionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -54,6 +56,14 @@ class MixingViewModel @Inject constructor(
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
+
+    val connectionStatus: StateFlow<ConnectionStatus> = combine(
+        mqttRepository.connectionState,
+        mqttRepository.stationOnline,
+        mqttRepository.clockSkewMillis,
+    ) { state, stationOnline, skew ->
+        resolveConnectionStatus(state, stationOnline, skew)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
