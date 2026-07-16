@@ -43,6 +43,12 @@ class MqttRepositoryImpl @Inject constructor(
         private const val SUBSCRIBE_RETRY_DELAY_MS = 2_000L
         private const val SUBSCRIBE_TIMEOUT_MS = 10_000L
         private const val CONNECT_TIMEOUT_MS = 15_000L
+
+        // Bounded retry. The contract's replay design makes this safe: the same replay identity
+        // (deviceId + requestType + messageId) with the same body returns the stored response
+        // without repeating the workflow action. Keep the total budget well inside Station 2's
+        // timestamp acceptance window — a retry must not outlive its own timestampUtc.
+        internal const val REQUEST_MAX_ATTEMPTS = 3
     }
 
     private val gson = Gson()
@@ -374,23 +380,32 @@ class MqttRepositoryImpl @Inject constructor(
         )
         val topic = MqttTopics.request(currentDeviceId, requestType)
 
+        val bytes = json.toByteArray()  // frozen: every attempt republishes these exact bytes
         val waiter = CompletableDeferred<String>()
         pending[messageId] = waiter
         try {
-            try {
-                publishFn(topic, json.toByteArray())
-            } catch (e: CancellationException) {
-                // CancellationException is an Exception in Kotlin, so the generic catch below would swallow
-                // it and report a normal failure — breaking structured concurrency when a caller's scope is
-                // torn down mid-publish. Rethrow first.
-                throw e
-            } catch (e: Exception) {
-                Log.w(TAG, "publish failed for $requestType", e)
-                return MqttOutcome.NoResponse(FailureKind.NotConnected)
+            repeat(REQUEST_MAX_ATTEMPTS) { attempt ->
+                val publishOk = try {
+                    publishFn(topic, bytes)
+                    true
+                } catch (e: CancellationException) {
+                    // CancellationException is an Exception in Kotlin, so the generic catch below
+                    // would swallow it and report a normal failure — breaking structured
+                    // concurrency when a caller's scope is torn down mid-publish. Rethrow first.
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "publish attempt ${attempt + 1} failed for $requestType", e)
+                    false
+                }
+                if (publishOk) {
+                    val raw = withTimeoutOrNull(requestTimeoutMs) { waiter.await() }
+                    if (raw != null) return parseOutcome(raw, responseClass, responseType)
+                }
+                if (attempt < REQUEST_MAX_ATTEMPTS - 1) {
+                    Log.w(TAG, "retrying $requestType (messageId=$messageId, attempt ${attempt + 2})")
+                }
             }
-            val raw = withTimeoutOrNull(requestTimeoutMs) { waiter.await() }
-                ?: return MqttOutcome.NoResponse(FailureKind.Timeout)
-            return parseOutcome(raw, responseClass, responseType)
+            return MqttOutcome.NoResponse(FailureKind.Timeout)
         } finally {
             pending.remove(messageId)
         }
