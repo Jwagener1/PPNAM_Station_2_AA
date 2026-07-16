@@ -243,6 +243,37 @@ class MixingUseCaseTest {
     }
 
     @Test
+    fun `requiredQty comes from requiredQuantity, not SAP's original plannedQuantity`() = runTest {
+        // The contract distinguishes them: plannedQuantity is SAP's original, requiredQuantity is
+        // what remains required after an approved short-bag waiver adjusts the line. Sourcing the
+        // wrong one makes the progress denominator jump when an exception is approved.
+        val response = BomLoadedResponse(
+            jobCardNumber = "510019068",
+            ingredients = listOf(
+                BomLineResponse(
+                    lineNumber = 0,
+                    materialCode = "1600000301",
+                    materialName = "HD WHITE",
+                    plannedQuantity = 557.049,   // SAP's original
+                    requiredQuantity = 532.049,  // after a 1-bag waiver at 25kg
+                    remainingQuantity = 532.049,
+                    approvedShortBags = 1.0,
+                    bagSize = "25.000 kg",
+                    issueType = "im_Manual",
+                    unit = "kg",
+                ),
+            ),
+        )
+        whenever(mockMqtt.request(eq("job_card_load_requested"), eq("bom_loaded"), any(), any(), eq(BomLoadedResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
+
+        val line = useCase.lookupJob("510019068").getOrThrow().lines.single()
+
+        assertEquals(532.049, line.requiredQty, 0.001)
+        assertEquals(1.0, line.approvedShortBags!!, 0.001)
+    }
+
+    @Test
     fun `a bulk line maps with null bag fields, not zeroes`() = runTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
@@ -534,7 +565,7 @@ class MixingUseCaseTest {
                 BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
                     plannedQuantity = 50.0, issuedQuantity = 20.0, requiredQuantity = 50.0,
-                    collectedQuantity = 20.0, remainingQuantity = 30.0,
+                    collectedQuantity = 20.0, weightReceived = 20.5, remainingQuantity = 30.0,
                     expectedBags = 5.0, scannedBags = 2.0, remainingBags = 3.0,
                     uomCode = "kg", unit = "kg"
                 )
@@ -555,6 +586,8 @@ class MixingUseCaseTest {
         val line = (outcome as IngredientScanOutcome.Accepted).updatedLines.single()
         assertEquals("MAT-001", line.itemCode)
         assertEquals(50.0, line.requiredQty, 0.0001)
+        assertEquals(20.0, line.collectedQty, 0.0001)
+        assertEquals(20.5, line.weightReceived, 0.0001)
         assertEquals(30.0, line.remainingQty, 0.0001)
         assertEquals(3.0, line.remainingBags ?: 0.0, 0.0001)
         assertEquals("kg", line.uom)
