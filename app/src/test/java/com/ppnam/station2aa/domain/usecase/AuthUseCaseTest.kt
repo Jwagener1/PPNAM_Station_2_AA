@@ -8,8 +8,10 @@ import com.ppnam.station2aa.data.mqtt.dto.BadgeLoginPayload
 import com.ppnam.station2aa.data.mqtt.dto.CredentialsLoginPayload
 import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
+import com.ppnam.station2aa.domain.model.SessionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import kotlinx.coroutines.test.runTest
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -147,6 +149,42 @@ class AuthUseCaseTest {
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `a successful login carries session state and expiry`() = runTest {
+        stub(
+            MqttOutcome.Accepted(
+                accepted.copy(sessionState = "Active", sessionExpiresAtUtc = "2026-07-17T00:00:01Z"),
+                NextAction.NONE,
+            )
+        )
+
+        val session = useCase.login(LoginMethod.Credentials("operator1", "secret")).getOrThrow()
+
+        assertEquals(SessionState.Active, session.sessionState)
+        assertEquals(Instant.parse("2026-07-17T00:00:01Z"), session.sessionExpiresAtUtc)
+    }
+
+    @Test
+    fun `a login answered with a Closed session is a failure`() = runTest {
+        // Accepting a session Station 2 has already closed would strand the operator in a UI that
+        // rejects every action.
+        stub(MqttOutcome.Accepted(accepted.copy(sessionState = "Closed"), NextAction.LOGIN))
+
+        val result = useCase.login(LoginMethod.Credentials("operator1", "secret"))
+
+        assertTrue(result.isFailure)
+        assertNull(sessionHolder.session.value)
+    }
+
+    @Test
+    fun `an unparseable expiry does not fail the login`() = runTest {
+        stub(MqttOutcome.Accepted(accepted.copy(sessionExpiresAtUtc = "not-a-timestamp"), NextAction.NONE))
+
+        val session = useCase.login(LoginMethod.Credentials("operator1", "secret")).getOrThrow()
+
+        assertNull(session.sessionExpiresAtUtc)
     }
 
     @Test

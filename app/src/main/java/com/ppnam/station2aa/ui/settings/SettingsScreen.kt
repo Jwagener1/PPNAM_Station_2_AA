@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.BuildConfig
-import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.components.ConnectionStatus
 import com.ppnam.station2aa.ui.theme.*
 
 @Composable
@@ -32,7 +32,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val connectionState by viewModel.connectionState.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
     val pinState = viewModel.pinState.value
     val pinInput = viewModel.pinInput.value
     val pinError = viewModel.pinError.value
@@ -41,7 +41,7 @@ fun SettingsScreen(
 
     AppScaffold(
         title = "Settings",
-        connectionState = connectionState,
+        status = connectionStatus,
         onBack = onBack
     ) { padding ->
         Column(
@@ -59,10 +59,12 @@ fun SettingsScreen(
                 border = BorderStroke(1.dp, GraphiteBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    val (dotColor, statusLabel) = when (connectionState) {
-                        MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
-                        MqttConnectionState.RECONNECTING -> AmberPrimary to "Reconnecting"
-                        MqttConnectionState.DISCONNECTED -> DangerRed to "Offline"
+                    val (dotColor, statusLabel) = when (connectionStatus) {
+                        ConnectionStatus.Connected      -> SuccessGreen to "Connected"
+                        ConnectionStatus.Reconnecting   -> AmberPrimary to "Reconnecting"
+                        ConnectionStatus.StationOffline -> AmberPrimary to "Station 2 offline"
+                        ConnectionStatus.ClockSkewed    -> AmberPrimary to "Clock out of sync"
+                        ConnectionStatus.Offline        -> DangerRed to "Offline"
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),

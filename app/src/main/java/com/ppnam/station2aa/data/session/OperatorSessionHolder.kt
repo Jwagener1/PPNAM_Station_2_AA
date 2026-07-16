@@ -1,8 +1,10 @@
 package com.ppnam.station2aa.data.session
 
+import com.ppnam.station2aa.domain.model.SessionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,8 +12,13 @@ data class OperatorSession(
     val operatorSessionId: String,
     val operatorId: String,
     val operatorName: String,
+    /** Display and audit only. No rule in the contract gates on role — never branch on this. */
     val role: String,
+    val sessionState: SessionState = SessionState.Active,
+    val sessionExpiresAtUtc: Instant? = null,
+    /** A UI display hint only. The contract forbids enforcing anything with this list. */
     val allowedActions: List<String> = emptyList(),
+    /** A UI display hint only. */
     val allowedTabs: List<String> = emptyList()
 )
 

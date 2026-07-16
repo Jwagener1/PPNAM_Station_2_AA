@@ -366,9 +366,17 @@ class MqttRepositoryImpl @Inject constructor(
         if (envelope.accepted) {
             MqttOutcome.Accepted(body, nextAction)
         } else {
+            val code = envelope.errorCode?.let { ErrorCode(it) }
+            // The transport stamps operatorSessionId onto every envelope, so it owns the fact that a
+            // session is no longer valid. Handling this here covers every request in the app in one
+            // place, instead of repeating the check in every use case.
+            if (code == ErrorCode.SESSION_REQUIRED) {
+                Log.w(TAG, "Station 2 rejected $expectedResponseType with session_required — clearing local session")
+                sessionHolder.clear()
+            }
             MqttOutcome.Rejected(
                 body = body,
-                errorCode = envelope.errorCode?.let { ErrorCode(it) },
+                errorCode = code,
                 reason = envelope.reason,
                 nextAction = nextAction,
             )

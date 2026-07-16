@@ -56,6 +56,8 @@ class MixingViewModelTest {
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
+        whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
+        whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
         whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("cancel_premix")))
 
@@ -288,7 +290,7 @@ class MixingViewModelTest {
         val outcomes = mutableListOf<CancelOutcome>()
         val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
 
-        viewModel.cancelJob()
+        viewModel.cancelJob(managerUsername = "manager1", managerPassword = "secret")
         advanceUntilIdle()
 
         assertEquals(MixingUiState.Idle, viewModel.uiState.value)
@@ -307,7 +309,7 @@ class MixingViewModelTest {
         val outcomes = mutableListOf<CancelOutcome>()
         val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
 
-        viewModel.cancelJob()
+        viewModel.cancelJob(managerUsername = "manager1", managerPassword = "secret")
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
@@ -336,20 +338,33 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `operatorCanCancelDirectly reflects the cancel_premix_direct allowed action`() = runTest {
-        whenever(mockSessionHolder.session).thenReturn(
-            MutableStateFlow(sessionWithActions("cancel_premix", "cancel_premix_direct"))
-        )
-        val directViewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
-        )
+    fun `cancelJob refuses to send without manager credentials`() = runTest {
+        // v3 has no direct-cancel path: manager credentials are required on every privileged
+        // action, checked against the approver's account, even when the sender is a Manager.
+        // A job must be loaded first so this exercises the credential guard specifically,
+        // rather than the pre-existing blank-currentOrderNo guard.
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
 
-        assertTrue(directViewModel.operatorCanCancelDirectly())
+        viewModel.cancelJob(managerUsername = "", managerPassword = "")
+        advanceUntilIdle()
+
+        verify(mockUseCase, never()).cancelJob(any(), any(), any(), any(), any())
     }
 
     @Test
-    fun `operatorCanCancelDirectly is false without the capability`() = runTest {
-        assertFalse(viewModel.operatorCanCancelDirectly())
+    fun `cancelJob forwards the supplied manager credentials`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        whenever(mockUseCase.cancelJob(any(), any(), any(), eq("manager1"), eq("secret")))
+            .thenReturn(Result.success(mock()))
+
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.cancelJob(managerUsername = "manager1", managerPassword = "secret")
+        advanceUntilIdle()
+
+        verify(mockUseCase).cancelJob(any(), any(), any(), eq("manager1"), eq("secret"))
     }
 
     @Test
@@ -395,6 +410,100 @@ class MixingViewModelTest {
         verify(mockAuthUseCase).logout()
         assertEquals(1, events.size)
         job.cancel()
+    }
+
+    @Test
+    fun `a stray scan while the manager-approval dialog is open is ignored and the dialog survives`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+
+        // Scan listening starts once when the job loads and stays active continuously —
+        // it is not restarted per-dialog, so this reproduces the real collector lifecycle.
+        vm.startListeningForPalletScans("510019068")
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material"))
+        )
+        vm.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+        assertTrue(
+            "sanity check: the manager-approval dialog should be showing before the stray scan arrives",
+            vm.uiState.value is MixingUiState.IngredientExceptionApproval
+        )
+
+        // A stray read for a different pallet lands while the manager-approval dialog owns the
+        // screen. Unguarded, the collector would blindly flip state to EnteringBagDetails and
+        // dismiss the dialog out from under the operator, losing the pending exception.
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:999999", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(
+            "a stray scan mid-dialog must not clobber the manager-approval prompt",
+            state is MixingUiState.IngredientExceptionApproval
+        )
+        assertEquals("exception-1", (state as MixingUiState.IngredientExceptionApproval).exceptionId)
+    }
+
+    @Test
+    fun `a scan in the normal OrderLoaded state is still processed despite the guard`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
+
+        vm.startListeningForPalletScans("510019068")
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        // Over-correcting into ignoring every scan is worse than the original bug: the operator
+        // would think the reader is broken. A legitimate scan from the normal scanning state must
+        // still open the bag-entry dialog.
+        val state = vm.uiState.value
+        assertTrue(state is MixingUiState.EnteringBagDetails)
+        assertEquals("EPC:300833", (state as MixingUiState.EnteringBagDetails).palletTag)
+    }
+
+    @Test
+    fun `a scan arriving while Error is showing still reaches the scan flow`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+
+        vm.startListeningForPalletScans("510019068")
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0))
+            .thenReturn(Result.failure(RuntimeException("Station 2 did not respond")))
+        vm.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+        assertTrue(
+            "sanity check: a failed scan attempt should leave the screen in Error",
+            vm.uiState.value is MixingUiState.Error
+        )
+
+        // Error is a settled state, not an in-flight request or an open dialog. Rescanning from
+        // here is the operator's only recovery path on this screen (clearError() is unwired and
+        // the error card has no dismiss button), so the guard must let it through rather than
+        // trapping the operator behind a dead-end error card.
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(
+            "a rescan over a settled Error must open EnteringBagDetails, not be dropped",
+            state is MixingUiState.EnteringBagDetails
+        )
+        assertEquals("EPC:300833", (state as MixingUiState.EnteringBagDetails).palletTag)
     }
 
     @Test

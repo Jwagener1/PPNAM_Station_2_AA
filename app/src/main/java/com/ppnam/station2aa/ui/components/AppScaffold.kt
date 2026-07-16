@@ -18,14 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(
     title: String,
-    connectionState: MqttConnectionState,
+    status: ConnectionStatus,
     onBack: (() -> Unit)? = null,
     onRfidLookup: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
@@ -34,11 +33,12 @@ fun AppScaffold(
     onLogout: (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val (dotColor, statusLabel) = when (connectionState) {
-        MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
-        MqttConnectionState.RECONNECTING -> WarningOrange to "Reconnecting"
-        MqttConnectionState.DISCONNECTED ->
-            DangerRed to "Offline"
+    val (dotColor, statusLabel) = when (status) {
+        ConnectionStatus.Connected      -> SuccessGreen to "Connected"
+        ConnectionStatus.Reconnecting   -> WarningOrange to "Reconnecting"
+        ConnectionStatus.StationOffline -> WarningOrange to "Station 2 offline"
+        ConnectionStatus.ClockSkewed    -> WarningOrange to "Clock out of sync"
+        ConnectionStatus.Offline        -> DangerRed to "Offline"
     }
 
     var showLogoutDialog by remember { mutableStateOf(false) }

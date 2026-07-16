@@ -24,13 +24,13 @@ fun RfidRecoveryScreen(
     viewModel: RfidViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val connectionState by viewModel.connectionState.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
 
     LaunchedEffect(Unit) { viewModel.startListening() }
 
     AppScaffold(
         title = "RFID Pallet Lookup",
-        connectionState = connectionState,
+        status = connectionStatus,
         onBack = onBack
     ) { padding ->
         Column(

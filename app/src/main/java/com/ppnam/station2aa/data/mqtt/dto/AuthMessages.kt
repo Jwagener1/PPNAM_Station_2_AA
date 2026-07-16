@@ -25,9 +25,6 @@ data class BadgeLoginPayload(
  *
  * `role` is informational only. Nothing in the contract gates on it — see the privileged-actions
  * rules, which authorise on the approver's allowedActions, never on a role.
- *
- * `sessionState` and `sessionExpiresAtUtc` are deliberately unmapped here; sub-project 2 adds them
- * along with the session-lifecycle behaviour they drive. Gson ignores unmapped JSON fields.
  */
 data class OperatorContextResponse(
     val operatorSessionId: String = "",
@@ -37,4 +34,6 @@ data class OperatorContextResponse(
     val role: String? = null,
     val allowedActions: List<String> = emptyList(),
     val allowedTabs: List<String> = emptyList(),
+    val sessionState: String? = null,
+    val sessionExpiresAtUtc: String? = null,
 )

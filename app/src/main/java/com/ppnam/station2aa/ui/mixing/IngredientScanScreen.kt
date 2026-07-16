@@ -32,7 +32,7 @@ fun IngredientScanScreen(
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val connectionState by viewModel.connectionState.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
@@ -86,13 +86,9 @@ fun IngredientScanScreen(
                 TextButton(
                     enabled = !isCancelling,
                     onClick = {
-                        if (viewModel.operatorCanCancelDirectly()) {
-                            showCancelDialog = false
-                            viewModel.cancelJob()
-                        } else {
-                            showCancelDialog = false
-                            showApprovalDialog = true
-                        }
+                        // Every cancel needs manager credentials in v3 — there is no direct path.
+                        showCancelDialog = false
+                        showApprovalDialog = true
                     }
                 ) { Text("Cancel Job", color = DangerRed) }
             },
@@ -134,7 +130,7 @@ fun IngredientScanScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Your role can't cancel a job card directly. Ask a manager or admin to enter their credentials to approve this cancellation.",
+                        "Cancelling a job card always needs a manager's approval. Ask a manager to enter their credentials — this is recorded against their name in the audit trail.",
                         color = TextMuted
                     )
                     OutlinedTextField(
@@ -328,7 +324,7 @@ fun IngredientScanScreen(
 
     AppScaffold(
         title = "Scan Ingredients",
-        connectionState = connectionState,
+        status = connectionStatus,
         onBack = { showBackConfirmDialog = true },
         onRfidLookup = onRfidLookup
     ) { padding ->

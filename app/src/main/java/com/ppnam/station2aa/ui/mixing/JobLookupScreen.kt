@@ -31,7 +31,7 @@ fun JobLookupScreen(
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val connectionState by viewModel.connectionState.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
     val activeJobs by viewModel.activeJobs.collectAsState()
     val activeJobsError by viewModel.activeJobsError.collectAsState()
     val session by viewModel.session.collectAsState()
@@ -56,7 +56,7 @@ fun JobLookupScreen(
 
     AppScaffold(
         title = "Job Lookup",
-        connectionState = connectionState,
+        status = connectionStatus,
         onBack = null,
         onRfidLookup = onRfidLookup,
         onSettings = onSettings,

@@ -13,6 +13,8 @@ import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
+import com.ppnam.station2aa.ui.components.ConnectionStatus
+import com.ppnam.station2aa.ui.components.resolveConnectionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -54,6 +56,14 @@ class MixingViewModel @Inject constructor(
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
+
+    val connectionStatus: StateFlow<ConnectionStatus> = combine(
+        mqttRepository.connectionState,
+        mqttRepository.stationOnline,
+        mqttRepository.clockSkewMillis,
+    ) { state, stationOnline, skew ->
+        resolveConnectionStatus(state, stationOnline, skew)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
@@ -132,11 +142,21 @@ class MixingViewModel @Inject constructor(
             // Barcode scans are accepted here too as a stand-in for RFID tags until
             // real RFID hardware is available on this handheld.
             scanEventBus.events.collect { event ->
-                val palletTag = when (event) {
-                    is ScanEvent.RfidTag -> event.tagId
-                    is ScanEvent.Barcode -> event.value
+                // A scan landing mid-request or over an open dialog would clobber in-flight state
+                // or dismiss the dialog under the operator's hands. Ignore reads while a request is
+                // in flight or a dialog owns the screen. Error is a settled state, not an in-flight
+                // one — clearError() has no caller and the error card has no dismiss button, so
+                // rescanning here is the operator's only way to recover; treat it like OrderLoaded.
+                when (_uiState.value) {
+                    is MixingUiState.OrderLoaded, is MixingUiState.Error -> {
+                        val palletTag = when (event) {
+                            is ScanEvent.RfidTag -> event.tagId
+                            is ScanEvent.Barcode -> event.value
+                        }
+                        _uiState.value = MixingUiState.EnteringBagDetails(palletTag)
+                    }
+                    else -> return@collect
                 }
-                _uiState.value = MixingUiState.EnteringBagDetails(palletTag)
             }
         }
     }
@@ -245,15 +265,16 @@ class MixingViewModel @Inject constructor(
         if (_uiState.value is MixingUiState.Error) _uiState.value = MixingUiState.Idle
     }
 
-    fun operatorCanCancelDirectly(): Boolean =
-        sessionHolder.session.value?.allowedActions?.contains("cancel_premix_direct") == true
-
     // Waits for premix_cancel_result before touching any local state — a rejected
     // cancel (e.g. the pre-mix already has scanned ingredients, or the manager
     // approval was denied) must leave the job exactly as it was, per the backend's
     // "only an untouched JC load can be closed" rule.
     fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
         if (_uiState.value is MixingUiState.Cancelling) return
+        // v3 authorises a privileged action solely by the manager credentials carried in the
+        // request, checked against the approver's account — never by the sender's session. There is
+        // no direct-cancel path, even for a Manager on their own handheld.
+        if (managerUsername.isBlank() || managerPassword.isBlank()) return
         val jobCardNumber = currentOrderNo
         val collectionId = cachedOrder?.collectionId ?: ""
         if (jobCardNumber.isBlank()) return
