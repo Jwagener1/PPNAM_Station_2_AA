@@ -8,7 +8,9 @@ import com.ppnam.station2aa.data.mqtt.dto.CredentialsLoginPayload
 import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
+import com.ppnam.station2aa.domain.model.SessionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
+import java.time.Instant
 import javax.inject.Inject
 
 sealed class LoginMethod {
@@ -38,19 +40,32 @@ class AuthUseCase @Inject constructor(
         return when (outcome) {
             is MqttOutcome.Accepted -> {
                 val response = outcome.body
-                if (response.operatorSessionId.isBlank()) {
-                    Result.failure(Exception("Station 2 accepted the login but issued no session"))
-                } else {
-                    val session = OperatorSession(
-                        operatorSessionId = response.operatorSessionId,
-                        operatorId = response.operatorId.orEmpty(),
-                        operatorName = response.displayName.orEmpty(),
-                        role = response.role.orEmpty(),
-                        allowedActions = response.allowedActions,
-                        allowedTabs = response.allowedTabs,
-                    )
-                    sessionHolder.set(session)
-                    Result.success(session)
+                val state = SessionState.fromWire(response.sessionState)
+                when {
+                    response.operatorSessionId.isBlank() ->
+                        Result.failure(Exception("Station 2 accepted the login but issued no session"))
+                    // Accepting an already-closed session would strand the operator in a UI that
+                    // rejects every action.
+                    state == SessionState.Closed ->
+                        Result.failure(Exception("Station 2 closed this session immediately"))
+                    else -> {
+                        val session = OperatorSession(
+                            operatorSessionId = response.operatorSessionId,
+                            operatorId = response.operatorId.orEmpty(),
+                            operatorName = response.displayName.orEmpty(),
+                            role = response.role.orEmpty(),
+                            sessionState = state,
+                            // A bad timestamp must not fail an otherwise valid login — expiry is
+                            // display-only, and Station 2 enforces it regardless.
+                            sessionExpiresAtUtc = response.sessionExpiresAtUtc?.let {
+                                try { Instant.parse(it) } catch (e: Exception) { null }
+                            },
+                            allowedActions = response.allowedActions,
+                            allowedTabs = response.allowedTabs,
+                        )
+                        sessionHolder.set(session)
+                        Result.success(session)
+                    }
                 }
             }
             is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Login failed"))
