@@ -1,13 +1,14 @@
 package com.ppnam.station2aa.data.mqtt
 
+import android.util.Log
+import androidx.annotation.VisibleForTesting
 import com.google.gson.Gson
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
-import com.ppnam.station2aa.data.local.OfflineQueueDao
-import com.ppnam.station2aa.data.local.OfflineQueueEntity
+import com.ppnam.station2aa.data.mqtt.dto.ResponseEnvelope
+import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
-import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import kotlinx.coroutines.*
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -24,10 +26,11 @@ import javax.inject.Singleton
 class MqttRepositoryImpl @Inject constructor(
     private val clientFactory: MqttClientFactory,
     private val settingsRepository: SettingsRepository,
-    private val offlineQueueDao: OfflineQueueDao
+    private val sessionHolder: OperatorSessionHolder
 ) : MqttRepository {
 
     companion object {
+        private const val TAG = "MqttRepositoryImpl"
         // Raw text, not JSON — the deviceId status topic (PPNAM/{deviceId}/status) is
         // presence-only, so payloads are plain "online"/"offline" bytes.
         private val STATUS_ONLINE = "online".toByteArray()
@@ -37,6 +40,15 @@ class MqttRepositoryImpl @Inject constructor(
         private const val SUBSCRIBE_RETRY_DELAY_MS = 2_000L
         private const val SUBSCRIBE_TIMEOUT_MS = 10_000L
         private const val CONNECT_TIMEOUT_MS = 15_000L
+
+        // Bounded retry. The contract's replay design makes this safe: the same replay identity
+        // (deviceId + requestType + messageId) with the same body returns the stored response
+        // without repeating the workflow action. Keep the total budget well inside Station 2's
+        // timestamp acceptance window — a retry must not outlive its own timestampUtc.
+        internal const val REQUEST_MAX_ATTEMPTS = 3
+
+        // Beyond this the device clock is a plausible cause of blanket message_expired rejections.
+        internal const val CLOCK_SKEW_WARN_MS = 30_000L
     }
 
     private val gson = Gson()
@@ -45,15 +57,37 @@ class MqttRepositoryImpl @Inject constructor(
     private val _connectionState = MutableStateFlow(MqttConnectionState.DISCONNECTED)
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
-    private val _incomingResponses = MutableSharedFlow<MqttResponseMessage>(extraBufferCapacity = 64)
-    private val _incomingTyped = MutableSharedFlow<Pair<String, String>>(extraBufferCapacity = 64)
+    private val _stationOnline = MutableStateFlow(false)
+    override val stationOnline: StateFlow<Boolean> = _stationOnline.asStateFlow()
 
-    private val _hopperStatusUpdates = MutableSharedFlow<HopperStatus>(replay = 1, extraBufferCapacity = 16)
-    override val hopperStatusUpdates: SharedFlow<HopperStatus> = _hopperStatusUpdates.asSharedFlow()
+    private val _clockSkewMillis = MutableStateFlow<Long?>(null)
+    override val clockSkewMillis: StateFlow<Long?> = _clockSkewMillis.asStateFlow()
+
+    /** Test seam for the device clock. */
+    @VisibleForTesting
+    internal var nowFn: () -> Instant = { Instant.now() }
+
+    // Correlation registry: messageId -> the caller awaiting that exact response. The contract is
+    // explicit that inResponseToMessageId is the ONLY correct way to match a response to a request
+    // — several in-flight messages deliberately share a correlationKey, and two request types can
+    // share one response topic (login_requested and reader_logout_requested both answer on
+    // operator_context), so neither key nor topic can discriminate.
+    private val pending = ConcurrentHashMap<String, CompletableDeferred<String>>()
+
+    // Test seam. Production path publishes workflow messages at QoS 1, not retained, per contract.
+    @VisibleForTesting
+    internal var publishFn: suspend (String, ByteArray) -> Unit = { topic, bytes ->
+        mqttClient!!.publishWith()
+            .topic(topic)
+            .payload(bytes)
+            .qos(MqttQos.AT_LEAST_ONCE)
+            .retain(false)
+            .send()
+            .await()
+    }
 
     private var mqttClient: Mqtt5AsyncClient? = null
     private val isTransportConnected = AtomicBoolean(false)
-    private var currentStationName: String = AppSettings().stationName
     private var currentDeviceId: String = AppSettings().deviceId
     private var requestTimeoutMs: Long = AppSettings().requestTimeoutMs
     private var retryJob: Job? = null
@@ -89,7 +123,7 @@ class MqttRepositoryImpl @Inject constructor(
                     try {
                         retryBounded(SUBSCRIBE_RETRY_ATTEMPTS, SUBSCRIBE_RETRY_DELAY_MS) {
                             withTimeout(SUBSCRIBE_TIMEOUT_MS) {
-                                subscribeAndAnnounce(client, settings.stationName, settings.deviceId)
+                                subscribeAndAnnounce(client, settings.deviceId)
                             }
                         }
                         _connectionState.value = MqttConnectionState.CONNECTED
@@ -107,6 +141,9 @@ class MqttRepositoryImpl @Inject constructor(
         if (mqttClient === client) {
             isTransportConnected.set(false)
             _connectionState.value = MqttConnectionState.RECONNECTING
+            // The retained presence we last saw is no longer evidence of anything — we are not
+            // subscribed any more. Re-subscribing replays the retained value.
+            _stationOnline.value = false
         }
     }
 
@@ -133,20 +170,26 @@ class MqttRepositoryImpl @Inject constructor(
         throw lastError ?: IllegalStateException("retryBounded exhausted with no recorded error")
     }
 
-    private suspend fun subscribeAndAnnounce(client: Mqtt5AsyncClient, stationName: String, deviceId: String) {
+    // Presence is raw text, not JSON — the contract defines only the literal payloads
+    // "online" and "offline". Anything else means we cannot claim Station 2 is up.
+    @VisibleForTesting
+    internal fun handleStationPresence(bytes: ByteArray) {
+        val payload = String(bytes).trim().lowercase()
+        _stationOnline.value = payload == "online"
+        if (payload != "online" && payload != "offline") {
+            Log.w(TAG, "Unrecognised station presence payload: '$payload' — treating as offline")
+        }
+    }
+
+    private suspend fun subscribeAndAnnounce(client: Mqtt5AsyncClient, deviceId: String) {
         client.subscribeWith()
-            .topicFilter(MqttTopics.response(stationName, deviceId))
-            .callback { publish -> handleIncoming(publish.payloadAsBytes) }
+            .topicFilter(MqttTopics.responseWildcard(deviceId))
+            .callback { publish -> handleIncomingResponse(publish.topic.toString(), publish.payloadAsBytes) }
             .send()
             .await()
         client.subscribeWith()
-            .topicFilter(MqttTopics.hopperStatus(stationName))
-            .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
-            .send()
-            .await()
-        client.subscribeWith()
-            .topicFilter(MqttTopics.contractResponseWildcard(deviceId))
-            .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
+            .topicFilter(MqttTopics.STATION_STATUS)
+            .callback { publish -> handleStationPresence(publish.payloadAsBytes) }
             .send()
             .await()
         client.publishWith()
@@ -163,7 +206,6 @@ class MqttRepositoryImpl @Inject constructor(
         retryJob?.cancel()
         _connectionState.value = MqttConnectionState.RECONNECTING
         val settings = settingsRepository.current()
-        currentStationName = settings.stationName
         currentDeviceId = settings.deviceId
         requestTimeoutMs = settings.requestTimeoutMs
         // buildClient()/connectWith() do synchronous SSLContext/Netty setup (disk I/O +
@@ -204,7 +246,7 @@ class MqttRepositoryImpl @Inject constructor(
             try {
                 retryBounded(SUBSCRIBE_RETRY_ATTEMPTS, SUBSCRIBE_RETRY_DELAY_MS) {
                     withTimeout(SUBSCRIBE_TIMEOUT_MS) {
-                        subscribeAndAnnounce(client, currentStationName, currentDeviceId)
+                        subscribeAndAnnounce(client, currentDeviceId)
                     }
                 }
                 _connectionState.value = MqttConnectionState.CONNECTED
@@ -220,9 +262,6 @@ class MqttRepositoryImpl @Inject constructor(
         mqttClient?.disconnect()
         _connectionState.value = MqttConnectionState.DISCONNECTED
     }
-
-    override suspend fun send(action: String, dataJson: String): MqttResult =
-        sendWithTimeout(action, dataJson, requestTimeoutMs)
 
     override suspend fun reconnectWith(settings: AppSettings): Result<Unit> {
         retryJob?.cancel()
@@ -243,12 +282,11 @@ class MqttRepositoryImpl @Inject constructor(
                             .applyWillPublish()
                         .send()
                         .await()
-                    subscribeAndAnnounce(candidate, settings.stationName, settings.deviceId)
+                    subscribeAndAnnounce(candidate, settings.deviceId)
                 }
                 val old = mqttClient
                 val oldDeviceId = currentDeviceId
                 mqttClient = candidate
-                currentStationName = settings.stationName
                 currentDeviceId = settings.deviceId
                 requestTimeoutMs = settings.requestTimeoutMs
                 _connectionState.value = MqttConnectionState.CONNECTED
@@ -262,135 +300,128 @@ class MqttRepositoryImpl @Inject constructor(
         }
     }
 
-    // The backend (RfidMqttService.RequestSuffixes) has never subscribed to the
-    // {station}/request topic this legacy action-string protocol publishes to — only
-    // per-device PPNAM/{deviceId}/{suffix} contract topics are handled. Every call here
-    // has therefore always silently timed out. Previously that meant a permanent retry
-    // queued via OfflineQueueRepository; now it just fails fast instead of queuing
-    // traffic that a fixed backend would never answer either way.
-    internal suspend fun sendWithTimeout(action: String, dataJson: String, timeoutMs: Long): MqttResult {
-        if (_connectionState.value != MqttConnectionState.CONNECTED) {
-            return MqttResult.Error("Not connected to Station 2")
-        }
-
-        val correlationId = UUID.randomUUID().toString()
-        val request = MqttRequest(correlationId, currentDeviceId, action, dataJson)
-        val payload = gson.toJson(request).toByteArray()
-
-        return try {
-            withTimeout(timeoutMs) {
-                val responseDeferred = async {
-                    _incomingResponses
-                        .filter { it.correlationId == correlationId }
-                        .first()
-                }
-                mqttClient!!.publishWith()
-                    .topic(MqttTopics.request(currentStationName))
-                    .payload(payload)
-                    .send()
-                    .await()
-                val response = responseDeferred.await()
-                if (response.success) {
-                    MqttResult.Success(response.data ?: "{}")
-                } else {
-                    MqttResult.Error(response.error ?: "Unknown error")
-                }
-            }
-        } catch (e: TimeoutCancellationException) {
-            MqttResult.Error("Request timed out")
-        } catch (e: Exception) {
-            MqttResult.Error(e.message ?: "Unknown error")
-        }
-    }
-
-    override suspend fun <T> sendTyped(
+    override suspend fun <T : Any> request(
         requestType: String,
         responseType: String,
-        requestJson: String,
+        payload: Any,
+        correlationKey: String?,
         responseClass: Class<T>,
-        allowOfflineQueue: Boolean
-    ): MqttTypedResult<T> {
+    ): MqttOutcome<T> {
         if (_connectionState.value != MqttConnectionState.CONNECTED) {
-            return if (allowOfflineQueue) {
-                enqueue(requestType, requestJson)
-                MqttTypedResult.Queued
-            } else {
-                MqttTypedResult.Disconnected
-            }
+            return MqttOutcome.NoResponse(FailureKind.NotConnected)
         }
 
-        return try {
-            withTimeout(requestTimeoutMs) {
-                val responseDeferred = async {
-                    _incomingTyped.filter { it.first == responseType }.first()
-                }
-                mqttClient!!.publishWith()
-                    .topic(MqttTopics.contractRequest(currentDeviceId, requestType))
-                    .payload(requestJson.toByteArray())
-                    .send()
-                    .await()
-                val (_, rawJson) = responseDeferred.await()
-                MqttTypedResult.Success(gson.fromJson(rawJson, responseClass))
-            }
-        } catch (e: TimeoutCancellationException) {
-            if (allowOfflineQueue) {
-                enqueue(requestType, requestJson)
-                MqttTypedResult.Queued
-            } else {
-                MqttTypedResult.Error("Request timed out")
-            }
-        } catch (e: Exception) {
-            if (allowOfflineQueue) {
-                enqueue(requestType, requestJson)
-                MqttTypedResult.Queued
-            } else {
-                MqttTypedResult.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
-
-    // Fire-and-forget: publishes to a contract request topic without waiting for (or
-    // expecting) a response. For request types the backend doesn't yet handle, it just
-    // publishes best-effort and gives up silently rather than hanging until timeout.
-    override suspend fun publishTyped(requestType: String, requestJson: String) {
-        if (_connectionState.value != MqttConnectionState.CONNECTED) return
-        try {
-            mqttClient!!.publishWith()
-                .topic(MqttTopics.contractRequest(currentDeviceId, requestType))
-                .payload(requestJson.toByteArray())
-                .send()
-                .await()
-        } catch (_: Exception) {
-        }
-    }
-
-    // OfflineQueueRepository.drainQueue() replays queued items via the old
-    // sendWithTimeout()/`{station}/request` path, not sendTyped()'s contract
-    // topics/envelope. No caller sets allowOfflineQueue=true on sendTyped yet
-    // (login/logout always pass false), so this is dormant — but the drain
-    // path must be updated before any typed request enables queuing.
-    private suspend fun enqueue(action: String, payload: String): String {
-        val id = UUID.randomUUID().toString()
-        offlineQueueDao.insert(
-            OfflineQueueEntity(
-                id = id,
-                action = action,
-                payload = payload,
-                createdAt = Instant.now().toEpochMilli()
-            )
+        val messageId = UUID.randomUUID().toString()
+        val json = RequestEnvelope.build(
+            gson = gson,
+            payload = payload,
+            messageId = messageId,
+            deviceId = currentDeviceId,
+            operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+            timestampUtc = nowFn().toString(),
+            correlationKey = correlationKey,
         )
-        return id
-    }
+        val topic = MqttTopics.request(currentDeviceId, requestType)
 
-    private fun handleIncoming(bytes: ByteArray) {
+        val bytes = json.toByteArray()  // frozen: every attempt republishes these exact bytes
+        val waiter = CompletableDeferred<String>()
+        pending[messageId] = waiter
         try {
-            val msg = gson.fromJson(String(bytes), MqttResponseMessage::class.java)
-            _incomingResponses.tryEmit(msg)
-        } catch (_: Exception) { }
+            repeat(REQUEST_MAX_ATTEMPTS) { attempt ->
+                val publishOk = try {
+                    publishFn(topic, bytes)
+                    true
+                } catch (e: CancellationException) {
+                    // CancellationException is an Exception in Kotlin, so the generic catch below
+                    // would swallow it and report a normal failure — breaking structured
+                    // concurrency when a caller's scope is torn down mid-publish. Rethrow first.
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "publish attempt ${attempt + 1} failed for $requestType", e)
+                    false
+                }
+                if (publishOk) {
+                    val raw = withTimeoutOrNull(requestTimeoutMs) { waiter.await() }
+                    if (raw != null) return parseOutcome(raw, responseClass, responseType)
+                }
+                if (attempt < REQUEST_MAX_ATTEMPTS - 1) {
+                    Log.w(TAG, "retrying $requestType (messageId=$messageId, attempt ${attempt + 2})")
+                }
+            }
+            return MqttOutcome.NoResponse(FailureKind.Timeout)
+        } finally {
+            pending.remove(messageId)
+        }
     }
 
-    private fun handleIncomingTyped(topic: String, bytes: ByteArray) {
-        _incomingTyped.tryEmit(MqttTopics.responseTypeOf(topic) to String(bytes))
+    private fun <T : Any> parseOutcome(
+        raw: String,
+        responseClass: Class<T>,
+        expectedResponseType: String,
+    ): MqttOutcome<T> = try {
+        val envelope = gson.fromJson(raw, ResponseEnvelope::class.java)
+        val body = gson.fromJson(raw, responseClass)
+            ?: throw IllegalStateException("Response body parsed to null for $expectedResponseType")
+        val nextAction = NextAction(envelope.nextAction ?: "")
+        if (envelope.accepted) {
+            MqttOutcome.Accepted(body, nextAction)
+        } else {
+            MqttOutcome.Rejected(
+                body = body,
+                errorCode = envelope.errorCode?.let { ErrorCode(it) },
+                reason = envelope.reason,
+                nextAction = nextAction,
+            )
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Could not parse $expectedResponseType response", e)
+        MqttOutcome.NoResponse(FailureKind.MalformedResponse)
+    }
+
+    // Measured from every response we can parse a timestamp out of, including ones that match no
+    // pending request: a late or duplicate response is still evidence about our own clock.
+    private fun recordClockSkew(serverTimestampUtc: String) {
+        if (serverTimestampUtc.isBlank()) return
+        val serverTime = try {
+            Instant.parse(serverTimestampUtc)
+        } catch (e: Exception) {
+            Log.w(TAG, "Unparseable response timestampUtc: '$serverTimestampUtc'")
+            return
+        }
+        val skew = serverTime.toEpochMilli() - nowFn().toEpochMilli()
+        _clockSkewMillis.value = skew
+        if (kotlin.math.abs(skew) > CLOCK_SKEW_WARN_MS) {
+            Log.w(
+                TAG,
+                "Device clock is out of sync with Station 2 by ${skew}ms " +
+                    "(threshold ${CLOCK_SKEW_WARN_MS}ms). Requests may be rejected as message_expired."
+            )
+        }
+    }
+
+    @VisibleForTesting
+    internal fun handleIncomingResponse(topic: String, bytes: ByteArray) {
+        val raw = String(bytes)
+        val envelope = try {
+            gson.fromJson(raw, ResponseEnvelope::class.java)
+        } catch (e: Exception) {
+            Log.w(TAG, "Dropping unparseable response on $topic", e)
+            return
+        }
+        recordClockSkew(envelope?.timestampUtc ?: "")
+        val id = envelope?.inResponseToMessageId
+        if (id.isNullOrBlank()) {
+            Log.w(TAG, "Dropping response on $topic with no inResponseToMessageId")
+            return
+        }
+        val waiter = pending.remove(id)
+        if (waiter == null) {
+            // Late duplicate, or a response to a request that already timed out. The contract says
+            // an unknown message gets no workflow side effect.
+            Log.w(TAG, "Dropping unmatched response on $topic for messageId=$id")
+            return
+        }
+        waiter.complete(raw)
     }
 
     // A graceful disconnect/reconnect doesn't trigger the connection's LWT (that only
@@ -408,10 +439,4 @@ class MqttRepositoryImpl @Inject constructor(
         } catch (_: Exception) { }
     }
 
-    private fun handleHopperStatus(bytes: ByteArray) {
-        try {
-            val status = gson.fromJson(String(bytes), HopperStatus::class.java)
-            _hopperStatusUpdates.tryEmit(status)
-        } catch (_: Exception) { }
-    }
 }

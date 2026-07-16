@@ -2,7 +2,6 @@ package com.ppnam.station2aa.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -27,8 +26,7 @@ sealed class LoginUiState {
 class LoginViewModel @Inject constructor(
     private val authUseCase: AuthUseCase,
     private val scanEventBus: ScanEventBus,
-    private val mqttRepository: MqttRepository,
-    private val offlineQueueRepository: OfflineQueueRepository
+    private val mqttRepository: MqttRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -38,9 +36,6 @@ class LoginViewModel @Inject constructor(
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
-
-    val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private var badgeScanJob: Job? = null
 

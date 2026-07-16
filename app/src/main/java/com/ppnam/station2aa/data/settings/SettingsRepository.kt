@@ -18,7 +18,6 @@ class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private object Keys {
-        val STATION_NAME            = stringPreferencesKey("station_name")
         val DEVICE_ID               = stringPreferencesKey("device_id")
         val SCANNER_ID              = intPreferencesKey("scanner_id")
         val MQTT_HOST               = stringPreferencesKey("mqtt_host")
@@ -28,12 +27,10 @@ class SettingsRepository @Inject constructor(
         val MQTT_USERNAME           = stringPreferencesKey("mqtt_username")
         val MQTT_PASSWORD           = stringPreferencesKey("mqtt_password")
         val REQUEST_TIMEOUT_MS      = longPreferencesKey("request_timeout_ms")
-        val QUEUE_DRAIN_INTERVAL    = intPreferencesKey("queue_drain_interval_min")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
         AppSettings(
-            stationName          = prefs[Keys.STATION_NAME]         ?: "Station 2",
             deviceId              = prefs[Keys.DEVICE_ID]            ?: "handheld_1",
             scannerId            = prefs[Keys.SCANNER_ID]           ?: 1,
             mqttHost             = prefs[Keys.MQTT_HOST]            ?: "mqtt.sysone.co.za",
@@ -42,8 +39,7 @@ class SettingsRepository @Inject constructor(
             mqttUseTls           = prefs[Keys.MQTT_USE_TLS]         ?: true,
             mqttUsername         = prefs[Keys.MQTT_USERNAME]        ?: "admin",
             mqttPassword         = prefs[Keys.MQTT_PASSWORD]        ?: "admin",
-            requestTimeoutMs     = prefs[Keys.REQUEST_TIMEOUT_MS]   ?: 10_000L,
-            queueDrainIntervalMin = prefs[Keys.QUEUE_DRAIN_INTERVAL] ?: 15
+            requestTimeoutMs     = prefs[Keys.REQUEST_TIMEOUT_MS]   ?: 10_000L
         )
     }
 
@@ -51,7 +47,6 @@ class SettingsRepository @Inject constructor(
 
     suspend fun save(settings: AppSettings) {
         context.dataStore.edit { prefs ->
-            prefs[Keys.STATION_NAME]        = settings.stationName
             prefs[Keys.DEVICE_ID]           = settings.deviceId
             prefs[Keys.SCANNER_ID]          = settings.scannerId
             prefs[Keys.MQTT_HOST]           = settings.mqttHost
@@ -61,7 +56,6 @@ class SettingsRepository @Inject constructor(
             prefs[Keys.MQTT_USERNAME]       = settings.mqttUsername
             prefs[Keys.MQTT_PASSWORD]       = settings.mqttPassword
             prefs[Keys.REQUEST_TIMEOUT_MS]  = settings.requestTimeoutMs
-            prefs[Keys.QUEUE_DRAIN_INTERVAL] = settings.queueDrainIntervalMin
         }
     }
 }

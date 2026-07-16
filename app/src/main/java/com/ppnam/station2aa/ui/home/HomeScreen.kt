@@ -35,7 +35,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val connectionState by viewModel.connectionState.collectAsState()
-    val pendingCount by viewModel.pendingCount.collectAsState()
     val session by viewModel.session.collectAsState()
     val windowSize = LocalWindowSize.current
     val isExpanded = (windowSize != androidx.compose.ui.unit.DpSize.Unspecified) && (windowSize.width > 600.dp)
@@ -47,7 +46,6 @@ fun HomeScreen(
     AppScaffold(
         title = "PPNAM Station 2",
         connectionState = connectionState,
-        pendingCount = pendingCount,
         onBack = null,
         onSettings = onNavigateSettings,
         operatorName = session?.operatorName,

@@ -6,11 +6,6 @@ import org.junit.Test
 class AppSettingsTest {
 
     @Test
-    fun `default stationName is Station 2`() {
-        assertEquals("Station 2", AppSettings().stationName)
-    }
-
-    @Test
     fun `default scannerId is 1`() {
         assertEquals(1, AppSettings().scannerId)
     }
@@ -47,10 +42,5 @@ class AppSettingsTest {
     @Test
     fun `default requestTimeoutMs is 10000`() {
         assertEquals(10_000L, AppSettings().requestTimeoutMs)
-    }
-
-    @Test
-    fun `default queueDrainIntervalMin is 15`() {
-        assertEquals(15, AppSettings().queueDrainIntervalMin)
     }
 }

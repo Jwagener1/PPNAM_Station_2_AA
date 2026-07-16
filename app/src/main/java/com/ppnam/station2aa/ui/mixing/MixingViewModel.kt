@@ -2,13 +2,11 @@ package com.ppnam.station2aa.ui.mixing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
-import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -30,13 +28,11 @@ sealed class MixingUiState {
     data class EnteringBagDetails(val palletTag: String) : MixingUiState()
     data class IngredientExceptionApproval(val exceptionId: String, val reason: String) : MixingUiState()
     data class PalletRecoveryPrompt(val palletTag: String) : MixingUiState()
-    data class HopperUnavailable(val hopperCode: String, val reason: String) : MixingUiState()
     data class Error(val message: String) : MixingUiState()
 }
 
 object MixingNavDestination {
     const val JOB_LOADED = "job_loaded"
-    const val PREMIX_COMPLETE = "premix_complete"
     const val HOME = "home"
 }
 
@@ -50,7 +46,6 @@ class MixingViewModel @Inject constructor(
     private val useCase: MixingUseCase,
     private val scanEventBus: ScanEventBus,
     private val mqttRepository: MqttRepository,
-    private val offlineQueueRepository: OfflineQueueRepository,
     private val authUseCase: AuthUseCase,
     private val sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
@@ -58,16 +53,7 @@ class MixingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<MixingUiState>(MixingUiState.Idle)
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()
 
-    private val _hopperCode = MutableStateFlow("")
-    val hopperCode: StateFlow<String> = _hopperCode.asStateFlow()
-
-    private val _isQueuedOffline = MutableStateFlow(false)
-    val isQueuedOffline: StateFlow<Boolean> = _isQueuedOffline.asStateFlow()
-
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
-
-    val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
@@ -86,8 +72,6 @@ class MixingViewModel @Inject constructor(
 
     private val _activeJobsError = MutableStateFlow<String?>(null)
     val activeJobsError: StateFlow<String?> = _activeJobsError.asStateFlow()
-
-    val hopperStatusUpdates: SharedFlow<HopperStatus> = mqttRepository.hopperStatusUpdates
 
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
@@ -251,50 +235,9 @@ class MixingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, approvalId)
+            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
-        }
-    }
-
-    fun checkAndAllocateHopper(orderNo: String, hopperCode: String) {
-        viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
-            useCase.checkHopper(orderNo, hopperCode)
-                .onSuccess {
-                    _hopperCode.value = hopperCode
-                    _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
-                }
-                .onFailure { e ->
-                    _uiState.value = MixingUiState.HopperUnavailable(hopperCode, e.message ?: "Unavailable")
-                }
-        }
-    }
-
-    fun startListeningForHopperBarcode(orderNo: String) {
-        scanJob?.cancel()
-        scanJob = viewModelScope.launch {
-            scanEventBus.events.filterIsInstance<ScanEvent.Barcode>().collect { event ->
-                if (_hopperCode.value.isBlank()) {
-                    checkAndAllocateHopper(orderNo, event.value)
-                }
-            }
-        }
-    }
-
-    fun completePremix(orderNo: String) {
-        viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
-            useCase.completePremix(orderNo, _hopperCode.value)
-                .onSuccess { _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE) }
-                .onFailure { e ->
-                    if (e.message?.startsWith("Queued") == true) {
-                        _isQueuedOffline.value = true
-                        _navigationEvent.send(MixingNavDestination.PREMIX_COMPLETE)
-                    } else {
-                        _uiState.value = MixingUiState.Error(e.message ?: "Failed to complete pre-mix")
-                    }
-                }
         }
     }
 
@@ -310,6 +253,7 @@ class MixingViewModel @Inject constructor(
     // approval was denied) must leave the job exactly as it was, per the backend's
     // "only an untouched JC load can be closed" rule.
     fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
+        if (_uiState.value is MixingUiState.Cancelling) return
         val jobCardNumber = currentOrderNo
         val collectionId = cachedOrder?.collectionId ?: ""
         if (jobCardNumber.isBlank()) return
@@ -327,8 +271,6 @@ class MixingViewModel @Inject constructor(
                 .onSuccess {
                     currentOrderNo = ""
                     cachedOrder = null
-                    _hopperCode.value = ""
-                    _isQueuedOffline.value = false
                     _uiState.value = MixingUiState.Idle
                     _cancelOutcome.send(CancelOutcome.Confirmed)
                 }

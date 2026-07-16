@@ -3,29 +3,24 @@ package com.ppnam.station2aa.domain.usecase
 import com.google.gson.Gson
 import com.ppnam.station2aa.data.local.BomCacheDao
 import com.ppnam.station2aa.data.local.BomCacheEntity
-import com.ppnam.station2aa.data.mqtt.MqttResult
-import com.ppnam.station2aa.data.mqtt.MqttTypedResult
+import com.ppnam.station2aa.data.mqtt.EmptyPayload
+import com.ppnam.station2aa.data.mqtt.MqttOutcome
+import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
-import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsRequest
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
-import com.ppnam.station2aa.data.mqtt.dto.HoldingRecoveryRequest
-import com.ppnam.station2aa.data.mqtt.dto.HoldingRecoveryResultResponse
+import com.ppnam.station2aa.data.mqtt.dto.BomProgressLineResponse
+import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
+import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelPayload
+import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse
+import com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
-import com.ppnam.station2aa.data.mqtt.dto.IngredientScannedRequest
-import com.ppnam.station2aa.data.mqtt.dto.JobCardSubmittedRequest
-import com.ppnam.station2aa.data.mqtt.dto.ManagerApprovalRequest
-import com.ppnam.station2aa.data.mqtt.dto.ManagerApprovalResultResponse
-import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse
-import com.ppnam.station2aa.data.mqtt.dto.PreMixCancelledRequest
-import com.ppnam.station2aa.data.session.OperatorSessionHolder
-import com.ppnam.station2aa.data.settings.SettingsRepository
+import com.ppnam.station2aa.data.mqtt.dto.JobCardLoadPayload
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import java.time.Instant
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,218 +28,184 @@ import javax.inject.Singleton
 class MixingUseCase @Inject constructor(
     private val mqttRepository: MqttRepository,
     private val bomCacheDao: BomCacheDao,
-    private val settingsRepository: SettingsRepository,
-    private val sessionHolder: OperatorSessionHolder
+    private val palletUseCase: PalletUseCase,
 ) {
     private val gson = Gson()
 
-    private data class HopperCheckResponse(
-        val available: Boolean,
-        val hopperCode: String,
-        val reason: String?
+    /**
+     * Loads a job card, or resumes an exact existing collection when [collectionId] is supplied.
+     *
+     * v3 splits what v2 sent as one message: a load always creates a NEW destination-neutral
+     * collection (loading the same job again after earlier work is valid and traceable), whereas a
+     * resume replays the stored immutable BOM snapshot without calling SAP.
+     */
+    suspend fun lookupJob(jobCardNumber: String, collectionId: String = ""): Result<ProductionOrder> {
+        val resuming = collectionId.isNotBlank()
+        val outcome = mqttRepository.request(
+            requestType = if (resuming) "collection_resume_requested" else "job_card_load_requested",
+            responseType = "bom_loaded",
+            payload = if (resuming) {
+                CollectionResumePayload(jobCardNumber = jobCardNumber, collectionId = collectionId)
+            } else {
+                JobCardLoadPayload(jobCardNumber = jobCardNumber)
+            },
+            correlationKey = if (resuming) collectionId else jobCardNumber,
+            responseClass = BomLoadedResponse::class.java,
+        )
+
+        return when (outcome) {
+            is MqttOutcome.Accepted -> {
+                val order = outcome.body.toProductionOrder()
+                bomCacheDao.put(
+                    BomCacheEntity(jobCardNumber, gson.toJson(order), Instant.now().toEpochMilli())
+                )
+                Result.success(order)
+            }
+            is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Job card rejected"))
+            is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
+        }
+    }
+
+    private fun BomLoadedResponse.toProductionOrder() = ProductionOrder(
+        docNo = jobCardNumber,
+        collectionId = collectionId,
+        // im_Backflush lines stay in Station 2's snapshot but are excluded from the handheld's
+        // collection array — the one such line names the product being made.
+        productBeingMade = ingredients.firstOrNull { it.issueType == "im_Backflush" }?.materialName,
+        lines = ingredients
+            .filter { it.issueType != "im_Backflush" }
+            .map { line ->
+                BomLine(
+                    itemCode = line.materialCode,
+                    itemName = line.materialName,
+                    requiredQty = line.plannedQuantity,
+                    scannedQty = line.issuedQuantity,
+                    remainingQty = line.remainingQuantity,
+                    // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
+                    uom = line.unit.ifBlank { line.uomCode },
+                )
+            },
     )
 
-    suspend fun lookupJob(jobCardNumber: String, collectionId: String = ""): Result<ProductionOrder> {
-        val deviceId = settingsRepository.current().deviceId
-        val requestJson = gson.toJson(
-            JobCardSubmittedRequest(
-                messageId = UUID.randomUUID().toString(),
-                deviceId = deviceId,
-                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-                timestampUtc = Instant.now().toString(),
-                correlationKey = jobCardNumber,
-                jobCardNumber = jobCardNumber,
-                collectionId = collectionId
+    suspend fun fetchActiveJobCards(): Result<List<ActiveJobCardSummary>> =
+        when (
+            val outcome = mqttRepository.request(
+                requestType = "active_job_cards_requested",
+                responseType = "active_job_cards_list",
+                payload = EmptyPayload,
+                correlationKey = null,
+                responseClass = ActiveJobCardsListResponse::class.java,
             )
-        )
-
-        val result = mqttRepository.sendTyped(
-            requestType = "job_card_submitted",
-            responseType = "ingredient_collection_loaded",
-            requestJson = requestJson,
-            responseClass = BomLoadedResponse::class.java,
-            allowOfflineQueue = false
-        )
-
-        return when (result) {
-            is MqttTypedResult.Success -> {
-                val response = result.response
-                if (response.accepted) {
-                    val order = ProductionOrder(
-                        docNo = response.jobCardNumber,
-                        collectionId = response.collectionId,
-                        productBeingMade = response.ingredients
-                            .firstOrNull { it.issueType == "im_Backflush" }
-                            ?.materialName,
-                        lines = response.ingredients
-                            .filter { it.issueType != "im_Backflush" }
-                            .map { line ->
-                                BomLine(
-                                    itemCode = line.materialCode,
-                                    itemName = line.materialName,
-                                    requiredQty = line.plannedQuantity,
-                                    scannedQty = line.issuedQuantity,
-                                    remainingQty = line.remainingQuantity,
-                                    uom = line.unit.ifBlank { line.uomCode }
-                                )
-                            }
-                    )
-                    bomCacheDao.put(BomCacheEntity(jobCardNumber, gson.toJson(order), Instant.now().toEpochMilli()))
-                    Result.success(order)
-                } else {
-                    Result.failure(Exception(response.reason ?: "Job card rejected"))
-                }
-            }
-            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
-            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
-            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+        ) {
+            is MqttOutcome.Accepted -> Result.success(outcome.body.jobs)
+            is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Could not load active jobs"))
+            is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
-    }
 
-    suspend fun fetchActiveJobCards(): Result<List<ActiveJobCardSummary>> {
-        val deviceId = settingsRepository.current().deviceId
-        val requestJson = gson.toJson(
-            ActiveJobCardsRequest(
-                messageId = UUID.randomUUID().toString(),
-                deviceId = deviceId,
-                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-                timestampUtc = Instant.now().toString(),
-                correlationKey = UUID.randomUUID().toString()
-            )
-        )
-
-        val result = mqttRepository.sendTyped(
-            requestType = "active_ingredient_collections_requested",
-            responseType = "active_ingredient_collections_list",
-            requestJson = requestJson,
-            responseClass = ActiveJobCardsListResponse::class.java,
-            allowOfflineQueue = false
-        )
-
-        return when (result) {
-            is MqttTypedResult.Success -> {
-                val response = result.response
-                if (response.accepted) Result.success(response.collections)
-                else Result.failure(Exception(response.reason ?: "Could not load active jobs"))
-            }
-            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
-            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
-            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
-        }
-    }
-
+    /**
+     * Cancels an eligible collection. Manager credentials are ALWAYS required — v3 authorises this
+     * on the approver named in the request, never on the sending session, so a Manager cancelling
+     * from their own handheld must still supply credentials. Rejected once routing or other
+     * protected downstream activity has happened.
+     */
     suspend fun cancelJob(
         collectionId: String,
         jobCardNumber: String,
         reason: String,
-        managerUsername: String = "",
-        managerPassword: String = ""
-    ): Result<PreMixCancelResultResponse> {
-        val deviceId = settingsRepository.current().deviceId
-        val requestJson = gson.toJson(
-            PreMixCancelledRequest(
-                messageId = UUID.randomUUID().toString(),
-                deviceId = deviceId,
-                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-                timestampUtc = Instant.now().toString(),
+        managerUsername: String,
+        managerPassword: String,
+    ): Result<IngredientCollectionCancelResultResponse> =
+        when (
+            val outcome = mqttRepository.request(
+                requestType = "ingredient_collection_cancel_requested",
+                responseType = "ingredient_collection_cancel_result",
+                payload = IngredientCollectionCancelPayload(
+                    collectionId = collectionId,
+                    managerUsername = managerUsername,
+                    managerPassword = managerPassword,
+                    auditReason = reason,
+                ),
                 correlationKey = collectionId.ifBlank { jobCardNumber },
-                preMixId = collectionId,
-                jobCardNumber = jobCardNumber,
-                reason = reason,
-                managerUsername = managerUsername,
-                managerPassword = managerPassword
+                responseClass = IngredientCollectionCancelResultResponse::class.java,
             )
-        )
-
-        val result = mqttRepository.sendTyped(
-            requestType = "premix_cancelled",
-            responseType = "premix_cancel_result",
-            requestJson = requestJson,
-            responseClass = PreMixCancelResultResponse::class.java,
-            allowOfflineQueue = false
-        )
-
-        return when (result) {
-            is MqttTypedResult.Success -> {
-                val response = result.response
-                if (response.accepted) Result.success(response)
-                else Result.failure(Exception(response.reason ?: "Cancel rejected"))
-            }
-            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
-            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
-            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+        ) {
+            is MqttOutcome.Accepted -> Result.success(outcome.body)
+            is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Cancel rejected"))
+            is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
-    }
 
     suspend fun scanIngredient(
         collectionId: String,
         palletRfidTag: String,
         bagSizeOption: String,
         bagCount: Double,
-        approvalId: String = ""
     ): Result<IngredientScanOutcome> {
-        val deviceId = settingsRepository.current().deviceId
-        val requestJson = gson.toJson(
-            IngredientScannedRequest(
-                messageId = UUID.randomUUID().toString(),
-                deviceId = deviceId,
-                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-                timestampUtc = Instant.now().toString(),
-                correlationKey = collectionId,
+        val outcome = mqttRepository.request(
+            requestType = "ingredient_scan_requested",
+            responseType = "ingredient_scan_result",
+            payload = IngredientScanPayload(
                 collectionId = collectionId,
                 palletRfidTag = palletRfidTag,
                 bagSizeOption = bagSizeOption,
                 bagCount = bagCount,
-                approvalId = approvalId
-            )
-        )
-
-        val result = mqttRepository.sendTyped(
-            requestType = "ingredient_scanned",
-            responseType = "ingredient_scan_result",
-            requestJson = requestJson,
+            ),
+            correlationKey = collectionId,
             responseClass = IngredientScanResultResponse::class.java,
-            allowOfflineQueue = false
         )
 
-        return when (result) {
-            is MqttTypedResult.Success -> {
-                val response = result.response
-                val outcome = when {
-                    response.accepted -> IngredientScanOutcome.Accepted(
-                        response.ingredientProgress.map { line ->
-                            BomLine(
-                                itemCode = line.materialCode,
-                                itemName = line.materialName,
-                                requiredQty = line.requiredQuantity,
-                                scannedQty = line.scannedQuantity,
-                                remainingQty = line.remainingQuantity,
-                                uom = line.uomCode,
-                                expectedBags = line.expectedBags,
-                                scannedBags = line.scannedBags,
-                                remainingBags = line.remainingBags
-                            )
-                        }
-                    )
-                    response.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
-                        exceptionId = response.exceptionId,
-                        reason = response.reason ?: "Manager approval required",
-                        requestedMaterialCode = response.ingredientProgress
-                            .firstOrNull { it.requiresManagerApproval }
-                            ?.materialCode
-                            ?: ""
-                    )
-                    response.nextAction == "recover_holding" -> IngredientScanOutcome.NeedsRecovery(response.reason)
-                    else -> IngredientScanOutcome.Rejected(response.reason ?: "Ingredient scan rejected")
-                }
-                Result.success(outcome)
+        return when (outcome) {
+            is MqttOutcome.Accepted -> Result.success(
+                IngredientScanOutcome.Accepted(outcome.body.ingredientProgress.toBomLines())
+            )
+            is MqttOutcome.Rejected -> {
+                val body = outcome.body
+                Result.success(
+                    when {
+                        body.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
+                            exceptionId = body.exceptionId,
+                            reason = outcome.reason ?: "Manager approval required",
+                            requestedMaterialCode = body.ingredientProgress
+                                .firstOrNull { it.requiresManagerApproval }?.materialCode.orEmpty(),
+                        )
+                        outcome.nextAction == NextAction.RECOVER_HOLDING ->
+                            IngredientScanOutcome.NeedsRecovery(outcome.reason)
+                        else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Ingredient scan rejected")
+                    }
+                )
             }
-            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
-            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
-            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
+            is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
     }
 
+    private fun List<BomProgressLineResponse>.toBomLines(): List<BomLine> = map { line ->
+        BomLine(
+            itemCode = line.materialCode,
+            itemName = line.materialName,
+            requiredQty = line.requiredQuantity,
+            scannedQty = line.scannedQuantity,
+            remainingQty = line.remainingQuantity,
+            uom = line.unit.ifBlank { line.uomCode },
+            expectedBags = line.expectedBags,
+            scannedBags = line.scannedBags,
+            remainingBags = line.remainingBags,
+        )
+    }
+
+    /** Delegates to [PalletUseCase] — holding recovery has one implementation, in one place. */
+    suspend fun recoverHolding(collectionId: String, palletRfidTag: String): Result<Unit> =
+        palletUseCase.recoverToHolding(
+            palletRfidTag = palletRfidTag,
+            collectionId = collectionId.ifBlank { null },
+            auditReason = "Pallet is physically at Station 2; fixed door read was missed.",
+        ).map { }
+
+    @Deprecated(
+        "v3 has no manager_approval_requested topic and no approvalId. A scan needing approval is " +
+            "resubmitted inline with managerUsername/managerPassword/auditReason and a FRESH " +
+            "messageId. Sub-project 3 replaces this flow and deletes this method. Kept only so " +
+            "MixingViewModel and IngredientScanScreen keep compiling; it will not work against a " +
+            "v3 backend."
+    )
     suspend fun approveManagerException(
         exceptionId: String,
         collectionId: String,
@@ -252,103 +213,8 @@ class MixingUseCase @Inject constructor(
         requestedMaterialCode: String,
         managerUsername: String,
         managerPassword: String,
-        reason: String
-    ): Result<String> {
-        val deviceId = settingsRepository.current().deviceId
-        val requestJson = gson.toJson(
-            ManagerApprovalRequest(
-                messageId = UUID.randomUUID().toString(),
-                deviceId = deviceId,
-                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-                timestampUtc = Instant.now().toString(),
-                correlationKey = exceptionId,
-                managerUsername = managerUsername,
-                managerPassword = managerPassword,
-                approvalTargetId = exceptionId,
-                preMixId = collectionId,
-                palletRfidTag = palletRfidTag,
-                requestedMaterialCode = requestedMaterialCode,
-                reason = reason
-            )
-        )
-
-        val result = mqttRepository.sendTyped(
-            requestType = "manager_approval_requested",
-            responseType = "manager_approval_result",
-            requestJson = requestJson,
-            responseClass = ManagerApprovalResultResponse::class.java,
-            allowOfflineQueue = false
-        )
-
-        return when (result) {
-            is MqttTypedResult.Success -> {
-                val response = result.response
-                if (response.accepted) Result.success(response.approvalId)
-                else Result.failure(Exception(response.reason ?: "Approval denied"))
-            }
-            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
-            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
-            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
-        }
-    }
-
-    suspend fun recoverHolding(collectionId: String, palletRfidTag: String): Result<Unit> {
-        val deviceId = settingsRepository.current().deviceId
-        val requestJson = gson.toJson(
-            HoldingRecoveryRequest(
-                messageId = UUID.randomUUID().toString(),
-                deviceId = deviceId,
-                operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-                timestampUtc = Instant.now().toString(),
-                correlationKey = collectionId,
-                preMixId = collectionId,
-                palletRfidTag = palletRfidTag
-            )
-        )
-
-        val result = mqttRepository.sendTyped(
-            requestType = "holding_recovery_requested",
-            responseType = "holding_recovery_result",
-            requestJson = requestJson,
-            responseClass = HoldingRecoveryResultResponse::class.java,
-            allowOfflineQueue = false
-        )
-
-        return when (result) {
-            is MqttTypedResult.Success -> {
-                val response = result.response
-                if (response.accepted) Result.success(Unit)
-                else Result.failure(Exception(response.reason ?: "Recovery rejected"))
-            }
-            is MqttTypedResult.Error -> Result.failure(Exception(result.message))
-            MqttTypedResult.Disconnected -> Result.failure(Exception("Not connected to Station 2"))
-            MqttTypedResult.Queued -> Result.failure(Exception("Not connected to Station 2"))
-        }
-    }
-
-    suspend fun checkHopper(orderNo: String, hopperCode: String): Result<Unit> {
-        val payload = gson.toJson(mapOf("orderNo" to orderNo, "hopperCode" to hopperCode))
-        return when (val result = mqttRepository.send("check-hopper", payload)) {
-            is MqttResult.Success -> {
-                val response = gson.fromJson(result.dataJson, HopperCheckResponse::class.java)
-                if (response.available) {
-                    Result.success(Unit)
-                } else {
-                    Result.failure(Exception(response.reason ?: "Hopper unavailable"))
-                }
-            }
-            is MqttResult.Error -> Result.failure(Exception(result.message))
-            is MqttResult.Queued -> Result.failure(Exception("Hopper check requires a connection"))
-        }
-    }
-
-    suspend fun completePremix(orderNo: String, hopperCode: String): Result<Unit> {
-        if (hopperCode.isBlank()) return Result.failure(Exception("Hopper code is required"))
-        val payload = gson.toJson(mapOf("orderNo" to orderNo, "hopperCode" to hopperCode))
-        return when (val result = mqttRepository.send("complete-premix", payload)) {
-            is MqttResult.Success -> Result.success(Unit)
-            is MqttResult.Queued -> Result.failure(Exception("Queued: will send when online"))
-            is MqttResult.Error -> Result.failure(Exception(result.message))
-        }
-    }
+        reason: String,
+    ): Result<String> = Result.failure(
+        UnsupportedOperationException("Manager approval is reimplemented in sub-project 3")
+    )
 }

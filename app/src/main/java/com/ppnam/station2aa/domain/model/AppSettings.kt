@@ -1,7 +1,6 @@
 package com.ppnam.station2aa.domain.model
 
 data class AppSettings(
-    val stationName: String = "Station 2",
     val deviceId: String = "handheld_1",
     val scannerId: Int = 1,
     val mqttHost: String = "mqtt.sysone.co.za",
@@ -10,6 +9,5 @@ data class AppSettings(
     val mqttUseTls: Boolean = true,
     val mqttUsername: String = "admin",
     val mqttPassword: String = "admin",
-    val requestTimeoutMs: Long = 10_000L,
-    val queueDrainIntervalMin: Int = 15
+    val requestTimeoutMs: Long = 10_000L
 )

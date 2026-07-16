@@ -26,7 +26,6 @@ import com.ppnam.station2aa.ui.theme.*
 fun AppScaffold(
     title: String,
     connectionState: MqttConnectionState,
-    pendingCount: Int,
     onBack: (() -> Unit)? = null,
     onRfidLookup: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
@@ -39,7 +38,7 @@ fun AppScaffold(
         MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
         MqttConnectionState.RECONNECTING -> WarningOrange to "Reconnecting"
         MqttConnectionState.DISCONNECTED ->
-            DangerRed to if (pendingCount > 0) "Offline — $pendingCount queued" else "Offline"
+            DangerRed to "Offline"
     }
 
     var showLogoutDialog by remember { mutableStateOf(false) }

@@ -1,12 +1,9 @@
 package com.ppnam.station2aa.ui.mixing
 
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.BomLine
-import com.ppnam.station2aa.domain.model.HopperAvailability
-import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
@@ -16,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -31,7 +27,6 @@ class MixingViewModelTest {
     private lateinit var mockUseCase: MixingUseCase
     private lateinit var mockScanEventBus: ScanEventBus
     private lateinit var mockMqttRepository: MqttRepository
-    private lateinit var mockOfflineQueueRepository: OfflineQueueRepository
     private lateinit var mockAuthUseCase: AuthUseCase
     private lateinit var mockSessionHolder: OperatorSessionHolder
     private lateinit var viewModel: MixingViewModel
@@ -56,20 +51,16 @@ class MixingViewModelTest {
         mockUseCase = mock()
         mockScanEventBus = mock()
         mockMqttRepository = mock()
-        mockOfflineQueueRepository = mock()
         mockAuthUseCase = mock()
         mockSessionHolder = mock()
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
-        whenever(mockMqttRepository.hopperStatusUpdates)
-            .thenReturn(MutableSharedFlow())
-        whenever(mockOfflineQueueRepository.pendingCount()).thenReturn(flowOf(0))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
         whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("cancel_premix")))
 
         viewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
         )
     }
 
@@ -106,7 +97,7 @@ class MixingViewModelTest {
     fun `startListeningForPalletScans opens EnteringBagDetails on a pallet scan`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -124,7 +115,7 @@ class MixingViewModelTest {
     fun `startListeningForPalletScans opens EnteringBagDetails on a barcode scan too`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -146,7 +137,7 @@ class MixingViewModelTest {
 
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -229,7 +220,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.approveManagerException(eq("exception-1"), eq("premix-1"), eq("EPC:300833"), eq("MAT-002"), eq("manager1"), eq("5678"), any()))
             .thenReturn(Result.success("approval-1"))
         val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "approval-1")).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )
 
@@ -237,7 +228,9 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
-        verify(mockUseCase).scanIngredient("premix-1", "EPC:300833", "full", 2.0, "approval-1")
+        // v3's scanIngredient has no approvalId argument, so the initial rejected scan and the
+        // retry after approval are indistinguishable by argument alone — hence times(2), not eq(1).
+        verify(mockUseCase, times(2)).scanIngredient("premix-1", "EPC:300833", "full", 2.0)
     }
 
     @Test
@@ -254,7 +247,7 @@ class MixingViewModelTest {
 
         whenever(mockUseCase.recoverHolding("premix-1", "EPC:300833")).thenReturn(Result.success(Unit))
         val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )
 
@@ -284,43 +277,13 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `checkAndAllocateHopper on success sets hopperCode and fires nav event`() = runTest {
-        whenever(mockUseCase.checkHopper("510019068", "H-01")).thenReturn(Result.success(Unit))
-
-        val navEvents = mutableListOf<String>()
-        val job = launch(testDispatcher) {
-            viewModel.navigationEvent.collect { navEvents.add(it) }
-        }
-
-        viewModel.checkAndAllocateHopper("510019068", "H-01")
-        advanceUntilIdle()
-
-        assertEquals("H-01", viewModel.hopperCode.value)
-        assertTrue(navEvents.contains(MixingNavDestination.PREMIX_COMPLETE))
-        job.cancel()
-    }
-
-    @Test
-    fun `checkAndAllocateHopper on failure sets HopperUnavailable state`() = runTest {
-        whenever(mockUseCase.checkHopper(any(), any()))
-            .thenReturn(Result.failure(Exception("Already in use")))
-
-        viewModel.checkAndAllocateHopper("510019068", "H-01")
-        advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-        assertTrue(state is MixingUiState.HopperUnavailable)
-        assertEquals("Already in use", (state as MixingUiState.HopperUnavailable).reason)
-    }
-
-    @Test
     fun `cancelJob resets state on backend confirmation`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
         whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
-            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
+            Result.success(com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse())
         )
         val outcomes = mutableListOf<CancelOutcome>()
         val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
@@ -329,7 +292,6 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(MixingUiState.Idle, viewModel.uiState.value)
-        assertEquals("", viewModel.hopperCode.value)
         assertTrue(outcomes.contains(CancelOutcome.Confirmed))
         job.cancel()
     }
@@ -362,7 +324,7 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
         whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
-            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
+            Result.success(com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse())
         )
 
         viewModel.cancelJob(managerUsername = "Manager1", managerPassword = "5678")
@@ -379,7 +341,7 @@ class MixingViewModelTest {
             MutableStateFlow(sessionWithActions("cancel_premix", "cancel_premix_direct"))
         )
         val directViewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
         )
 
         assertTrue(directViewModel.operatorCanCancelDirectly())
@@ -440,7 +402,7 @@ class MixingViewModelTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
         val vm = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
         )
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")

@@ -9,11 +9,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.ppnam.station2aa.ui.login.LoginScreen
-import com.ppnam.station2aa.ui.mixing.HopperScanScreen
 import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
 import com.ppnam.station2aa.ui.mixing.MixingViewModel
-import com.ppnam.station2aa.ui.mixing.PreMixCompleteScreen
 import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 import com.ppnam.station2aa.ui.settings.SettingsScreen
 
@@ -62,45 +60,9 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 IngredientScanScreen(
                     orderNo = orderNo,
-                    onProceedToHopperScan = { navController.navigate(NavRoutes.hopperScan(orderNo)) },
-                    onRfidLookup = {
-                        viewModel.pauseScanning()
-                        navController.navigate(NavRoutes.RFID_RECOVERY)
-                    },
-                    onBack = { navController.popBackStack() },
-                    viewModel = viewModel
-                )
-            }
-            composable(NavRoutes.HOPPER_SCAN) { backStackEntry ->
-                val orderNo = backStackEntry.arguments?.getString("orderNo") ?: return@composable
-                val parentEntry = remember(backStackEntry) {
-                    navController.getBackStackEntry(NavRoutes.MIXING)
-                }
-                val viewModel: MixingViewModel = hiltViewModel(parentEntry)
-                HopperScanScreen(
-                    orderNo = orderNo,
-                    onProceed = { navController.navigate(NavRoutes.premixComplete(orderNo)) },
-                    onRfidLookup = {
-                        viewModel.pauseScanning()
-                        navController.navigate(NavRoutes.RFID_RECOVERY)
-                    },
-                    onBack = { navController.popBackStack() },
-                    viewModel = viewModel
-                )
-            }
-            composable(NavRoutes.PREMIX_COMPLETE) { backStackEntry ->
-                val orderNo = backStackEntry.arguments?.getString("orderNo") ?: return@composable
-                val parentEntry = remember(backStackEntry) {
-                    navController.getBackStackEntry(NavRoutes.MIXING)
-                }
-                val viewModel: MixingViewModel = hiltViewModel(parentEntry)
-                PreMixCompleteScreen(
-                    orderNo = orderNo,
-                    onCompleted = {
-                        navController.navigate(NavRoutes.MIXING) {
-                            popUpTo(NavRoutes.MIXING) { inclusive = true }
-                        }
-                    },
+                    // TODO(sub-project 4): wire routing via machine_cycle_start_requested (Hopper/Extruder/Rajoo).
+                    // The button that invokes this is permanently disabled in IngredientScanScreen until then.
+                    onProceedToHopperScan = { },
                     onRfidLookup = {
                         viewModel.pauseScanning()
                         navController.navigate(NavRoutes.RFID_RECOVERY)
