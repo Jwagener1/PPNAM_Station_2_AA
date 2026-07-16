@@ -561,7 +561,7 @@ class MixingUseCaseTest {
     fun `scanIngredient accepted maps ingredientProgress into updated BomLine list`() = runTest {
         val response = IngredientScanResultResponse(
             collectionId = "premix-1",
-            ingredientProgress = listOf(
+            ingredients = listOf(
                 BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
                     plannedQuantity = 50.0, issuedQuantity = 20.0, requiredQuantity = 50.0,
@@ -599,7 +599,7 @@ class MixingUseCaseTest {
         // output. Without this filter, the product being made would reappear as a collectible line.
         val response = IngredientScanResultResponse(
             collectionId = "premix-1",
-            ingredientProgress = listOf(
+            ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", issueType = "im_Manual"),
                 BomLineResponse(materialCode = "22306", materialName = "CARRIER BAG LEVY", issueType = "im_Backflush"),
             )
@@ -645,8 +645,7 @@ class MixingUseCaseTest {
         val body = IngredientScanResultResponse(
             collectionId = "COL_000123",
             requiresManagerApproval = true,
-            exceptionId = "EXC-1",
-            ingredientProgress = listOf(
+            ingredients = listOf(
                 BomLineResponse(materialCode = "1600000301", requiresManagerApproval = true)
             ),
         )
@@ -660,7 +659,9 @@ class MixingUseCaseTest {
 
         assertTrue(outcome is IngredientScanOutcome.NeedsManagerApproval)
         assertEquals("1600000301", (outcome as IngredientScanOutcome.NeedsManagerApproval).requestedMaterialCode)
-        assertEquals("EXC-1", outcome.exceptionId)
+        // v3 has no exceptionId on the wire (Task 4 reworks this whole approval branch and its
+        // tests); MixingUseCase currently hardcodes "" to compile, so there is nothing meaningful
+        // to assert about it here.
         assertEquals("Over tolerance", outcome.reason)
     }
 

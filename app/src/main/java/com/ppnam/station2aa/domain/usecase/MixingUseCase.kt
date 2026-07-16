@@ -169,7 +169,7 @@ class MixingUseCase @Inject constructor(
         return when (outcome) {
             is MqttOutcome.Accepted -> Result.success(
                 IngredientScanOutcome.Accepted(
-                    outcome.body.ingredientProgress
+                    outcome.body.ingredients
                         // Same rule as the initial load: the backflush line is the product being
                         // made, not a component to collect. Without this filter a scan response
                         // reintroduces it as a collectible line, because MixingViewModel replaces
@@ -182,10 +182,13 @@ class MixingUseCase @Inject constructor(
                 val body = outcome.body
                 Result.success(
                     when {
+                        // TODO(Task 4): v3 has no exceptionId/approval token — MixingUseCase's
+                        // manager-approval branch needs a full rework, not just a rename. Left as ""
+                        // here to compile; Task 4 owns fixing this properly.
                         body.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
-                            exceptionId = body.exceptionId,
+                            exceptionId = "",
                             reason = outcome.reason ?: "Manager approval required",
-                            requestedMaterialCode = body.ingredientProgress
+                            requestedMaterialCode = body.ingredients
                                 .firstOrNull { it.requiresManagerApproval }?.materialCode.orEmpty(),
                         )
                         outcome.nextAction == NextAction.RECOVER_HOLDING ->
