@@ -1,14 +1,14 @@
 package com.ppnam.station2aa.data.mqtt.dto
 
-data class JobCardSubmittedRequest(
-    val messageId: String,
-    val schemaVersion: String = "2.0",
-    val deviceId: String,
-    val operatorSessionId: String = "",
-    val timestampUtc: String,
-    val correlationKey: String,
+/** `job_card_load_requested` — always starts a new collection; never silently resumes. */
+data class JobCardLoadPayload(
     val jobCardNumber: String,
-    val collectionId: String = ""
+)
+
+/** `collection_resume_requested` — replays the stored BOM snapshot without calling SAP again. */
+data class CollectionResumePayload(
+    val jobCardNumber: String,
+    val collectionId: String,
 )
 
 data class BomLineResponse(
@@ -25,30 +25,12 @@ data class BomLineResponse(
 )
 
 data class BomLoadedResponse(
-    val messageId: String = "",
-    val schemaVersion: String = "2.0",
-    val deviceId: String = "",
-    val operatorSessionId: String? = null,
-    val timestampUtc: String = "",
-    val correlationKey: String = "",
-    val accepted: Boolean = false,
-    val reason: String? = null,
     val jobCardNumber: String = "",
     val productionOrderDocumentNumber: String = "",
     val collectionId: String = "",
-    val resumedExistingPreMix: Boolean = false,
+    val resumed: Boolean = false,
     val bomSnapshotCapturedAtUtc: String? = null,
-    val nextAction: String = "",
     val ingredients: List<BomLineResponse> = emptyList()
-)
-
-data class ActiveJobCardsRequest(
-    val messageId: String,
-    val schemaVersion: String = "2.0",
-    val deviceId: String,
-    val operatorSessionId: String = "",
-    val timestampUtc: String,
-    val correlationKey: String
 )
 
 data class ActiveJobCardSummary(
@@ -60,41 +42,25 @@ data class ActiveJobCardSummary(
 )
 
 data class ActiveJobCardsListResponse(
-    val messageId: String = "",
-    val schemaVersion: String = "2.0",
-    val deviceId: String = "",
-    val operatorSessionId: String? = null,
-    val timestampUtc: String = "",
-    val correlationKey: String = "",
-    val accepted: Boolean = false,
-    val reason: String? = null,
-    val collections: List<ActiveJobCardSummary> = emptyList()
+    val jobs: List<ActiveJobCardSummary> = emptyList()
 )
 
-data class PreMixCancelledRequest(
-    val messageId: String,
-    val schemaVersion: String = "2.0",
-    val deviceId: String,
-    val operatorSessionId: String = "",
-    val timestampUtc: String,
-    val correlationKey: String,
-    val preMixId: String,
-    val jobCardNumber: String,
-    val reason: String = "Operator cancelled — incorrect job card",
-    val managerUsername: String = "",
-    val managerPassword: String = "",
-    val managerBadgeTag: String = ""
+/**
+ * `ingredient_collection_cancel_requested`. A privileged action: manager credentials travel inline
+ * and are checked against the APPROVER's account, never the sender's session — so they are required
+ * even when the sender is themselves a Manager.
+ *
+ * `auditReason` is the operator's justification, written to the audit trail. It is not the same
+ * field as a response's `reason`, which is why Station 2 rejected something.
+ */
+data class IngredientCollectionCancelPayload(
+    val collectionId: String,
+    val managerUsername: String,
+    val managerPassword: String,
+    val auditReason: String,
 )
 
-data class PreMixCancelResultResponse(
-    val messageId: String = "",
-    val schemaVersion: String = "2.0",
-    val deviceId: String = "",
-    val operatorSessionId: String? = null,
-    val timestampUtc: String = "",
-    val correlationKey: String = "",
-    val accepted: Boolean = false,
-    val reason: String? = null,
+data class IngredientCollectionCancelResultResponse(
     val preMixId: String = "",
     val jobCardNumber: String = "",
     val preMixStatus: String = "",

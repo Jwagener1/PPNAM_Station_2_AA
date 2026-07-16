@@ -225,7 +225,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.approveManagerException(eq("exception-1"), eq("premix-1"), eq("EPC:300833"), eq("MAT-002"), eq("manager1"), eq("5678"), any()))
             .thenReturn(Result.success("approval-1"))
         val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "approval-1")).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )
 
@@ -233,7 +233,9 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
-        verify(mockUseCase).scanIngredient("premix-1", "EPC:300833", "full", 2.0, "approval-1")
+        // v3's scanIngredient has no approvalId argument, so the initial rejected scan and the
+        // retry after approval are indistinguishable by argument alone — hence times(2), not eq(1).
+        verify(mockUseCase, times(2)).scanIngredient("premix-1", "EPC:300833", "full", 2.0)
     }
 
     @Test
@@ -250,7 +252,7 @@ class MixingViewModelTest {
 
         whenever(mockUseCase.recoverHolding("premix-1", "EPC:300833")).thenReturn(Result.success(Unit))
         val updatedLine = BomLine("MAT-001", "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )
 
@@ -316,7 +318,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
-            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
+            Result.success(com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse())
         )
         val outcomes = mutableListOf<CancelOutcome>()
         val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
@@ -358,7 +360,7 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
         whenever(mockUseCase.cancelJob(any(), any(), any(), any(), any())).thenReturn(
-            Result.success(com.ppnam.station2aa.data.mqtt.dto.PreMixCancelResultResponse(accepted = true))
+            Result.success(com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse())
         )
 
         viewModel.cancelJob(managerUsername = "Manager1", managerPassword = "5678")

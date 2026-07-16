@@ -248,7 +248,7 @@ class MixingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, approvalId)
+            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
@@ -307,6 +307,7 @@ class MixingViewModel @Inject constructor(
     // approval was denied) must leave the job exactly as it was, per the backend's
     // "only an untouched JC load can be closed" rule.
     fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
+        if (_uiState.value is MixingUiState.Cancelling) return
         val jobCardNumber = currentOrderNo
         val collectionId = cachedOrder?.collectionId ?: ""
         if (jobCardNumber.isBlank()) return
