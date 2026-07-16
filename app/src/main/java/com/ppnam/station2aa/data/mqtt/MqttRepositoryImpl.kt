@@ -57,7 +57,8 @@ class MqttRepositoryImpl @Inject constructor(
     private val _connectionState = MutableStateFlow(MqttConnectionState.DISCONNECTED)
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
-    private val _incomingTyped = MutableSharedFlow<Pair<String, String>>(extraBufferCapacity = 64)
+    private val _stationOnline = MutableStateFlow(false)
+    override val stationOnline: StateFlow<Boolean> = _stationOnline.asStateFlow()
 
     // Correlation registry: messageId -> the caller awaiting that exact response. The contract is
     // explicit that inResponseToMessageId is the ONLY correct way to match a response to a request
@@ -116,7 +117,7 @@ class MqttRepositoryImpl @Inject constructor(
                     try {
                         retryBounded(SUBSCRIBE_RETRY_ATTEMPTS, SUBSCRIBE_RETRY_DELAY_MS) {
                             withTimeout(SUBSCRIBE_TIMEOUT_MS) {
-                                subscribeAndAnnounce(client, settings.stationName, settings.deviceId)
+                                subscribeAndAnnounce(client, settings.deviceId)
                             }
                         }
                         _connectionState.value = MqttConnectionState.CONNECTED
@@ -134,6 +135,9 @@ class MqttRepositoryImpl @Inject constructor(
         if (mqttClient === client) {
             isTransportConnected.set(false)
             _connectionState.value = MqttConnectionState.RECONNECTING
+            // The retained presence we last saw is no longer evidence of anything — we are not
+            // subscribed any more. Re-subscribing replays the retained value.
+            _stationOnline.value = false
         }
     }
 
@@ -160,10 +164,26 @@ class MqttRepositoryImpl @Inject constructor(
         throw lastError ?: IllegalStateException("retryBounded exhausted with no recorded error")
     }
 
-    private suspend fun subscribeAndAnnounce(client: Mqtt5AsyncClient, stationName: String, deviceId: String) {
+    // Presence is raw text, not JSON — the contract defines only the literal payloads
+    // "online" and "offline". Anything else means we cannot claim Station 2 is up.
+    @VisibleForTesting
+    internal fun handleStationPresence(bytes: ByteArray) {
+        val payload = String(bytes).trim().lowercase()
+        _stationOnline.value = payload == "online"
+        if (payload != "online" && payload != "offline") {
+            Log.w(TAG, "Unrecognised station presence payload: '$payload' — treating as offline")
+        }
+    }
+
+    private suspend fun subscribeAndAnnounce(client: Mqtt5AsyncClient, deviceId: String) {
         client.subscribeWith()
             .topicFilter(MqttTopics.responseWildcard(deviceId))
-            .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
+            .callback { publish -> handleIncomingResponse(publish.topic.toString(), publish.payloadAsBytes) }
+            .send()
+            .await()
+        client.subscribeWith()
+            .topicFilter(MqttTopics.STATION_STATUS)
+            .callback { publish -> handleStationPresence(publish.payloadAsBytes) }
             .send()
             .await()
         client.publishWith()
@@ -221,7 +241,7 @@ class MqttRepositoryImpl @Inject constructor(
             try {
                 retryBounded(SUBSCRIBE_RETRY_ATTEMPTS, SUBSCRIBE_RETRY_DELAY_MS) {
                     withTimeout(SUBSCRIBE_TIMEOUT_MS) {
-                        subscribeAndAnnounce(client, currentStationName, currentDeviceId)
+                        subscribeAndAnnounce(client, currentDeviceId)
                     }
                 }
                 _connectionState.value = MqttConnectionState.CONNECTED
@@ -260,7 +280,7 @@ class MqttRepositoryImpl @Inject constructor(
                             .applyWillPublish()
                         .send()
                         .await()
-                    subscribeAndAnnounce(candidate, settings.stationName, settings.deviceId)
+                    subscribeAndAnnounce(candidate, settings.deviceId)
                 }
                 val old = mqttClient
                 val oldDeviceId = currentDeviceId
@@ -288,73 +308,18 @@ class MqttRepositoryImpl @Inject constructor(
     internal suspend fun sendWithTimeout(action: String, dataJson: String, timeoutMs: Long): MqttResult =
         MqttResult.Error("Legacy action protocol removed; use request()")
 
+    @Deprecated("Schema 2.0 path. Use request() instead; removed in Task 15.")
     override suspend fun <T> sendTyped(
         requestType: String,
         responseType: String,
         requestJson: String,
         responseClass: Class<T>,
         allowOfflineQueue: Boolean
-    ): MqttTypedResult<T> {
-        if (requestJson.isBlank()) {
-            Log.e(TAG, "sendTyped($requestType) refused: requestJson was blank", Exception())
-            return MqttTypedResult.Error("Refusing to publish an empty payload for $requestType")
-        }
-        if (_connectionState.value != MqttConnectionState.CONNECTED) {
-            return if (allowOfflineQueue) {
-                enqueue(requestType, requestJson)
-                MqttTypedResult.Queued
-            } else {
-                MqttTypedResult.Disconnected
-            }
-        }
+    ): MqttTypedResult<T> = MqttTypedResult.Error("sendTyped removed; use request()")
 
-        return try {
-            withTimeout(requestTimeoutMs) {
-                val responseDeferred = async {
-                    _incomingTyped.filter { it.first == responseType }.first()
-                }
-                mqttClient!!.publishWith()
-                    .topic(MqttTopics.request(currentDeviceId, requestType))
-                    .payload(requestJson.toByteArray())
-                    .send()
-                    .await()
-                val (_, rawJson) = responseDeferred.await()
-                MqttTypedResult.Success(gson.fromJson(rawJson, responseClass))
-            }
-        } catch (e: TimeoutCancellationException) {
-            if (allowOfflineQueue) {
-                enqueue(requestType, requestJson)
-                MqttTypedResult.Queued
-            } else {
-                MqttTypedResult.Error("Request timed out")
-            }
-        } catch (e: Exception) {
-            if (allowOfflineQueue) {
-                enqueue(requestType, requestJson)
-                MqttTypedResult.Queued
-            } else {
-                MqttTypedResult.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
-
-    // Fire-and-forget: publishes to a contract request topic without waiting for (or
-    // expecting) a response. For request types the backend doesn't yet handle, it just
-    // publishes best-effort and gives up silently rather than hanging until timeout.
+    @Deprecated("Schema 2.0 path. Removed in Task 15.")
     override suspend fun publishTyped(requestType: String, requestJson: String) {
-        if (requestJson.isBlank()) {
-            Log.e(TAG, "publishTyped($requestType) refused: requestJson was blank", Exception())
-            return
-        }
-        if (_connectionState.value != MqttConnectionState.CONNECTED) return
-        try {
-            mqttClient!!.publishWith()
-                .topic(MqttTopics.request(currentDeviceId, requestType))
-                .payload(requestJson.toByteArray())
-                .send()
-                .await()
-        } catch (_: Exception) {
-        }
+        Log.w(TAG, "publishTyped($requestType) ignored: schema 2.0 fire-and-forget path removed")
     }
 
     override suspend fun <T : Any> request(
@@ -475,10 +440,6 @@ class MqttRepositoryImpl @Inject constructor(
             )
         )
         return id
-    }
-
-    private fun handleIncomingTyped(topic: String, bytes: ByteArray) {
-        _incomingTyped.tryEmit(MqttTopics.responseTypeOf(topic) to String(bytes))
     }
 
     // A graceful disconnect/reconnect doesn't trigger the connection's LWT (that only

@@ -2,8 +2,6 @@ package com.ppnam.station2aa.data.mqtt
 
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.local.OfflineQueueDao
-import com.ppnam.station2aa.data.local.OfflineQueueEntity
-import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -48,41 +46,6 @@ class MqttRepositoryImplTest {
         repo.connect()
 
         verify(mockClientFactory, never()).build(any(), any(), any())
-    }
-
-    @Test
-    fun `sendTyped returns Disconnected when offline queue not allowed`() = runTest {
-        val result = repo.sendTyped(
-            requestType = "reader_login_requested",
-            responseType = "operator_context",
-            requestJson = "{}",
-            responseClass = OperatorContextResponse::class.java,
-            allowOfflineQueue = false
-        )
-        assertTrue(result is MqttTypedResult.Disconnected)
-        verify(mockQueueDao, never()).insert(any())
-    }
-
-    @Test
-    fun `publishTyped is a silent no-op when disconnected`() = runTest {
-        repo.publishTyped("premix_cancelled", "{}")
-        verify(mockQueueDao, never()).insert(any())
-    }
-
-    @Test
-    fun `sendTyped queues when disconnected and offline queue allowed`() = runTest {
-        whenever(mockQueueDao.insert(any())).thenReturn(Unit)
-        val result = repo.sendTyped(
-            requestType = "ingredient_scanned",
-            responseType = "ingredient_scan_result",
-            requestJson = "{\"qty\":5}",
-            responseClass = OperatorContextResponse::class.java,
-            allowOfflineQueue = true
-        )
-        assertTrue(result is MqttTypedResult.Queued)
-        verify(mockQueueDao).insert(
-            argThat<OfflineQueueEntity> { action == "ingredient_scanned" && payload == "{\"qty\":5}" }
-        )
     }
 
     @Test

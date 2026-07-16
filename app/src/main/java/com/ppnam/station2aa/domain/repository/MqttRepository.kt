@@ -10,6 +10,13 @@ enum class MqttConnectionState { CONNECTED, RECONNECTING, DISCONNECTED }
 
 interface MqttRepository {
     val connectionState: StateFlow<MqttConnectionState>
+    /**
+     * Whether Station 2 itself has announced `online` on its retained presence topic.
+     *
+     * Distinct from [connectionState], which only reports the broker link. The broker can be up
+     * while Station 2 is down, in which case every request will time out.
+     */
+    val stationOnline: StateFlow<Boolean>
     suspend fun send(action: String, dataJson: String): MqttResult
     suspend fun <T> sendTyped(
         requestType: String,
