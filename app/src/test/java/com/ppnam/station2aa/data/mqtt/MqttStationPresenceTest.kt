@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.data.mqtt
 
-import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import kotlinx.coroutines.test.runTest
@@ -19,7 +18,6 @@ class MqttStationPresenceTest {
         repo = MqttRepositoryImpl(
             clientFactory = mock(),
             settingsRepository = mock<SettingsRepository>(),
-            offlineQueueDao = mock<OfflineQueueDao>(),
             sessionHolder = OperatorSessionHolder(),
         )
     }

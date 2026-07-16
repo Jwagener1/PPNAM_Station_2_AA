@@ -1,7 +1,6 @@
 package com.ppnam.station2aa.data.mqtt
 
 import com.google.gson.JsonParser
-import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
@@ -33,7 +32,6 @@ class MqttRequestCorrelationTest {
         repo = MqttRepositoryImpl(
             clientFactory = mock(),
             settingsRepository = mock<SettingsRepository>(),
-            offlineQueueDao = mock<OfflineQueueDao>(),
             sessionHolder = sessionHolder,
         )
         published.clear()

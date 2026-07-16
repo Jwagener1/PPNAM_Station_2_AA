@@ -5,8 +5,6 @@ import androidx.annotation.VisibleForTesting
 import com.google.gson.Gson
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
-import com.ppnam.station2aa.data.local.OfflineQueueDao
-import com.ppnam.station2aa.data.local.OfflineQueueEntity
 import com.ppnam.station2aa.data.mqtt.dto.ResponseEnvelope
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
@@ -28,7 +26,6 @@ import javax.inject.Singleton
 class MqttRepositoryImpl @Inject constructor(
     private val clientFactory: MqttClientFactory,
     private val settingsRepository: SettingsRepository,
-    private val offlineQueueDao: OfflineQueueDao,
     private val sessionHolder: OperatorSessionHolder
 ) : MqttRepository {
 
@@ -268,9 +265,6 @@ class MqttRepositoryImpl @Inject constructor(
         _connectionState.value = MqttConnectionState.DISCONNECTED
     }
 
-    override suspend fun send(action: String, dataJson: String): MqttResult =
-        sendWithTimeout(action, dataJson, requestTimeoutMs)
-
     override suspend fun reconnectWith(settings: AppSettings): Result<Unit> {
         retryJob?.cancel()
         // See connect() — buildClient()/connectWith() block synchronously before their
@@ -307,29 +301,6 @@ class MqttRepositoryImpl @Inject constructor(
                 Result.failure(e)
             }
         }
-    }
-
-    // The backend (RfidMqttService.RequestSuffixes) has never subscribed to the
-    // {station}/request topic this legacy action-string protocol publishes to — only
-    // per-device PPNAM/{deviceId}/{suffix} contract topics are handled. Every call here
-    // has therefore always silently timed out. Previously that meant a permanent retry
-    // queued via OfflineQueueRepository; now it just fails fast instead of queuing
-    // traffic that a fixed backend would never answer either way.
-    internal suspend fun sendWithTimeout(action: String, dataJson: String, timeoutMs: Long): MqttResult =
-        MqttResult.Error("Legacy action protocol removed; use request()")
-
-    @Deprecated("Schema 2.0 path. Use request() instead; removed in Task 15.")
-    override suspend fun <T> sendTyped(
-        requestType: String,
-        responseType: String,
-        requestJson: String,
-        responseClass: Class<T>,
-        allowOfflineQueue: Boolean
-    ): MqttTypedResult<T> = MqttTypedResult.Error("sendTyped removed; use request()")
-
-    @Deprecated("Schema 2.0 path. Removed in Task 15.")
-    override suspend fun publishTyped(requestType: String, requestJson: String) {
-        Log.w(TAG, "publishTyped($requestType) ignored: schema 2.0 fire-and-forget path removed")
     }
 
     override suspend fun <T : Any> request(
@@ -454,24 +425,6 @@ class MqttRepositoryImpl @Inject constructor(
             return
         }
         waiter.complete(raw)
-    }
-
-    // OfflineQueueRepository.drainQueue() replays queued items via the old
-    // sendWithTimeout()/`{station}/request` path, not sendTyped()'s contract
-    // topics/envelope. No caller sets allowOfflineQueue=true on sendTyped yet
-    // (login/logout always pass false), so this is dormant — but the drain
-    // path must be updated before any typed request enables queuing.
-    private suspend fun enqueue(action: String, payload: String): String {
-        val id = UUID.randomUUID().toString()
-        offlineQueueDao.insert(
-            OfflineQueueEntity(
-                id = id,
-                action = action,
-                payload = payload,
-                createdAt = Instant.now().toEpochMilli()
-            )
-        )
-        return id
     }
 
     // A graceful disconnect/reconnect doesn't trigger the connection's LWT (that only

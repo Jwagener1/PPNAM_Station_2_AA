@@ -1,7 +1,6 @@
 package com.ppnam.station2aa.data.mqtt
 
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
-import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -16,18 +15,15 @@ class MqttRepositoryImplTest {
 
     private lateinit var mockClientFactory: MqttClientFactory
     private lateinit var mockSettingsRepository: SettingsRepository
-    private lateinit var mockQueueDao: OfflineQueueDao
     private lateinit var repo: MqttRepositoryImpl
 
     @Before
     fun setup() {
         mockClientFactory = mock()
         mockSettingsRepository = mock()
-        mockQueueDao = mock()
         repo = MqttRepositoryImpl(
             mockClientFactory,
             mockSettingsRepository,
-            mockQueueDao,
             OperatorSessionHolder(),
         )
     }

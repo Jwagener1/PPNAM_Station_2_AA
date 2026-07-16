@@ -1,7 +1,6 @@
 package com.ppnam.station2aa.data.local
 
 import com.ppnam.station2aa.data.mqtt.MqttRepositoryImpl
-import com.ppnam.station2aa.data.mqtt.MqttResult
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,22 +39,10 @@ class OfflineQueueRepository @Inject constructor(
 
     suspend fun deletePending() = dao.deletePending()
 
+    // No-op pending Task 16 (deletes the whole offline queue): the legacy
+    // send()/sendWithTimeout() transport this used to replay through was removed in
+    // Task 15, and nothing currently produces queue rows to drain.
     suspend fun drainQueue() {
         if (mqttRepository.connectionState.value != MqttConnectionState.CONNECTED) return
-        val pending = dao.getPending()
-        for (item in pending) {
-            val result = mqttRepository.sendWithTimeout(item.action, item.payload, timeoutMs = 10_000L)
-            when (result) {
-                is MqttResult.Success -> dao.markSent(item.id)
-                is MqttResult.Queued -> {
-                    dao.incrementRetry(item.id)
-                    if (item.retryCount + 1 >= 10) dao.markFailed(item.id)
-                }
-                is MqttResult.Error -> {
-                    dao.incrementRetry(item.id)
-                    if (item.retryCount + 1 >= 10) dao.markFailed(item.id)
-                }
-            }
-        }
     }
 }
