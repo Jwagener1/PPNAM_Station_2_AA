@@ -470,6 +470,15 @@ fun IngredientScanScreen(
                     else -> Spacer(Modifier.weight(1f))
                 }
 
+                if (allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Collection complete. Routing to a Hopper/Extruder/Rajoo is not available in this release yet.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextMuted
+                    )
+                }
+
                 Spacer(Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -483,12 +492,14 @@ fun IngredientScanScreen(
                     ) {
                         Text("Cancel")
                     }
+                    // TODO(sub-project 4): wire routing via machine_cycle_start_requested (Hopper/Extruder/Rajoo).
+                    // Permanently disabled until that flow exists; do not re-enable based on allIngredientsSatisfied.
                     Button(
                         onClick = onProceedToHopperScan,
-                        enabled = allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded,
+                        enabled = false,
                         modifier = Modifier.weight(2f).height(56.dp)
                     ) {
-                        Text("Proceed to Hopper Scan")
+                        Text("Routing available in a later release")
                     }
                 }
             }
