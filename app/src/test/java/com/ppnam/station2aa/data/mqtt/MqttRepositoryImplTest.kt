@@ -5,7 +5,6 @@ import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
 import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
 import com.ppnam.station2aa.data.settings.SettingsRepository
-import com.ppnam.station2aa.domain.model.HopperAvailability
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -43,41 +42,6 @@ class MqttRepositoryImplTest {
         repo.connect()
 
         verify(mockClientFactory, never()).build(any(), any(), any())
-    }
-
-    @Test
-    fun `send fails fast when disconnected instead of queuing`() = runTest {
-        val result = repo.sendWithTimeout("complete-premix", "{}", timeoutMs = 100L)
-        assertTrue(result is MqttResult.Error)
-        verify(mockQueueDao, never()).insert(any())
-    }
-
-    @Test
-    fun `send fails fast when disconnected regardless of action`() = runTest {
-        val result = repo.sendWithTimeout("lookup-pallet", "{}", timeoutMs = 100L)
-        assertTrue(result is MqttResult.Error)
-        verify(mockQueueDao, never()).insert(any())
-    }
-
-    @Test
-    fun `hopperStatusUpdates emits parsed HopperStatus on hopper topic message`() = runTest {
-        val json = """{"hopperCode":"H-01","status":"AVAILABLE","assignedTo":null}"""
-        val method = MqttRepositoryImpl::class.java.getDeclaredMethod("handleHopperStatus", ByteArray::class.java)
-        method.isAccessible = true
-        method.invoke(repo, json.toByteArray())
-
-        val emitted = repo.hopperStatusUpdates.replayCache.firstOrNull()
-        assertNotNull(emitted)
-        assertEquals("H-01", emitted!!.hopperCode)
-        assertEquals(HopperAvailability.AVAILABLE, emitted.status)
-    }
-
-    @Test
-    fun `hopperStatusUpdates does not crash on malformed payload`() = runTest {
-        val method = MqttRepositoryImpl::class.java.getDeclaredMethod("handleHopperStatus", ByteArray::class.java)
-        method.isAccessible = true
-        method.invoke(repo, "not-json".toByteArray())
-        assertTrue(repo.hopperStatusUpdates.replayCache.isEmpty())
     }
 
     @Test

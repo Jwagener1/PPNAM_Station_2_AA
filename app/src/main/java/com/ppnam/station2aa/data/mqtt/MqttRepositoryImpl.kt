@@ -7,7 +7,6 @@ import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
-import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import kotlinx.coroutines.*
@@ -45,11 +44,7 @@ class MqttRepositoryImpl @Inject constructor(
     private val _connectionState = MutableStateFlow(MqttConnectionState.DISCONNECTED)
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
-    private val _incomingResponses = MutableSharedFlow<MqttResponseMessage>(extraBufferCapacity = 64)
     private val _incomingTyped = MutableSharedFlow<Pair<String, String>>(extraBufferCapacity = 64)
-
-    private val _hopperStatusUpdates = MutableSharedFlow<HopperStatus>(replay = 1, extraBufferCapacity = 16)
-    override val hopperStatusUpdates: SharedFlow<HopperStatus> = _hopperStatusUpdates.asSharedFlow()
 
     private var mqttClient: Mqtt5AsyncClient? = null
     private val isTransportConnected = AtomicBoolean(false)
@@ -135,17 +130,7 @@ class MqttRepositoryImpl @Inject constructor(
 
     private suspend fun subscribeAndAnnounce(client: Mqtt5AsyncClient, stationName: String, deviceId: String) {
         client.subscribeWith()
-            .topicFilter(MqttTopics.response(stationName, deviceId))
-            .callback { publish -> handleIncoming(publish.payloadAsBytes) }
-            .send()
-            .await()
-        client.subscribeWith()
-            .topicFilter(MqttTopics.hopperStatus(stationName))
-            .callback { publish -> handleHopperStatus(publish.payloadAsBytes) }
-            .send()
-            .await()
-        client.subscribeWith()
-            .topicFilter(MqttTopics.contractResponseWildcard(deviceId))
+            .topicFilter(MqttTopics.responseWildcard(deviceId))
             .callback { publish -> handleIncomingTyped(publish.topic.toString(), publish.payloadAsBytes) }
             .send()
             .await()
@@ -268,40 +253,8 @@ class MqttRepositoryImpl @Inject constructor(
     // has therefore always silently timed out. Previously that meant a permanent retry
     // queued via OfflineQueueRepository; now it just fails fast instead of queuing
     // traffic that a fixed backend would never answer either way.
-    internal suspend fun sendWithTimeout(action: String, dataJson: String, timeoutMs: Long): MqttResult {
-        if (_connectionState.value != MqttConnectionState.CONNECTED) {
-            return MqttResult.Error("Not connected to Station 2")
-        }
-
-        val correlationId = UUID.randomUUID().toString()
-        val request = MqttRequest(correlationId, currentDeviceId, action, dataJson)
-        val payload = gson.toJson(request).toByteArray()
-
-        return try {
-            withTimeout(timeoutMs) {
-                val responseDeferred = async {
-                    _incomingResponses
-                        .filter { it.correlationId == correlationId }
-                        .first()
-                }
-                mqttClient!!.publishWith()
-                    .topic(MqttTopics.request(currentStationName))
-                    .payload(payload)
-                    .send()
-                    .await()
-                val response = responseDeferred.await()
-                if (response.success) {
-                    MqttResult.Success(response.data ?: "{}")
-                } else {
-                    MqttResult.Error(response.error ?: "Unknown error")
-                }
-            }
-        } catch (e: TimeoutCancellationException) {
-            MqttResult.Error("Request timed out")
-        } catch (e: Exception) {
-            MqttResult.Error(e.message ?: "Unknown error")
-        }
-    }
+    internal suspend fun sendWithTimeout(action: String, dataJson: String, timeoutMs: Long): MqttResult =
+        MqttResult.Error("Legacy action protocol removed; use request()")
 
     override suspend fun <T> sendTyped(
         requestType: String,
@@ -325,7 +278,7 @@ class MqttRepositoryImpl @Inject constructor(
                     _incomingTyped.filter { it.first == responseType }.first()
                 }
                 mqttClient!!.publishWith()
-                    .topic(MqttTopics.contractRequest(currentDeviceId, requestType))
+                    .topic(MqttTopics.request(currentDeviceId, requestType))
                     .payload(requestJson.toByteArray())
                     .send()
                     .await()
@@ -356,7 +309,7 @@ class MqttRepositoryImpl @Inject constructor(
         if (_connectionState.value != MqttConnectionState.CONNECTED) return
         try {
             mqttClient!!.publishWith()
-                .topic(MqttTopics.contractRequest(currentDeviceId, requestType))
+                .topic(MqttTopics.request(currentDeviceId, requestType))
                 .payload(requestJson.toByteArray())
                 .send()
                 .await()
@@ -382,13 +335,6 @@ class MqttRepositoryImpl @Inject constructor(
         return id
     }
 
-    private fun handleIncoming(bytes: ByteArray) {
-        try {
-            val msg = gson.fromJson(String(bytes), MqttResponseMessage::class.java)
-            _incomingResponses.tryEmit(msg)
-        } catch (_: Exception) { }
-    }
-
     private fun handleIncomingTyped(topic: String, bytes: ByteArray) {
         _incomingTyped.tryEmit(MqttTopics.responseTypeOf(topic) to String(bytes))
     }
@@ -408,10 +354,4 @@ class MqttRepositoryImpl @Inject constructor(
         } catch (_: Exception) { }
     }
 
-    private fun handleHopperStatus(bytes: ByteArray) {
-        try {
-            val status = gson.fromJson(String(bytes), HopperStatus::class.java)
-            _hopperStatusUpdates.tryEmit(status)
-        } catch (_: Exception) { }
-    }
 }

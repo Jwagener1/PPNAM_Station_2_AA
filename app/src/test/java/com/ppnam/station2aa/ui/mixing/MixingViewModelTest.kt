@@ -62,8 +62,6 @@ class MixingViewModelTest {
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
-        whenever(mockMqttRepository.hopperStatusUpdates)
-            .thenReturn(MutableSharedFlow())
         whenever(mockOfflineQueueRepository.pendingCount()).thenReturn(flowOf(0))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
         whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("cancel_premix")))

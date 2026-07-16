@@ -8,7 +8,6 @@ import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
-import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -86,8 +85,6 @@ class MixingViewModel @Inject constructor(
 
     private val _activeJobsError = MutableStateFlow<String?>(null)
     val activeJobsError: StateFlow<String?> = _activeJobsError.asStateFlow()
-
-    val hopperStatusUpdates: SharedFlow<HopperStatus> = mqttRepository.hopperStatusUpdates
 
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()

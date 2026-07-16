@@ -31,13 +31,6 @@ fun HopperScanScreen(
     val hopperStatuses = remember { mutableStateListOf<HopperStatus>() }
 
     LaunchedEffect(Unit) {
-        viewModel.hopperStatusUpdates.collect { update ->
-            val idx = hopperStatuses.indexOfFirst { it.hopperCode == update.hopperCode }
-            if (idx >= 0) hopperStatuses[idx] = update else hopperStatuses.add(update)
-        }
-    }
-
-    LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { destination ->
             if (destination == MixingNavDestination.PREMIX_COMPLETE) onProceed()
         }
