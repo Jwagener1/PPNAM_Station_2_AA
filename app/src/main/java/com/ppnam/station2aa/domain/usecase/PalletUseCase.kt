@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.domain.usecase
 
-import com.ppnam.station2aa.data.mqtt.FailureKind
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.dto.HoldingRecoveryPayload
 import com.ppnam.station2aa.data.mqtt.dto.PalletLookupPayload
@@ -53,15 +52,7 @@ class PalletUseCase @Inject constructor(
         // correctly found nothing is a success carrying found = false.
         is MqttOutcome.Accepted -> Result.success(body.toPalletInfo())
         is MqttOutcome.Rejected -> Result.failure(Exception(reason ?: "Station 2 rejected the request"))
-        is MqttOutcome.NoResponse -> Result.failure(
-            Exception(
-                when (kind) {
-                    FailureKind.NotConnected -> "Not connected to Station 2"
-                    FailureKind.Timeout -> "Station 2 did not respond"
-                    FailureKind.MalformedResponse -> "Station 2 sent an unreadable response"
-                }
-            )
-        )
+        is MqttOutcome.NoResponse -> Result.failure(Exception(kind.message()))
     }
 
     private fun PalletLookupResultResponse.toPalletInfo() = PalletInfo(
