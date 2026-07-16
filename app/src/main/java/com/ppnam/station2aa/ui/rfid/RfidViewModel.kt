@@ -15,13 +15,18 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// NOTE: Task 10 minimal-compile shim. This ViewModel still targets the old lookup-only UI shape
-// (Idle/Loading/PalletFound/Error) and does not yet surface usable/recoverable/blocked or the
-// recovery action — Task 11 rewrites this screen against the full v3 PalletInfo model.
 sealed class RfidUiState {
     object Idle : RfidUiState()
     object Loading : RfidUiState()
-    data class PalletFound(val pallet: PalletInfo) : RfidUiState()
+    object Recovering : RfidUiState()
+
+    /**
+     * A lookup that Station 2 answered. Note this covers found = false: a lookup that ran correctly
+     * and found nothing is a result, not an error.
+     */
+    data class Result(val pallet: PalletInfo) : RfidUiState()
+
+    /** Station 2 rejected the request, or we never heard back. */
     data class Error(val message: String) : RfidUiState()
 }
 
@@ -52,12 +57,35 @@ class RfidViewModel @Inject constructor(
         }
     }
 
-    private fun lookupPallet(tagId: String) {
+    fun lookupPallet(tagId: String) {
         viewModelScope.launch {
             _uiState.value = RfidUiState.Loading
             useCase.lookup(tagId)
-                .onSuccess { pallet -> _uiState.value = RfidUiState.PalletFound(pallet) }
+                .onSuccess { pallet -> _uiState.value = RfidUiState.Result(pallet) }
                 .onFailure { e -> _uiState.value = RfidUiState.Error(e.message ?: "Unknown error") }
+        }
+    }
+
+    /**
+     * Recovers the pallet currently on screen into Holding after a missed door read.
+     *
+     * Gated on the response's own `recoverable` flag — Station 2 decides recoverability, and the
+     * client must not second-guess it.
+     */
+    fun recoverCurrentPallet() {
+        val shown = (_uiState.value as? RfidUiState.Result)?.pallet ?: return
+        if (!shown.recoverable) return
+        viewModelScope.launch {
+            _uiState.value = RfidUiState.Recovering
+            useCase.recoverToHolding(
+                palletRfidTag = shown.palletRfidTag,
+                collectionId = null,
+                auditReason = RECOVERY_REASON,
+            )
+                // The refreshed pallet may still be unusable — recovery registers arrival, it does
+                // not clear a block. Show whatever Station 2 says rather than assuming success.
+                .onSuccess { pallet -> _uiState.value = RfidUiState.Result(pallet) }
+                .onFailure { e -> _uiState.value = RfidUiState.Error(e.message ?: "Recovery failed") }
         }
     }
 
@@ -69,5 +97,9 @@ class RfidViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         scanJob?.cancel()
+    }
+
+    private companion object {
+        const val RECOVERY_REASON = "Pallet is physically at Station 2; fixed door read was missed."
     }
 }
