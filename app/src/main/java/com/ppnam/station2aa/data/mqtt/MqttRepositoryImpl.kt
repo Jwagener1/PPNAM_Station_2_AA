@@ -88,7 +88,6 @@ class MqttRepositoryImpl @Inject constructor(
 
     private var mqttClient: Mqtt5AsyncClient? = null
     private val isTransportConnected = AtomicBoolean(false)
-    private var currentStationName: String = AppSettings().stationName
     private var currentDeviceId: String = AppSettings().deviceId
     private var requestTimeoutMs: Long = AppSettings().requestTimeoutMs
     private var retryJob: Job? = null
@@ -207,7 +206,6 @@ class MqttRepositoryImpl @Inject constructor(
         retryJob?.cancel()
         _connectionState.value = MqttConnectionState.RECONNECTING
         val settings = settingsRepository.current()
-        currentStationName = settings.stationName
         currentDeviceId = settings.deviceId
         requestTimeoutMs = settings.requestTimeoutMs
         // buildClient()/connectWith() do synchronous SSLContext/Netty setup (disk I/O +
@@ -289,7 +287,6 @@ class MqttRepositoryImpl @Inject constructor(
                 val old = mqttClient
                 val oldDeviceId = currentDeviceId
                 mqttClient = candidate
-                currentStationName = settings.stationName
                 currentDeviceId = settings.deviceId
                 requestTimeoutMs = settings.requestTimeoutMs
                 _connectionState.value = MqttConnectionState.CONNECTED

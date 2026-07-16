@@ -6,11 +6,6 @@ import org.junit.Test
 class AppSettingsTest {
 
     @Test
-    fun `default stationName is Station 2`() {
-        assertEquals("Station 2", AppSettings().stationName)
-    }
-
-    @Test
     fun `default scannerId is 1`() {
         assertEquals(1, AppSettings().scannerId)
     }

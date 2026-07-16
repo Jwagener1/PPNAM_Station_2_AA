@@ -1,7 +1,6 @@
 package com.ppnam.station2aa.domain.model
 
 data class AppSettings(
-    val stationName: String = "Station 2",
     val deviceId: String = "handheld_1",
     val scannerId: Int = 1,
     val mqttHost: String = "mqtt.sysone.co.za",

@@ -165,11 +165,6 @@ fun SettingsScreen(
                 PinState.Unlocked -> {
                     ConfigSection(title = "Station") {
                         SettingsTextField(
-                            value = draft.stationName,
-                            label = "Station Name",
-                            onValueChange = { viewModel.updateDraft(draft.copy(stationName = it)) }
-                        )
-                        SettingsTextField(
                             value = draft.deviceId,
                             label = "Device ID",
                             onValueChange = { viewModel.updateDraft(draft.copy(deviceId = it)) }
