@@ -15,6 +15,10 @@ object EmptyPayload
  *
  * Gson omits nulls by default, which is exactly the contract's rule that an unused optional field
  * must be omitted rather than sent as null or "".
+ *
+ * `build()` additionally treats a blank (empty or whitespace-only) `correlationKey` as absent: a
+ * caller deriving the key from an upstream field (e.g. a response's `collectionId`) can end up with
+ * `""` when that field was itself omitted, and the contract requires absence, not `""`, in that case.
  */
 object RequestEnvelope {
 
@@ -33,7 +37,7 @@ object RequestEnvelope {
         obj.addProperty("deviceId", deviceId)
         obj.addProperty("operatorSessionId", operatorSessionId)
         obj.addProperty("timestampUtc", timestampUtc)
-        correlationKey?.let { obj.addProperty("correlationKey", it) }
+        correlationKey?.takeIf { it.isNotBlank() }?.let { obj.addProperty("correlationKey", it) }
         return gson.toJson(obj)
     }
 }

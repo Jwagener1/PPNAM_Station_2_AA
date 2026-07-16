@@ -6,6 +6,11 @@ package com.ppnam.station2aa.data.mqtt.dto
  *
  * `inResponseToMessageId` is the only correct way to match a response to its request. `correlationKey`
  * is a trace-grouping key that several in-flight messages deliberately share.
+ *
+ * Every constructor parameter here must keep a default value. Kotlin only emits the no-arg
+ * constructor Gson needs when every parameter has a default; drop one default and Kotlin silently
+ * stops emitting that constructor, so Gson falls back to `UnsafeAllocator` and every field
+ * deserializes to null regardless of its declared default and non-null type — with no compile error.
  */
 data class ResponseEnvelope(
     val messageId: String = "",

@@ -52,6 +52,22 @@ class RequestEnvelopeTest {
     }
 
     @Test
+    fun `a blank correlationKey is omitted rather than sent as empty string`() {
+        val json = JsonParser.parseString(
+            build(LoginPayload("operator1", "secret"), correlationKey = "")
+        ).asJsonObject
+        assertFalse(json.has("correlationKey"))
+    }
+
+    @Test
+    fun `a whitespace-only correlationKey is omitted rather than sent`() {
+        val json = JsonParser.parseString(
+            build(LoginPayload("operator1", "secret"), correlationKey = "   ")
+        ).asJsonObject
+        assertFalse(json.has("correlationKey"))
+    }
+
+    @Test
     fun `an envelope-only request serializes to just the envelope`() {
         val json = JsonParser.parseString(build(EmptyPayload)).asJsonObject
 
