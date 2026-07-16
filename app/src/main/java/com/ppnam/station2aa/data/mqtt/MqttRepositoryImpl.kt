@@ -1,10 +1,14 @@
 package com.ppnam.station2aa.data.mqtt
 
+import android.util.Log
+import androidx.annotation.VisibleForTesting
 import com.google.gson.Gson
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
+import com.ppnam.station2aa.data.mqtt.dto.ResponseEnvelope
+import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -14,6 +18,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -23,10 +28,12 @@ import javax.inject.Singleton
 class MqttRepositoryImpl @Inject constructor(
     private val clientFactory: MqttClientFactory,
     private val settingsRepository: SettingsRepository,
-    private val offlineQueueDao: OfflineQueueDao
+    private val offlineQueueDao: OfflineQueueDao,
+    private val sessionHolder: OperatorSessionHolder
 ) : MqttRepository {
 
     companion object {
+        private const val TAG = "MqttRepositoryImpl"
         // Raw text, not JSON — the deviceId status topic (PPNAM/{deviceId}/status) is
         // presence-only, so payloads are plain "online"/"offline" bytes.
         private val STATUS_ONLINE = "online".toByteArray()
@@ -45,6 +52,25 @@ class MqttRepositoryImpl @Inject constructor(
     override val connectionState: StateFlow<MqttConnectionState> = _connectionState.asStateFlow()
 
     private val _incomingTyped = MutableSharedFlow<Pair<String, String>>(extraBufferCapacity = 64)
+
+    // Correlation registry: messageId -> the caller awaiting that exact response. The contract is
+    // explicit that inResponseToMessageId is the ONLY correct way to match a response to a request
+    // — several in-flight messages deliberately share a correlationKey, and two request types can
+    // share one response topic (login_requested and reader_logout_requested both answer on
+    // operator_context), so neither key nor topic can discriminate.
+    private val pending = ConcurrentHashMap<String, CompletableDeferred<String>>()
+
+    // Test seam. Production path publishes workflow messages at QoS 1, not retained, per contract.
+    @VisibleForTesting
+    internal var publishFn: suspend (String, ByteArray) -> Unit = { topic, bytes ->
+        mqttClient!!.publishWith()
+            .topic(topic)
+            .payload(bytes)
+            .qos(MqttQos.AT_LEAST_ONCE)
+            .retain(false)
+            .send()
+            .await()
+    }
 
     private var mqttClient: Mqtt5AsyncClient? = null
     private val isTransportConnected = AtomicBoolean(false)
@@ -263,6 +289,10 @@ class MqttRepositoryImpl @Inject constructor(
         responseClass: Class<T>,
         allowOfflineQueue: Boolean
     ): MqttTypedResult<T> {
+        if (requestJson.isBlank()) {
+            Log.e(TAG, "sendTyped($requestType) refused: requestJson was blank", Exception())
+            return MqttTypedResult.Error("Refusing to publish an empty payload for $requestType")
+        }
         if (_connectionState.value != MqttConnectionState.CONNECTED) {
             return if (allowOfflineQueue) {
                 enqueue(requestType, requestJson)
@@ -306,6 +336,10 @@ class MqttRepositoryImpl @Inject constructor(
     // expecting) a response. For request types the backend doesn't yet handle, it just
     // publishes best-effort and gives up silently rather than hanging until timeout.
     override suspend fun publishTyped(requestType: String, requestJson: String) {
+        if (requestJson.isBlank()) {
+            Log.e(TAG, "publishTyped($requestType) refused: requestJson was blank", Exception())
+            return
+        }
         if (_connectionState.value != MqttConnectionState.CONNECTED) return
         try {
             mqttClient!!.publishWith()
@@ -315,6 +349,94 @@ class MqttRepositoryImpl @Inject constructor(
                 .await()
         } catch (_: Exception) {
         }
+    }
+
+    override suspend fun <T : Any> request(
+        requestType: String,
+        responseType: String,
+        payload: Any,
+        correlationKey: String?,
+        responseClass: Class<T>,
+    ): MqttOutcome<T> {
+        if (_connectionState.value != MqttConnectionState.CONNECTED) {
+            return MqttOutcome.NoResponse(FailureKind.NotConnected)
+        }
+
+        val messageId = UUID.randomUUID().toString()
+        val json = RequestEnvelope.build(
+            gson = gson,
+            payload = payload,
+            messageId = messageId,
+            deviceId = currentDeviceId,
+            operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
+            timestampUtc = Instant.now().toString(),
+            correlationKey = correlationKey,
+        )
+        val topic = MqttTopics.request(currentDeviceId, requestType)
+
+        val waiter = CompletableDeferred<String>()
+        pending[messageId] = waiter
+        try {
+            try {
+                publishFn(topic, json.toByteArray())
+            } catch (e: Exception) {
+                Log.w(TAG, "publish failed for $requestType", e)
+                return MqttOutcome.NoResponse(FailureKind.NotConnected)
+            }
+            val raw = withTimeoutOrNull(requestTimeoutMs) { waiter.await() }
+                ?: return MqttOutcome.NoResponse(FailureKind.Timeout)
+            return parseOutcome(raw, responseClass, responseType)
+        } finally {
+            pending.remove(messageId)
+        }
+    }
+
+    private fun <T : Any> parseOutcome(
+        raw: String,
+        responseClass: Class<T>,
+        expectedResponseType: String,
+    ): MqttOutcome<T> = try {
+        val envelope = gson.fromJson(raw, ResponseEnvelope::class.java)
+        val body = gson.fromJson(raw, responseClass)
+            ?: throw IllegalStateException("Response body parsed to null for $expectedResponseType")
+        val nextAction = NextAction(envelope.nextAction ?: "")
+        if (envelope.accepted) {
+            MqttOutcome.Accepted(body, nextAction)
+        } else {
+            MqttOutcome.Rejected(
+                body = body,
+                errorCode = envelope.errorCode?.let { ErrorCode(it) },
+                reason = envelope.reason,
+                nextAction = nextAction,
+            )
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Could not parse $expectedResponseType response", e)
+        MqttOutcome.NoResponse(FailureKind.MalformedResponse)
+    }
+
+    @VisibleForTesting
+    internal fun handleIncomingResponse(topic: String, bytes: ByteArray) {
+        val raw = String(bytes)
+        val envelope = try {
+            gson.fromJson(raw, ResponseEnvelope::class.java)
+        } catch (e: Exception) {
+            Log.w(TAG, "Dropping unparseable response on $topic", e)
+            return
+        }
+        val id = envelope?.inResponseToMessageId
+        if (id.isNullOrBlank()) {
+            Log.w(TAG, "Dropping response on $topic with no inResponseToMessageId")
+            return
+        }
+        val waiter = pending.remove(id)
+        if (waiter == null) {
+            // Late duplicate, or a response to a request that already timed out. The contract says
+            // an unknown message gets no workflow side effect.
+            Log.w(TAG, "Dropping unmatched response on $topic for messageId=$id")
+            return
+        }
+        waiter.complete(raw)
     }
 
     // OfflineQueueRepository.drainQueue() replays queued items via the old

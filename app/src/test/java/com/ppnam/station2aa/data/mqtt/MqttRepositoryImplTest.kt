@@ -4,6 +4,7 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.local.OfflineQueueEntity
 import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
+import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import kotlinx.coroutines.flow.first
@@ -25,7 +26,12 @@ class MqttRepositoryImplTest {
         mockClientFactory = mock()
         mockSettingsRepository = mock()
         mockQueueDao = mock()
-        repo = MqttRepositoryImpl(mockClientFactory, mockSettingsRepository, mockQueueDao)
+        repo = MqttRepositoryImpl(
+            mockClientFactory,
+            mockSettingsRepository,
+            mockQueueDao,
+            OperatorSessionHolder(),
+        )
     }
 
     @Test

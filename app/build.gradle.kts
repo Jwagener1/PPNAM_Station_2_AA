@@ -41,6 +41,14 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            // MqttRepositoryImpl logs via android.util.Log on the drop/parse-error paths that
+            // handleIncomingResponse()/parseOutcome() exercise directly in unit tests. Without this,
+            // the stub android.jar throws "Method ... not mocked" instead of running the log call.
+            isReturnDefaultValues = true
+        }
+    }
     packaging {
         resources {
             excludes += "META-INF/com.google.dagger_dagger.version"
