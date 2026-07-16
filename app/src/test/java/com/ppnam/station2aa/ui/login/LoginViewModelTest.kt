@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.login
 
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
@@ -12,7 +11,6 @@ import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -28,7 +26,6 @@ class LoginViewModelTest {
     private lateinit var mockAuthUseCase: AuthUseCase
     private lateinit var mockScanEventBus: ScanEventBus
     private lateinit var mockMqttRepository: MqttRepository
-    private lateinit var mockOfflineQueueRepository: OfflineQueueRepository
     private lateinit var scanEvents: MutableSharedFlow<ScanEvent>
     private lateinit var viewModel: LoginViewModel
 
@@ -45,15 +42,13 @@ class LoginViewModelTest {
         mockAuthUseCase = mock()
         mockScanEventBus = mock()
         mockMqttRepository = mock()
-        mockOfflineQueueRepository = mock()
         scanEvents = MutableSharedFlow(extraBufferCapacity = 16)
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
-        whenever(mockOfflineQueueRepository.pendingCount()).thenReturn(flowOf(0))
         whenever(mockScanEventBus.events).thenReturn(scanEvents)
 
-        viewModel = LoginViewModel(mockAuthUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository)
+        viewModel = LoginViewModel(mockAuthUseCase, mockScanEventBus, mockMqttRepository)
     }
 
     @After

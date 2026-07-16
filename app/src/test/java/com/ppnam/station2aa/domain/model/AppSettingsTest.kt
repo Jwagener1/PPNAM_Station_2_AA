@@ -48,9 +48,4 @@ class AppSettingsTest {
     fun `default requestTimeoutMs is 10000`() {
         assertEquals(10_000L, AppSettings().requestTimeoutMs)
     }
-
-    @Test
-    fun `default queueDrainIntervalMin is 15`() {
-        assertEquals(15, AppSettings().queueDrainIntervalMin)
-    }
 }

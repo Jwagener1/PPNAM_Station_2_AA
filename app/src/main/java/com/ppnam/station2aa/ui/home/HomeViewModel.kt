@@ -2,7 +2,6 @@ package com.ppnam.station2aa.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -17,15 +16,11 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val mqttRepository: MqttRepository,
-    private val offlineQueueRepository: OfflineQueueRepository,
     private val authUseCase: AuthUseCase,
     sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
-
-    val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 

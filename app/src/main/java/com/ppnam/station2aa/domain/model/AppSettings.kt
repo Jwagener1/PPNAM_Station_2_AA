@@ -10,6 +10,5 @@ data class AppSettings(
     val mqttUseTls: Boolean = true,
     val mqttUsername: String = "admin",
     val mqttPassword: String = "admin",
-    val requestTimeoutMs: Long = 10_000L,
-    val queueDrainIntervalMin: Int = 15
+    val requestTimeoutMs: Long = 10_000L
 )

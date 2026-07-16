@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.mixing
 
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
@@ -14,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -29,7 +27,6 @@ class MixingViewModelTest {
     private lateinit var mockUseCase: MixingUseCase
     private lateinit var mockScanEventBus: ScanEventBus
     private lateinit var mockMqttRepository: MqttRepository
-    private lateinit var mockOfflineQueueRepository: OfflineQueueRepository
     private lateinit var mockAuthUseCase: AuthUseCase
     private lateinit var mockSessionHolder: OperatorSessionHolder
     private lateinit var viewModel: MixingViewModel
@@ -54,18 +51,16 @@ class MixingViewModelTest {
         mockUseCase = mock()
         mockScanEventBus = mock()
         mockMqttRepository = mock()
-        mockOfflineQueueRepository = mock()
         mockAuthUseCase = mock()
         mockSessionHolder = mock()
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
-        whenever(mockOfflineQueueRepository.pendingCount()).thenReturn(flowOf(0))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
         whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("cancel_premix")))
 
         viewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
         )
     }
 
@@ -102,7 +97,7 @@ class MixingViewModelTest {
     fun `startListeningForPalletScans opens EnteringBagDetails on a pallet scan`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -120,7 +115,7 @@ class MixingViewModelTest {
     fun `startListeningForPalletScans opens EnteringBagDetails on a barcode scan too`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -142,7 +137,7 @@ class MixingViewModelTest {
 
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
-        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")
         advanceUntilIdle()
@@ -346,7 +341,7 @@ class MixingViewModelTest {
             MutableStateFlow(sessionWithActions("cancel_premix", "cancel_premix_direct"))
         )
         val directViewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
         )
 
         assertTrue(directViewModel.operatorCanCancelDirectly())
@@ -407,7 +402,7 @@ class MixingViewModelTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
         val vm = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder
+            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
         )
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         vm.lookupJob("510019068")

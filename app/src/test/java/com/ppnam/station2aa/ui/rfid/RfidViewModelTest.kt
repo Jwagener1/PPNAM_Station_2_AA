@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.rfid
 
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.domain.model.PalletInfo
@@ -11,7 +10,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -40,7 +38,6 @@ class RfidViewModelTest {
     private lateinit var useCase: PalletUseCase
     private lateinit var bus: ScanEventBus
     private lateinit var mqtt: MqttRepository
-    private lateinit var queue: OfflineQueueRepository
     private lateinit var viewModel: RfidViewModel
 
     private fun pallet(
@@ -68,11 +65,9 @@ class RfidViewModelTest {
                 com.ppnam.station2aa.domain.repository.MqttConnectionState.CONNECTED
             )
         )
-        queue = mock()
-        whenever(queue.pendingCount()).thenReturn(flowOf(0))
         bus = mock()
         whenever(bus.events).thenReturn(MutableSharedFlow())
-        viewModel = RfidViewModel(useCase, bus, mqtt, queue)
+        viewModel = RfidViewModel(useCase, bus, mqtt)
     }
 
     @After
@@ -197,7 +192,7 @@ class RfidViewModelTest {
     fun `a stray scan during recovery is ignored, and the honest recovery result survives`() = runTest {
         val events = MutableSharedFlow<ScanEvent>()
         whenever(bus.events).thenReturn(events)
-        val vm = RfidViewModel(useCase, bus, mqtt, queue)
+        val vm = RfidViewModel(useCase, bus, mqtt)
 
         whenever(useCase.lookup("TAG-1")).thenReturn(
             Result.success(pallet(tag = "TAG-1", usable = false, recoverable = true, state = PalletState.AtStation1))
@@ -252,7 +247,7 @@ class RfidViewModelTest {
     fun `a scan while idle still triggers a lookup`() = runTest {
         val events = MutableSharedFlow<ScanEvent>()
         whenever(bus.events).thenReturn(events)
-        val vm = RfidViewModel(useCase, bus, mqtt, queue)
+        val vm = RfidViewModel(useCase, bus, mqtt)
         whenever(useCase.lookup("TAG-1")).thenReturn(Result.success(pallet()))
 
         vm.startListening()

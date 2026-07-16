@@ -24,7 +24,6 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
-    val pendingCount by viewModel.pendingCount.collectAsState()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -37,7 +36,6 @@ fun LoginScreen(
     AppScaffold(
         title = "Log In",
         connectionState = connectionState,
-        pendingCount = pendingCount,
         onSettings = onNavigateSettings
     ) { padding ->
         Column(

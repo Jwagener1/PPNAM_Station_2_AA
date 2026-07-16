@@ -33,7 +33,6 @@ fun IngredientScanScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
-    val pendingCount by viewModel.pendingCount.collectAsState()
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
@@ -330,7 +329,6 @@ fun IngredientScanScreen(
     AppScaffold(
         title = "Scan Ingredients",
         connectionState = connectionState,
-        pendingCount = pendingCount,
         onBack = { showBackConfirmDialog = true },
         onRfidLookup = onRfidLookup
     ) { padding ->

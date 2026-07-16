@@ -32,7 +32,6 @@ fun JobLookupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
-    val pendingCount by viewModel.pendingCount.collectAsState()
     val activeJobs by viewModel.activeJobs.collectAsState()
     val activeJobsError by viewModel.activeJobsError.collectAsState()
     val session by viewModel.session.collectAsState()
@@ -58,7 +57,6 @@ fun JobLookupScreen(
     AppScaffold(
         title = "Job Lookup",
         connectionState = connectionState,
-        pendingCount = pendingCount,
         onBack = null,
         onRfidLookup = onRfidLookup,
         onSettings = onSettings,

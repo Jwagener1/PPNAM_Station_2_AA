@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import com.ppnam.station2aa.data.local.AppDatabase
 import com.ppnam.station2aa.data.local.BomCacheDao
-import com.ppnam.station2aa.data.local.OfflineQueueDao
 import com.ppnam.station2aa.data.mqtt.MqttRepositoryImpl
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import dagger.Module
@@ -21,11 +20,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): AppDatabase =
-        Room.databaseBuilder(ctx, AppDatabase::class.java, "ppnam_station2.db").build()
-
-    @Provides
-    @Singleton
-    fun provideOfflineQueueDao(db: AppDatabase): OfflineQueueDao = db.offlineQueueDao()
+        Room.databaseBuilder(ctx, AppDatabase::class.java, "ppnam_station2.db")
+            // The only surviving table is a BOM cache, which is disposable by definition, and the
+            // dropped offline_queue held nothing but permanently undeliverable legacy rows. There
+            // are no live users to migrate (the v3 cutover is big-bang), so a rebuild is correct.
+            // Note: the no-arg overload — Room here is 2.6.1, and the dropAllTables parameter only
+            // exists from 2.7 onward.
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     @Singleton

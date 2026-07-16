@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.home
 
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -8,7 +7,6 @@ import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -22,7 +20,6 @@ class HomeViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var mockMqttRepository: MqttRepository
-    private lateinit var mockOfflineQueueRepository: OfflineQueueRepository
     private lateinit var mockAuthUseCase: AuthUseCase
     private lateinit var mockSessionHolder: OperatorSessionHolder
     private lateinit var viewModel: HomeViewModel
@@ -31,18 +28,16 @@ class HomeViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         mockMqttRepository = mock()
-        mockOfflineQueueRepository = mock()
         mockAuthUseCase = mock()
         mockSessionHolder = mock()
 
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
-        whenever(mockOfflineQueueRepository.pendingCount()).thenReturn(flowOf(0))
         whenever(mockSessionHolder.session).thenReturn(
             MutableStateFlow(OperatorSession("sess-1", "OP-1", "Jane Smith", "Operator"))
         )
 
-        viewModel = HomeViewModel(mockMqttRepository, mockOfflineQueueRepository, mockAuthUseCase, mockSessionHolder)
+        viewModel = HomeViewModel(mockMqttRepository, mockAuthUseCase, mockSessionHolder)
     }
 
     @After

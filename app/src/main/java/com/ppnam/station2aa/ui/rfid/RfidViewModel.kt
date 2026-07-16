@@ -2,7 +2,6 @@ package com.ppnam.station2aa.ui.rfid
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.domain.model.PalletInfo
@@ -34,17 +33,13 @@ sealed class RfidUiState {
 class RfidViewModel @Inject constructor(
     private val useCase: PalletUseCase,
     private val scanEventBus: ScanEventBus,
-    private val mqttRepository: MqttRepository,
-    private val offlineQueueRepository: OfflineQueueRepository
+    private val mqttRepository: MqttRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RfidUiState>(RfidUiState.Idle)
     val uiState: StateFlow<RfidUiState> = _uiState.asStateFlow()
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
-
-    val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private var scanJob: Job? = null
 

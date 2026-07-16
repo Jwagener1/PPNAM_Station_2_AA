@@ -33,41 +33,15 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val connectionState by viewModel.connectionState.collectAsState()
-    val offlineQueueCount by viewModel.offlineQueueCount.collectAsState()
     val pinState = viewModel.pinState.value
     val pinInput = viewModel.pinInput.value
     val pinError = viewModel.pinError.value
     val applyState = viewModel.applyState.value
     val draft = viewModel.draftSettings.value
-    var showClearDialog by remember { mutableStateOf(false) }
-
-    if (showClearDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearDialog = false },
-            title = { Text("Clear offline queue?", color = TextPrimary) },
-            text = {
-                Text(
-                    "This permanently deletes $offlineQueueCount pending messages that have not been sent to the server.",
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearQueue(); showClearDialog = false }) {
-                    Text("Clear", color = DangerRed)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
-            },
-            containerColor = GraphiteSurface
-        )
-    }
 
     AppScaffold(
         title = "Settings",
         connectionState = connectionState,
-        pendingCount = offlineQueueCount,
         onBack = onBack
     ) { padding ->
         Column(
@@ -114,31 +88,6 @@ fun SettingsScreen(
                                 Text(statusLabel, style = MaterialTheme.typography.labelSmall, color = dotColor)
                             }
                         }
-                    }
-
-                    HorizontalDivider(color = GraphiteBorder, modifier = Modifier.padding(vertical = 10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                "OFFLINE QUEUE",
-                                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
-                                color = TextMuted
-                            )
-                            Text(
-                                "$offlineQueueCount pending",
-                                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
-                                color = TextPrimary
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = { showClearDialog = true },
-                            enabled = offlineQueueCount > 0
-                        ) { Text("Clear") }
                     }
 
                     HorizontalDivider(color = GraphiteBorder, modifier = Modifier.padding(vertical = 10.dp))
@@ -280,14 +229,6 @@ fun SettingsScreen(
                             keyboardType = KeyboardType.Number,
                             onValueChange = {
                                 viewModel.updateDraft(draft.copy(requestTimeoutMs = it.toLongOrNull() ?: draft.requestTimeoutMs))
-                            }
-                        )
-                        SettingsTextField(
-                            value = draft.queueDrainIntervalMin.toString(),
-                            label = "Queue Drain Interval (min)",
-                            keyboardType = KeyboardType.Number,
-                            onValueChange = {
-                                viewModel.updateDraft(draft.copy(queueDrainIntervalMin = it.toIntOrNull() ?: draft.queueDrainIntervalMin))
                             }
                         )
                     }

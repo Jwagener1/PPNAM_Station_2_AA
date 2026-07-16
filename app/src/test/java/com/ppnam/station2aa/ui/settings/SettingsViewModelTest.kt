@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.settings
 
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -22,7 +21,6 @@ class SettingsViewModelTest {
 
     private lateinit var mockSettingsRepository: SettingsRepository
     private lateinit var mockMqttRepository: MqttRepository
-    private lateinit var mockQueueRepository: OfflineQueueRepository
     private lateinit var viewModel: SettingsViewModel
 
     @Before
@@ -30,15 +28,13 @@ class SettingsViewModelTest {
         Dispatchers.setMain(testDispatcher)
         mockSettingsRepository = mock()
         mockMqttRepository = mock()
-        mockQueueRepository = mock()
 
         whenever(mockSettingsRepository.settingsFlow).thenReturn(flowOf(AppSettings()))
         runBlocking { whenever(mockSettingsRepository.current()).thenReturn(AppSettings()) }
         whenever(mockMqttRepository.connectionState)
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
-        whenever(mockQueueRepository.pendingCount()).thenReturn(flowOf(0))
 
-        viewModel = SettingsViewModel(mockSettingsRepository, mockMqttRepository, mockQueueRepository)
+        viewModel = SettingsViewModel(mockSettingsRepository, mockMqttRepository)
     }
 
     @After
@@ -102,13 +98,6 @@ class SettingsViewModelTest {
         val state = viewModel.applyState.value
         assertTrue(state is ApplyState.Failure)
         assertEquals("Connection refused", (state as ApplyState.Failure).message)
-    }
-
-    @Test
-    fun `clearQueue calls deletePending on repository`() = runTest {
-        viewModel.clearQueue()
-        advanceUntilIdle()
-        verify(mockQueueRepository).deletePending()
     }
 
     @Test

@@ -28,7 +28,6 @@ class SettingsRepository @Inject constructor(
         val MQTT_USERNAME           = stringPreferencesKey("mqtt_username")
         val MQTT_PASSWORD           = stringPreferencesKey("mqtt_password")
         val REQUEST_TIMEOUT_MS      = longPreferencesKey("request_timeout_ms")
-        val QUEUE_DRAIN_INTERVAL    = intPreferencesKey("queue_drain_interval_min")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
@@ -42,8 +41,7 @@ class SettingsRepository @Inject constructor(
             mqttUseTls           = prefs[Keys.MQTT_USE_TLS]         ?: true,
             mqttUsername         = prefs[Keys.MQTT_USERNAME]        ?: "admin",
             mqttPassword         = prefs[Keys.MQTT_PASSWORD]        ?: "admin",
-            requestTimeoutMs     = prefs[Keys.REQUEST_TIMEOUT_MS]   ?: 10_000L,
-            queueDrainIntervalMin = prefs[Keys.QUEUE_DRAIN_INTERVAL] ?: 15
+            requestTimeoutMs     = prefs[Keys.REQUEST_TIMEOUT_MS]   ?: 10_000L
         )
     }
 
@@ -61,7 +59,6 @@ class SettingsRepository @Inject constructor(
             prefs[Keys.MQTT_USERNAME]       = settings.mqttUsername
             prefs[Keys.MQTT_PASSWORD]       = settings.mqttPassword
             prefs[Keys.REQUEST_TIMEOUT_MS]  = settings.requestTimeoutMs
-            prefs[Keys.QUEUE_DRAIN_INTERVAL] = settings.queueDrainIntervalMin
         }
     }
 }

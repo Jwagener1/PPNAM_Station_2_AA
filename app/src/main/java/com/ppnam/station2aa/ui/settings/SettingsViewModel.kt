@@ -3,16 +3,13 @@ package com.ppnam.station2aa.ui.settings
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,8 +28,7 @@ sealed interface ApplyState {
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val mqttRepository: MqttRepository,
-    private val offlineQueueRepository: OfflineQueueRepository
+    private val mqttRepository: MqttRepository
 ) : ViewModel() {
 
     private val correctPin = "079545"
@@ -49,9 +45,6 @@ class SettingsViewModel @Inject constructor(
         private set
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
-
-    val offlineQueueCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     init {
         viewModelScope.launch {
@@ -94,12 +87,6 @@ class SettingsViewModel @Inject constructor(
                 val msg = result.exceptionOrNull()?.message ?: "Connection failed"
                 applyState.value = ApplyState.Failure(msg)
             }
-        }
-    }
-
-    fun clearQueue() {
-        viewModelScope.launch {
-            offlineQueueRepository.deletePending()
         }
     }
 }

@@ -2,7 +2,6 @@ package com.ppnam.station2aa.ui.mixing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ppnam.station2aa.data.local.OfflineQueueRepository
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
@@ -47,7 +46,6 @@ class MixingViewModel @Inject constructor(
     private val useCase: MixingUseCase,
     private val scanEventBus: ScanEventBus,
     private val mqttRepository: MqttRepository,
-    private val offlineQueueRepository: OfflineQueueRepository,
     private val authUseCase: AuthUseCase,
     private val sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
@@ -56,9 +54,6 @@ class MixingViewModel @Inject constructor(
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
-
-    val pendingCount: StateFlow<Int> = offlineQueueRepository.pendingCount()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
