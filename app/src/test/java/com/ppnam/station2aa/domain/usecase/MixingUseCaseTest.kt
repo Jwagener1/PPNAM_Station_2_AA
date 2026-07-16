@@ -578,7 +578,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)
+        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
 
         assertTrue(result.isSuccess)
         val outcome = result.getOrThrow()
@@ -611,7 +611,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0).getOrThrow()
+        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
 
         val lines = (outcome as IngredientScanOutcome.Accepted).updatedLines
         assertEquals(1, lines.size)
@@ -627,7 +627,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.Timeout))
 
-        useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)
+        useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
 
         verify(mockMqtt).request(
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
@@ -641,28 +641,68 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `a scan needing approval arrives as a rejection that still carries refreshed progress`() = runTest {
-        val body = IngredientScanResultResponse(
-            collectionId = "COL_000123",
-            requiresManagerApproval = true,
-            ingredients = listOf(
-                BomLineResponse(materialCode = "1600000301", requiresManagerApproval = true)
-            ),
-        )
-        whenever(
-            mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java))
-        ).thenReturn(
-            MqttOutcome.Rejected(body, null, "Over tolerance", NextAction.RETRY_WITH_MANAGER_APPROVAL)
-        )
+    fun `a scan needing approval returns everything required to resubmit it`() = runTest {
+        whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
+            .thenReturn(
+                MqttOutcome.Rejected(
+                    IngredientScanResultResponse(collectionId = "COL_000123", requiresManagerApproval = true),
+                    null, "Over tolerance", NextAction.RETRY_WITH_MANAGER_APPROVAL,
+                )
+            )
 
-        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0).getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "1/2", 3.0, "1600000301").getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.NeedsManagerApproval)
-        assertEquals("1600000301", (outcome as IngredientScanOutcome.NeedsManagerApproval).requestedMaterialCode)
-        // v3 has no exceptionId on the wire (Task 4 reworks this whole approval branch and its
-        // tests); MixingUseCase currently hardcodes "" to compile, so there is nothing meaningful
-        // to assert about it here.
-        assertEquals("Over tolerance", outcome.reason)
+        val needs = outcome as IngredientScanOutcome.NeedsManagerApproval
+        // Without these, the retry cannot rebuild the scan.
+        assertEquals("COL_000123", needs.collectionId)
+        assertEquals("TAG-1", needs.palletRfidTag)
+        assertEquals("1600000301", needs.requestedMaterialCode)
+        assertEquals("1/2", needs.bagSizeOption)
+        assertEquals(3.0, needs.bagCount!!, 0.001)
+        assertEquals("Over tolerance", needs.reason)
+    }
+
+    @Test
+    fun `an approved retry sends the original scan plus credentials`() = runTest {
+        whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(collectionId = "COL_000123"), NextAction.SCAN_INGREDIENT))
+
+        useCase.scanIngredient(
+            collectionId = "COL_000123", palletRfidTag = "TAG-1",
+            bagSizeOption = "1/2", bagCount = 3.0, requestedMaterialCode = "1600000301",
+            managerUsername = "manager1", managerPassword = "secret",
+            auditReason = "Approved additional bag after verified spillage.",
+        )
+
+        verify(mockMqtt).request(
+            eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
+            argThat<Any> {
+                this is com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload &&
+                    palletRfidTag == "TAG-1" && bagSizeOption == "1/2" && bagCount == 3.0 &&
+                    managerUsername == "manager1" && managerPassword == "secret" &&
+                    auditReason == "Approved additional bag after verified spillage."
+            },
+            eq("COL_000123"), eq(IngredientScanResultResponse::class.java),
+        )
+    }
+
+    @Test
+    fun `an ordinary scan omits the credential fields entirely`() = runTest {
+        // The contract forbids sending null or "" as a stand-in for absence; Gson omits nulls.
+        whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(), NextAction.SCAN_INGREDIENT))
+
+        useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0, "1600000301")
+
+        verify(mockMqtt).request(
+            eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
+            argThat<Any> {
+                this is com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload &&
+                    managerUsername == null && managerPassword == null && auditReason == null
+            },
+            any(), eq(IngredientScanResultResponse::class.java),
+        )
     }
 
     @Test
@@ -675,7 +715,7 @@ class MixingUseCaseTest {
             )
         )
 
-        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0).getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0, "1600000301").getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.NeedsRecovery)
         assertEquals("Pallet is not at Station 2", (outcome as IngredientScanOutcome.NeedsRecovery).reason)
@@ -689,7 +729,7 @@ class MixingUseCaseTest {
             MqttOutcome.Rejected(IngredientScanResultResponse(), null, "Unknown pallet", NextAction.NONE)
         )
 
-        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0).getOrThrow()
+        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.Rejected)
         assertEquals("Unknown pallet", (outcome as IngredientScanOutcome.Rejected).reason)
@@ -701,7 +741,7 @@ class MixingUseCaseTest {
             mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java))
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.NotConnected))
 
-        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)
+        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
@@ -742,16 +782,4 @@ class MixingUseCaseTest {
         assertEquals("Pallet is blocked", result.exceptionOrNull()?.message)
     }
 
-    // --- approveManagerException (deprecated stub) ---
-
-    @Suppress("DEPRECATION")
-    @Test
-    fun `approveManagerException always fails since v3 has no manager_approval_requested topic`() = runTest {
-        val result = useCase.approveManagerException(
-            "exception-1", "premix-1", "EPC:300833", "MAT-001", "manager1", "5678", "reason"
-        )
-
-        assertTrue(result.isFailure)
-        verify(mockMqtt, never()).request<Any>(any(), any(), any(), anyOrNull(), any())
-    }
 }

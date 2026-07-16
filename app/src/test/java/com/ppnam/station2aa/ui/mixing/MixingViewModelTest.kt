@@ -159,7 +159,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0))
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, ""))
             .thenReturn(Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine))))
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -176,8 +176,14 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
-            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material"))
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
+            Result.success(
+                com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval(
+                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    requestedMaterialCode = "MAT-002", bagSizeOption = "full", bagCount = 2.0,
+                    reason = "Wrong material",
+                )
+            )
         )
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -185,7 +191,10 @@ class MixingViewModelTest {
 
         val state = viewModel.uiState.value
         assertTrue(state is MixingUiState.IngredientExceptionApproval)
-        assertEquals("exception-1", (state as MixingUiState.IngredientExceptionApproval).exceptionId)
+        // TODO(Task 6): v3's NeedsManagerApproval carries no exceptionId (there is no approval
+        // token); MixingViewModel currently hardcodes "" here to compile. Task 6 reworks this
+        // whole state/flow to resubmit the carried scan instead of tracking an exceptionId.
+        assertEquals("", (state as MixingUiState.IngredientExceptionApproval).exceptionId)
         assertEquals("Wrong material", state.reason)
     }
 
@@ -195,7 +204,7 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
         )
 
@@ -208,31 +217,40 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `submitManagerApproval on success retries the pending scan with the approvalId`() = runTest {
+    fun `submitManagerApproval is a non-functional stub pending Task 6's inline-approval rework`() = runTest {
+        // Task 4 (SP3) deletes MixingUseCase.approveManagerException — v3 has no
+        // manager_approval_requested topic or approval token, and approval is instead an inline
+        // resubmit of the original scan via scanIngredient(..., managerUsername, managerPassword,
+        // auditReason). Wiring that resubmit into MixingViewModel is Task 6's job, not Task 4's.
+        // This pins the current, deliberately-still-broken interim behaviour: submitManagerApproval
+        // reports failure and does not touch MixingUseCase at all.
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
-            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material", "MAT-002"))
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
+            Result.success(
+                com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval(
+                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    requestedMaterialCode = "MAT-002", bagSizeOption = "full", bagCount = 2.0,
+                    reason = "Wrong material",
+                )
+            )
         )
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
 
-        whenever(mockUseCase.approveManagerException(eq("exception-1"), eq("premix-1"), eq("EPC:300833"), eq("MAT-002"), eq("manager1"), eq("5678"), any()))
-            .thenReturn(Result.success("approval-1"))
-        val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
-            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
-        )
+        val errors = mutableListOf<String>()
+        val job = launch(testDispatcher) { viewModel.supervisorError.collect { errors.add(it) } }
 
         viewModel.submitManagerApproval("manager1", "5678")
         advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
-        // v3's scanIngredient has no approvalId argument, so the initial rejected scan and the
-        // retry after approval are indistinguishable by argument alone — hence times(2), not eq(1).
-        verify(mockUseCase, times(2)).scanIngredient("premix-1", "EPC:300833", "full", 2.0)
+        assertTrue(errors.isNotEmpty())
+        // Exactly the ONE call already made by confirmIngredientScan above — submitManagerApproval
+        // must not have triggered a resubmit of its own.
+        verify(mockUseCase, times(1)).scanIngredient(any(), any(), any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull())
+        job.cancel()
     }
 
     @Test
@@ -241,7 +259,7 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
         )
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -249,7 +267,7 @@ class MixingViewModelTest {
 
         whenever(mockUseCase.recoverHolding("premix-1", "EPC:300833")).thenReturn(Result.success(Unit))
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )
 
@@ -266,7 +284,7 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
             Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
         )
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -425,8 +443,14 @@ class MixingViewModelTest {
         // it is not restarted per-dialog, so this reproduces the real collector lifecycle.
         vm.startListeningForPalletScans("510019068")
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
-            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material"))
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "")).thenReturn(
+            Result.success(
+                com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval(
+                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    requestedMaterialCode = "MAT-002", bagSizeOption = "full", bagCount = 2.0,
+                    reason = "Wrong material",
+                )
+            )
         )
         vm.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
@@ -446,7 +470,9 @@ class MixingViewModelTest {
             "a stray scan mid-dialog must not clobber the manager-approval prompt",
             state is MixingUiState.IngredientExceptionApproval
         )
-        assertEquals("exception-1", (state as MixingUiState.IngredientExceptionApproval).exceptionId)
+        // TODO(Task 6): see the equivalent TODO above — exceptionId is a "" placeholder until
+        // Task 6 reworks this state to carry the resubmittable scan instead.
+        assertEquals("", (state as MixingUiState.IngredientExceptionApproval).exceptionId)
     }
 
     @Test
@@ -482,7 +508,7 @@ class MixingViewModelTest {
 
         vm.startListeningForPalletScans("510019068")
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0))
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, ""))
             .thenReturn(Result.failure(RuntimeException("Station 2 did not respond")))
         vm.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()

@@ -152,6 +152,10 @@ class MixingUseCase @Inject constructor(
         palletRfidTag: String,
         bagSizeOption: String,
         bagCount: Double,
+        requestedMaterialCode: String,
+        managerUsername: String? = null,
+        managerPassword: String? = null,
+        auditReason: String? = null,
     ): Result<IngredientScanOutcome> {
         val outcome = mqttRepository.request(
             requestType = "ingredient_scan_requested",
@@ -159,8 +163,12 @@ class MixingUseCase @Inject constructor(
             payload = IngredientScanPayload(
                 collectionId = collectionId,
                 palletRfidTag = palletRfidTag,
+                requestedMaterialCode = requestedMaterialCode,
                 bagSizeOption = bagSizeOption,
                 bagCount = bagCount,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                auditReason = auditReason,
             ),
             correlationKey = collectionId,
             responseClass = IngredientScanResultResponse::class.java,
@@ -178,25 +186,22 @@ class MixingUseCase @Inject constructor(
                         .map { it.toBomLine() }
                 )
             )
-            is MqttOutcome.Rejected -> {
-                val body = outcome.body
-                Result.success(
-                    when {
-                        // TODO(Task 4): v3 has no exceptionId/approval token — MixingUseCase's
-                        // manager-approval branch needs a full rework, not just a rename. Left as ""
-                        // here to compile; Task 4 owns fixing this properly.
-                        body.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
-                            exceptionId = "",
-                            reason = outcome.reason ?: "Manager approval required",
-                            requestedMaterialCode = body.ingredients
-                                .firstOrNull { it.requiresManagerApproval }?.materialCode.orEmpty(),
-                        )
-                        outcome.nextAction == NextAction.RECOVER_HOLDING ->
-                            IngredientScanOutcome.NeedsRecovery(outcome.reason)
-                        else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Ingredient scan rejected")
-                    }
-                )
-            }
+            is MqttOutcome.Rejected -> Result.success(
+                when {
+                    outcome.body.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
+                        // Rebuilt from the REQUEST — the response doesn't echo these back.
+                        collectionId = collectionId,
+                        palletRfidTag = palletRfidTag,
+                        requestedMaterialCode = requestedMaterialCode,
+                        bagSizeOption = bagSizeOption,
+                        bagCount = bagCount,
+                        reason = outcome.reason ?: "Manager approval required",
+                    )
+                    outcome.nextAction == NextAction.RECOVER_HOLDING ->
+                        IngredientScanOutcome.NeedsRecovery(outcome.reason)
+                    else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Ingredient scan rejected")
+                }
+            )
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
     }
@@ -208,23 +213,4 @@ class MixingUseCase @Inject constructor(
             collectionId = collectionId.ifBlank { null },
             auditReason = "Pallet is physically at Station 2; fixed door read was missed.",
         ).map { }
-
-    @Deprecated(
-        "v3 has no manager_approval_requested topic and no approvalId. A scan needing approval is " +
-            "resubmitted inline with managerUsername/managerPassword/auditReason and a FRESH " +
-            "messageId. Sub-project 3 replaces this flow and deletes this method. Kept only so " +
-            "MixingViewModel and IngredientScanScreen keep compiling; it will not work against a " +
-            "v3 backend."
-    )
-    suspend fun approveManagerException(
-        exceptionId: String,
-        collectionId: String,
-        palletRfidTag: String,
-        requestedMaterialCode: String,
-        managerUsername: String,
-        managerPassword: String,
-        reason: String,
-    ): Result<String> = Result.failure(
-        UnsupportedOperationException("Manager approval is reimplemented in sub-project 3")
-    )
 }

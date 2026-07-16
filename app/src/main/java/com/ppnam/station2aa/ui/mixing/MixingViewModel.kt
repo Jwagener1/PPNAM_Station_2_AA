@@ -171,28 +171,22 @@ class MixingViewModel @Inject constructor(
         pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount)
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.scanIngredient(order.collectionId, palletTag, bagSizeOption, bagCount)
+            // TODO(Task 6): requestedMaterialCode is not yet tracked for an ordinary pallet scan;
+            // "" is a placeholder left for Task 6, which reworks this whole call site.
+            useCase.scanIngredient(order.collectionId, palletTag, bagSizeOption, bagCount, "")
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
     }
 
+    // TODO(Task 6): v3 deletes approveManagerException and the approvalId handshake it used. The
+    // replacement is an inline resubmit — useCase.scanIngredient(..., managerUsername,
+    // managerPassword, auditReason) using the fields NeedsManagerApproval now carries — but wiring
+    // that up (including capturing an audit reason from the operator) is Task 6's job, not Task 4's.
+    // This stub only keeps the project compiling after Task 4 deleted approveManagerException; it
+    // still dead-ends, same as before.
     fun submitManagerApproval(managerUsername: String, managerPassword: String) {
-        val order = cachedOrder ?: return
-        val scan = pendingScan ?: return
-        viewModelScope.launch {
-            useCase.approveManagerException(
-                exceptionId = pendingExceptionId,
-                collectionId = order.collectionId,
-                palletRfidTag = scan.palletRfidTag,
-                requestedMaterialCode = pendingExceptionMaterialCode,
-                managerUsername = managerUsername,
-                managerPassword = managerPassword,
-                reason = "Operator-requested exception approval"
-            )
-                .onSuccess { approvalId -> retryPendingScan(order, approvalId) }
-                .onFailure { e -> _supervisorError.trySend(e.message ?: "Approval failed") }
-        }
+        _supervisorError.trySend("Manager approval is being reimplemented for schema 3.0 (Task 6)")
     }
 
     fun cancelManagerApproval() {
@@ -232,9 +226,12 @@ class MixingViewModel @Inject constructor(
                 _uiState.value = MixingUiState.OrderLoaded(updatedOrder)
             }
             is IngredientScanOutcome.NeedsManagerApproval -> {
-                pendingExceptionId = outcome.exceptionId
+                // TODO(Task 6): v3 has no exceptionId; NeedsManagerApproval now carries the whole
+                // original scan instead so it can be resubmitted with credentials attached. Wiring
+                // that resubmit through submitManagerApproval() is Task 6's job.
+                pendingExceptionId = ""
                 pendingExceptionMaterialCode = outcome.requestedMaterialCode
-                _uiState.value = MixingUiState.IngredientExceptionApproval(outcome.exceptionId, outcome.reason)
+                _uiState.value = MixingUiState.IngredientExceptionApproval("", outcome.reason)
             }
             is IngredientScanOutcome.NeedsRecovery -> {
                 _uiState.value = MixingUiState.PalletRecoveryPrompt(pendingScan?.palletRfidTag ?: "")
@@ -255,7 +252,8 @@ class MixingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount)
+            // TODO(Task 6): same requestedMaterialCode placeholder as confirmIngredientScan.
+            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, "")
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }

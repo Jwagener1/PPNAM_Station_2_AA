@@ -3,10 +3,15 @@ package com.ppnam.station2aa.data.mqtt.dto
 import com.ppnam.station2aa.domain.model.HopperBoardEntry
 
 /**
- * `ingredient_scan_requested`. Message-specific fields only.
+ * `ingredient_scan_requested`.
  *
- * Sub-project 3 adds v3's inline manager approval (managerUsername / managerPassword / auditReason
- * on a resubmitted scan with a FRESH messageId) and removes `approvalId`, which v3 does not have.
+ * Manager credentials travel INLINE on a resubmitted scan — v3 has no separate approval message and
+ * no approval token. The resubmit MUST carry a fresh messageId: reusing the rejected one is
+ * rejected as `message_id_reused` and does NOT perform the approval. The transport mints a new UUID
+ * per request() call, so a resubmit is automatically a new operation.
+ *
+ * `auditReason` is the operator's justification for the audit trail — not the same field as a
+ * response's `reason`, which is why Station 2 rejected something.
  */
 data class IngredientScanPayload(
     val collectionId: String,
@@ -15,6 +20,9 @@ data class IngredientScanPayload(
     val bagSizeOption: String? = null,
     val bagCount: Double? = null,
     val quantity: Double? = null,
+    val managerUsername: String? = null,
+    val managerPassword: String? = null,
+    val auditReason: String? = null,
 )
 
 /**
