@@ -72,10 +72,10 @@ fun RfidRecoveryScreen(
                                         Text("Pallet Found", style = MaterialTheme.typography.headlineSmall, color = SuccessGreen)
                                     }
                                     Spacer(Modifier.height(12.dp))
-                                    LabelValueRow("Tag ID", state.pallet.tagId)
-                                    LabelValueRow("Batch No", state.pallet.batchNo)
-                                    LabelValueRow("Item Code", state.pallet.itemCode)
-                                    LabelValueRow("Location", state.pallet.location)
+                                    LabelValueRow("Tag ID", state.pallet.palletRfidTag)
+                                    LabelValueRow("Batch No", state.pallet.batchNumber)
+                                    LabelValueRow("Item Code", state.pallet.productCode)
+                                    LabelValueRow("Location", state.pallet.localLocation)
                                 }
                             }
                         }
