@@ -9,6 +9,7 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
+import com.ppnam.station2aa.data.mqtt.dto.CollectionSummaryResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardLoadPayload
@@ -216,6 +217,106 @@ class MixingUseCaseTest {
         assertTrue(resin.isFullyAllocated)
         assertEquals(7.0, colorant.remainingQty, 0.0001)
         assertFalse(colorant.isFullyAllocated)
+    }
+
+    @Test
+    fun `duplicate material rows survive the mapping as separate lines`() = runTest {
+        // Keyed on materialCode, these would collapse into one and corrupt both lines' progress.
+        val response = BomLoadedResponse(
+            jobCardNumber = "510019068",
+            collectionId = "COL_000123",
+            ingredients = listOf(
+                BomLineResponse(lineNumber = 0, materialCode = "1600000301", materialName = "HD WHITE",
+                    plannedQuantity = 100.0, requiredQuantity = 100.0, remainingQuantity = 100.0, issueType = "im_Manual"),
+                BomLineResponse(lineNumber = 1, materialCode = "1600000301", materialName = "HD WHITE",
+                    plannedQuantity = 50.0, requiredQuantity = 50.0, remainingQuantity = 50.0, issueType = "im_Manual"),
+            ),
+        )
+        whenever(mockMqtt.request(eq("job_card_load_requested"), eq("bom_loaded"), any(), any(), eq(BomLoadedResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
+
+        val order = useCase.lookupJob("510019068").getOrThrow()
+
+        assertEquals(2, order.lines.size)
+        assertEquals(listOf(0, 1), order.lines.map { it.lineNumber })
+        assertEquals(listOf(100.0, 50.0), order.lines.map { it.requiredQty })
+    }
+
+    @Test
+    fun `a bulk line maps with null bag fields, not zeroes`() = runTest {
+        val response = BomLoadedResponse(
+            jobCardNumber = "510019068",
+            ingredients = listOf(
+                BomLineResponse(lineNumber = 0, materialCode = "BULK-1", materialName = "Bulk Resin",
+                    plannedQuantity = 500.0, requiredQuantity = 500.0, remainingQuantity = 500.0, issueType = "im_Manual",
+                    bagSize = null, expectedBags = null, scannedBags = null, remainingBags = null),
+            ),
+        )
+        whenever(mockMqtt.request(eq("job_card_load_requested"), eq("bom_loaded"), any(), any(), eq(BomLoadedResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
+
+        val line = useCase.lookupJob("510019068").getOrThrow().lines.single()
+
+        assertFalse(line.isBagged)
+        assertNull(line.expectedBags)
+        assertNull(line.remainingBags)
+    }
+
+    @Test
+    fun `a bagged line survives a job load with its bagSize and bag figures intact`() = runTest {
+        // Task 1's review: toProductionOrder() mapped no bag fields at all, so every line read as
+        // unbagged after a job load until its first scan refreshed it. On a resumed collection with
+        // a bagged line whose quantity is satisfied but bags are not, that reports "Fully Allocated" —
+        // a false positive. This pins the fix.
+        val response = BomLoadedResponse(
+            jobCardNumber = "510019068",
+            ingredients = listOf(
+                BomLineResponse(lineNumber = 0, materialCode = "1600000301", materialName = "HD WHITE",
+                    plannedQuantity = 557.049, requiredQuantity = 557.049, remainingQuantity = 0.0,
+                    bagSize = "25.000 kg", expectedBags = 22.282, scannedBags = 20.0, remainingBags = 2.282,
+                    issueType = "im_Manual"),
+            ),
+        )
+        whenever(mockMqtt.request(eq("job_card_load_requested"), eq("bom_loaded"), any(), any(), eq(BomLoadedResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
+
+        val line = useCase.lookupJob("510019068").getOrThrow().lines.single()
+
+        assertTrue(line.isBagged)
+        assertEquals("25.000 kg", line.bagSize)
+        assertEquals(22.282, line.expectedBags!!, 0.0001)
+        assertEquals(2.282, line.remainingBags!!, 0.0001)
+        // Quantity is satisfied but bags are not — this must NOT report as fully allocated/satisfied.
+        assertTrue(line.isFullyAllocated)
+        assertFalse(line.isSatisfied)
+    }
+
+    @Test
+    fun `bom_loaded carries availableQuantity, bagSize and the collection summary through`() = runTest {
+        val response = BomLoadedResponse(
+            jobCardNumber = "510019068",
+            collectionStatus = "Collecting",
+            collectionSummary = CollectionSummaryResponse(
+                waitingProductCount = 1, waitingQuantity = 557.049, summary = "1 product waiting for collection."
+            ),
+            ingredients = listOf(
+                BomLineResponse(lineNumber = 0, materialCode = "1600000301", materialName = "HD WHITE",
+                    plannedQuantity = 557.049, requiredQuantity = 557.049, remainingQuantity = 557.049, availableQuantity = 625.0,
+                    bagSize = "25.000 kg", expectedBags = 22.282, remainingBags = 22.282,
+                    issueType = "im_Manual", unit = "kg"),
+            ),
+        )
+        whenever(mockMqtt.request(eq("job_card_load_requested"), eq("bom_loaded"), any(), any(), eq(BomLoadedResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
+
+        val order = useCase.lookupJob("510019068").getOrThrow()
+
+        assertEquals("Collecting", order.collectionStatus)
+        assertEquals("1 product waiting for collection.", order.summary)
+        val line = order.lines.single()
+        assertEquals(625.0, line.availableQty, 0.001)
+        assertEquals("25.000 kg", line.bagSize)
+        assertEquals(22.282, line.expectedBags!!, 0.001)
     }
 
     @Test
@@ -457,6 +558,31 @@ class MixingUseCaseTest {
         assertEquals(30.0, line.remainingQty, 0.0001)
         assertEquals(3.0, line.remainingBags ?: 0.0, 0.0001)
         assertEquals("kg", line.uom)
+    }
+
+    @Test
+    fun `scanIngredient accepted filters the im_Backflush line out of updatedLines`() = runTest {
+        // MixingViewModel.handleScanOutcome() replaces the whole line list wholesale with this
+        // output. Without this filter, the product being made would reappear as a collectible line.
+        val response = IngredientScanResultResponse(
+            collectionId = "premix-1",
+            ingredientProgress = listOf(
+                BomLineResponse(materialCode = "MAT-001", materialName = "Resin", issueType = "im_Manual"),
+                BomLineResponse(materialCode = "22306", materialName = "CARRIER BAG LEVY", issueType = "im_Backflush"),
+            )
+        )
+        whenever(
+            mockMqtt.request(
+                eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
+                any(), any(), eq(IngredientScanResultResponse::class.java)
+            )
+        ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
+
+        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0).getOrThrow()
+
+        val lines = (outcome as IngredientScanOutcome.Accepted).updatedLines
+        assertEquals(1, lines.size)
+        assertEquals("MAT-001", lines.single().itemCode)
     }
 
     @Test

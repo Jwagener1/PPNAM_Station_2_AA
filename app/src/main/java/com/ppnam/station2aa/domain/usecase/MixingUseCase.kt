@@ -69,23 +69,35 @@ class MixingUseCase @Inject constructor(
     private fun BomLoadedResponse.toProductionOrder() = ProductionOrder(
         docNo = jobCardNumber,
         collectionId = collectionId,
+        collectionStatus = collectionStatus,
+        summary = collectionSummary.summary,
         // im_Backflush lines stay in Station 2's snapshot but are excluded from the handheld's
         // collection array — the one such line names the product being made.
         productBeingMade = ingredients.firstOrNull { it.issueType == "im_Backflush" }?.materialName,
         lines = ingredients
             .filter { it.issueType != "im_Backflush" }
-            .map { line ->
-                BomLine(
-                    lineNumber = line.lineNumber,
-                    itemCode = line.materialCode,
-                    itemName = line.materialName,
-                    requiredQty = line.plannedQuantity,
-                    collectedQty = line.issuedQuantity,
-                    remainingQty = line.remainingQuantity,
-                    // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
-                    uom = line.unit.ifBlank { line.uomCode },
-                )
-            },
+            .map { it.toBomLine() },
+    )
+
+    private fun BomLineResponse.toBomLine() = BomLine(
+        // Identity. Two lines may legitimately share a materialCode.
+        lineNumber = lineNumber,
+        itemCode = materialCode,
+        itemName = materialName,
+        requiredQty = requiredQuantity,
+        collectedQty = collectedQuantity,
+        weightReceived = weightReceived,
+        remainingQty = remainingQuantity,
+        availableQty = availableQuantity,
+        // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
+        uom = unit.ifBlank { uomCode },
+        // Null on a bulk line, and null is meaningful — do NOT coalesce to 0.0.
+        bagSize = bagSize,
+        expectedBags = expectedBags,
+        scannedBags = scannedBags,
+        approvedExtraBags = approvedExtraBags,
+        approvedShortBags = approvedShortBags,
+        remainingBags = remainingBags,
     )
 
     suspend fun fetchActiveJobCards(): Result<List<ActiveJobCardSummary>> =
@@ -156,7 +168,15 @@ class MixingUseCase @Inject constructor(
 
         return when (outcome) {
             is MqttOutcome.Accepted -> Result.success(
-                IngredientScanOutcome.Accepted(outcome.body.ingredientProgress.toBomLines())
+                IngredientScanOutcome.Accepted(
+                    outcome.body.ingredientProgress
+                        // Same rule as the initial load: the backflush line is the product being
+                        // made, not a component to collect. Without this filter a scan response
+                        // reintroduces it as a collectible line, because MixingViewModel replaces
+                        // the whole line list wholesale with this output.
+                        .filter { it.issueType != "im_Backflush" }
+                        .map { it.toBomLine() }
+                )
             )
             is MqttOutcome.Rejected -> {
                 val body = outcome.body
@@ -176,22 +196,6 @@ class MixingUseCase @Inject constructor(
             }
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
-    }
-
-    private fun List<BomLineResponse>.toBomLines(): List<BomLine> = map { line ->
-        BomLine(
-            lineNumber = line.lineNumber,
-            itemCode = line.materialCode,
-            itemName = line.materialName,
-            requiredQty = line.requiredQuantity,
-            collectedQty = line.collectedQuantity,
-            remainingQty = line.remainingQuantity,
-            uom = line.unit.ifBlank { line.uomCode },
-            bagSize = line.bagSize,
-            expectedBags = line.expectedBags,
-            scannedBags = line.scannedBags,
-            remainingBags = line.remainingBags,
-        )
     }
 
     /** Delegates to [PalletUseCase] — holding recovery has one implementation, in one place. */
