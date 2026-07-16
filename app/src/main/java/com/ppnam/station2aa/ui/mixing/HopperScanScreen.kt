@@ -2,8 +2,6 @@ package com.ppnam.station2aa.ui.mixing
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
@@ -12,8 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.ppnam.station2aa.domain.model.HopperAvailability
-import com.ppnam.station2aa.domain.model.HopperStatus
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.theme.*
 
@@ -28,7 +24,6 @@ fun HopperScanScreen(
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
-    val hopperStatuses = remember { mutableStateListOf<HopperStatus>() }
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { destination ->
@@ -54,33 +49,6 @@ fun HopperScanScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (hopperStatuses.isNotEmpty()) {
-                Text("Hopper Status", style = MaterialTheme.typography.labelMedium, color = TextMuted)
-                Spacer(Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(hopperStatuses) { hopper ->
-                        val chipColor = when (hopper.status) {
-                            HopperAvailability.AVAILABLE -> SuccessGreen
-                            HopperAvailability.IN_USE -> DangerRed
-                            HopperAvailability.OFFLINE -> TextMuted
-                        }
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(hopper.hopperCode, color = chipColor) },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = chipColor.copy(alpha = 0.10f)
-                            ),
-                            border = SuggestionChipDefaults.suggestionChipBorder(
-                                enabled = true,
-                                borderColor = chipColor.copy(alpha = 0.35f),
-                                disabledBorderColor = GraphiteBorder
-                            )
-                        )
-                    }
-                }
-                Spacer(Modifier.height(24.dp))
-            }
-
             Spacer(Modifier.weight(1f))
 
             when (val state = uiState) {
