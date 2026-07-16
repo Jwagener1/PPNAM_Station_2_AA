@@ -472,6 +472,41 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `a scan arriving while Error is showing still reaches the scan flow`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+
+        vm.startListeningForPalletScans("510019068")
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0))
+            .thenReturn(Result.failure(RuntimeException("Station 2 did not respond")))
+        vm.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+        assertTrue(
+            "sanity check: a failed scan attempt should leave the screen in Error",
+            vm.uiState.value is MixingUiState.Error
+        )
+
+        // Error is a settled state, not an in-flight request or an open dialog. Rescanning from
+        // here is the operator's only recovery path on this screen (clearError() is unwired and
+        // the error card has no dismiss button), so the guard must let it through rather than
+        // trapping the operator behind a dead-end error card.
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(
+            "a rescan over a settled Error must open EnteringBagDetails, not be dropped",
+            state is MixingUiState.EnteringBagDetails
+        )
+        assertEquals("EPC:300833", (state as MixingUiState.EnteringBagDetails).palletTag)
+    }
+
+    @Test
     fun `pauseScanning cancels the active scan job so further scans are ignored`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)

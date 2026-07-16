@@ -143,10 +143,12 @@ class MixingViewModel @Inject constructor(
             // real RFID hardware is available on this handheld.
             scanEventBus.events.collect { event ->
                 // A scan landing mid-request or over an open dialog would clobber in-flight state
-                // or dismiss the dialog under the operator's hands. Ignore reads until the screen
-                // settles; scanning the next pallet from the normal state is still fine.
+                // or dismiss the dialog under the operator's hands. Ignore reads while a request is
+                // in flight or a dialog owns the screen. Error is a settled state, not an in-flight
+                // one — clearError() has no caller and the error card has no dismiss button, so
+                // rescanning here is the operator's only way to recover; treat it like OrderLoaded.
                 when (_uiState.value) {
-                    is MixingUiState.OrderLoaded -> {
+                    is MixingUiState.OrderLoaded, is MixingUiState.Error -> {
                         val palletTag = when (event) {
                             is ScanEvent.RfidTag -> event.tagId
                             is ScanEvent.Barcode -> event.value
