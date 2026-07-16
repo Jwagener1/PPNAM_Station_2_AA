@@ -52,7 +52,14 @@ class RfidViewModel @Inject constructor(
         scanJob?.cancel()
         scanJob = viewModelScope.launch {
             scanEventBus.events.filterIsInstance<ScanEvent.RfidTag>().collect { event ->
-                lookupPallet(event.tagId)
+                // A scan landing mid-request would start a second lookup racing the in-flight one to
+                // write _uiState, and the loser's result would be silently discarded — including an
+                // honest "recovered but still blocked" answer. Ignore scans until the current request
+                // settles; rescanning over a settled Result/Error is still fine.
+                when (_uiState.value) {
+                    is RfidUiState.Loading, is RfidUiState.Recovering -> return@collect
+                    else -> lookupPallet(event.tagId)
+                }
             }
         }
     }

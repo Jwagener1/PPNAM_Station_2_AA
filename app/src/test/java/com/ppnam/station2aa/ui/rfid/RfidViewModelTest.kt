@@ -1,11 +1,13 @@
 package com.ppnam.station2aa.ui.rfid
 
 import com.ppnam.station2aa.data.local.OfflineQueueRepository
+import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.domain.model.PalletInfo
 import com.ppnam.station2aa.domain.model.PalletState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.PalletUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -13,17 +15,21 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import java.time.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.stub
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -32,9 +38,13 @@ class RfidViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private lateinit var useCase: PalletUseCase
+    private lateinit var bus: ScanEventBus
+    private lateinit var mqtt: MqttRepository
+    private lateinit var queue: OfflineQueueRepository
     private lateinit var viewModel: RfidViewModel
 
     private fun pallet(
+        tag: String = "TAG-1",
         found: Boolean = true,
         usable: Boolean = true,
         recoverable: Boolean = false,
@@ -42,7 +52,7 @@ class RfidViewModelTest {
         blocked: Boolean = false,
     ) = PalletInfo(
         found = found, usable = usable, recoverable = recoverable,
-        palletRfidTag = "TAG-1", palletId = "PAL-001", productCode = "1600000301",
+        palletRfidTag = tag, palletId = "PAL-001", productCode = "1600000301",
         productName = "HD WHITE", batchNumber = "BATCH-01", remainingQuantity = 625.0,
         remainingBags = 25.0, unit = "kg", localLocation = "Holding",
         palletState = state, blocked = blocked,
@@ -52,15 +62,15 @@ class RfidViewModelTest {
     fun setup() {
         Dispatchers.setMain(dispatcher)
         useCase = mock()
-        val mqtt: MqttRepository = mock()
+        mqtt = mock()
         whenever(mqtt.connectionState).thenReturn(
             kotlinx.coroutines.flow.MutableStateFlow(
                 com.ppnam.station2aa.domain.repository.MqttConnectionState.CONNECTED
             )
         )
-        val queue: OfflineQueueRepository = mock()
+        queue = mock()
         whenever(queue.pendingCount()).thenReturn(flowOf(0))
-        val bus: ScanEventBus = mock()
+        bus = mock()
         whenever(bus.events).thenReturn(MutableSharedFlow())
         viewModel = RfidViewModel(useCase, bus, mqtt, queue)
     }
@@ -181,5 +191,76 @@ class RfidViewModelTest {
         advanceUntilIdle()
 
         verify(useCase, never()).recoverToHolding(any(), any(), any())
+    }
+
+    @Test
+    fun `a stray scan during recovery is ignored, and the honest recovery result survives`() = runTest {
+        val events = MutableSharedFlow<ScanEvent>()
+        whenever(bus.events).thenReturn(events)
+        val vm = RfidViewModel(useCase, bus, mqtt, queue)
+
+        whenever(useCase.lookup("TAG-1")).thenReturn(
+            Result.success(pallet(tag = "TAG-1", usable = false, recoverable = true, state = PalletState.AtStation1))
+        )
+        // A stray scan for a different pallet lands while recovery is in flight. If the ViewModel
+        // does not guard against it, this stubbed lookup fires and clobbers the Recovering state.
+        whenever(useCase.lookup("TAG-2")).thenReturn(
+            Result.success(pallet(tag = "TAG-2", usable = true, state = PalletState.Holding))
+        )
+        val recoveryGate = CompletableDeferred<Unit>()
+        useCase.stub {
+            onBlocking { recoverToHolding(eq("TAG-1"), eq(null), any()) } doSuspendableAnswer {
+                recoveryGate.await()
+                Result.success(pallet(tag = "TAG-1", usable = false, blocked = true, state = PalletState.Holding))
+            }
+        }
+
+        vm.startListening()
+        // A SharedFlow with no subscribers silently drops emissions rather than suspending, so the
+        // collector launched by startListening() must actually be running (subscribed) before we emit.
+        runCurrent()
+        events.emit(ScanEvent.RfidTag("TAG-1", Instant.now()))
+        advanceUntilIdle()
+
+        vm.recoverCurrentPallet()
+        runCurrent()
+        assertTrue(
+            "sanity check: recovery should be in flight before the stray scan arrives",
+            vm.uiState.value is RfidUiState.Recovering
+        )
+
+        // The stray scan arrives mid-recovery.
+        events.emit(ScanEvent.RfidTag("TAG-2", Instant.now()))
+        advanceUntilIdle()
+
+        verify(useCase, never()).lookup("TAG-2")
+        assertTrue(
+            "a scan mid-recovery must not start a second lookup or disturb the in-flight state",
+            vm.uiState.value is RfidUiState.Recovering
+        )
+
+        recoveryGate.complete(Unit)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as RfidUiState.Result
+        assertEquals(PalletState.Holding, state.pallet.palletState)
+        assertEquals(false, state.pallet.usable)
+        assertTrue("the honest recovery result must survive, not be clobbered by the stray scan", state.pallet.blocked)
+    }
+
+    @Test
+    fun `a scan while idle still triggers a lookup`() = runTest {
+        val events = MutableSharedFlow<ScanEvent>()
+        whenever(bus.events).thenReturn(events)
+        val vm = RfidViewModel(useCase, bus, mqtt, queue)
+        whenever(useCase.lookup("TAG-1")).thenReturn(Result.success(pallet()))
+
+        vm.startListening()
+        runCurrent()
+        events.emit(ScanEvent.RfidTag("TAG-1", Instant.now()))
+        advanceUntilIdle()
+
+        verify(useCase).lookup("TAG-1")
+        assertTrue(vm.uiState.value is RfidUiState.Result)
     }
 }
