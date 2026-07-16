@@ -288,7 +288,7 @@ class MixingViewModelTest {
         val outcomes = mutableListOf<CancelOutcome>()
         val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
 
-        viewModel.cancelJob()
+        viewModel.cancelJob(managerUsername = "manager1", managerPassword = "secret")
         advanceUntilIdle()
 
         assertEquals(MixingUiState.Idle, viewModel.uiState.value)
@@ -307,7 +307,7 @@ class MixingViewModelTest {
         val outcomes = mutableListOf<CancelOutcome>()
         val job = launch(testDispatcher) { viewModel.cancelOutcome.collect { outcomes.add(it) } }
 
-        viewModel.cancelJob()
+        viewModel.cancelJob(managerUsername = "manager1", managerPassword = "secret")
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
@@ -336,20 +336,33 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `operatorCanCancelDirectly reflects the cancel_premix_direct allowed action`() = runTest {
-        whenever(mockSessionHolder.session).thenReturn(
-            MutableStateFlow(sessionWithActions("cancel_premix", "cancel_premix_direct"))
-        )
-        val directViewModel = MixingViewModel(
-            mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
-        )
+    fun `cancelJob refuses to send without manager credentials`() = runTest {
+        // v3 has no direct-cancel path: manager credentials are required on every privileged
+        // action, checked against the approver's account, even when the sender is a Manager.
+        // A job must be loaded first so this exercises the credential guard specifically,
+        // rather than the pre-existing blank-currentOrderNo guard.
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
 
-        assertTrue(directViewModel.operatorCanCancelDirectly())
+        viewModel.cancelJob(managerUsername = "", managerPassword = "")
+        advanceUntilIdle()
+
+        verify(mockUseCase, never()).cancelJob(any(), any(), any(), any(), any())
     }
 
     @Test
-    fun `operatorCanCancelDirectly is false without the capability`() = runTest {
-        assertFalse(viewModel.operatorCanCancelDirectly())
+    fun `cancelJob forwards the supplied manager credentials`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        whenever(mockUseCase.cancelJob(any(), any(), any(), eq("manager1"), eq("secret")))
+            .thenReturn(Result.success(mock()))
+
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.cancelJob(managerUsername = "manager1", managerPassword = "secret")
+        advanceUntilIdle()
+
+        verify(mockUseCase).cancelJob(any(), any(), any(), eq("manager1"), eq("secret"))
     }
 
     @Test

@@ -245,15 +245,16 @@ class MixingViewModel @Inject constructor(
         if (_uiState.value is MixingUiState.Error) _uiState.value = MixingUiState.Idle
     }
 
-    fun operatorCanCancelDirectly(): Boolean =
-        sessionHolder.session.value?.allowedActions?.contains("cancel_premix_direct") == true
-
     // Waits for premix_cancel_result before touching any local state — a rejected
     // cancel (e.g. the pre-mix already has scanned ingredients, or the manager
     // approval was denied) must leave the job exactly as it was, per the backend's
     // "only an untouched JC load can be closed" rule.
     fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
         if (_uiState.value is MixingUiState.Cancelling) return
+        // v3 authorises a privileged action solely by the manager credentials carried in the
+        // request, checked against the approver's account — never by the sender's session. There is
+        // no direct-cancel path, even for a Manager on their own handheld.
+        if (managerUsername.isBlank() || managerPassword.isBlank()) return
         val jobCardNumber = currentOrderNo
         val collectionId = cachedOrder?.collectionId ?: ""
         if (jobCardNumber.isBlank()) return
