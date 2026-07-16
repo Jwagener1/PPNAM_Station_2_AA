@@ -413,6 +413,65 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `a stray scan while the manager-approval dialog is open is ignored and the dialog survives`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+
+        // Scan listening starts once when the job loads and stays active continuously —
+        // it is not restarted per-dialog, so this reproduces the real collector lifecycle.
+        vm.startListeningForPalletScans("510019068")
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0)).thenReturn(
+            Result.success(com.ppnam.station2aa.domain.model.IngredientScanOutcome.NeedsManagerApproval("exception-1", "Wrong material"))
+        )
+        vm.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+        assertTrue(
+            "sanity check: the manager-approval dialog should be showing before the stray scan arrives",
+            vm.uiState.value is MixingUiState.IngredientExceptionApproval
+        )
+
+        // A stray read for a different pallet lands while the manager-approval dialog owns the
+        // screen. Unguarded, the collector would blindly flip state to EnteringBagDetails and
+        // dismiss the dialog out from under the operator, losing the pending exception.
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:999999", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(
+            "a stray scan mid-dialog must not clobber the manager-approval prompt",
+            state is MixingUiState.IngredientExceptionApproval
+        )
+        assertEquals("exception-1", (state as MixingUiState.IngredientExceptionApproval).exceptionId)
+    }
+
+    @Test
+    fun `a scan in the normal OrderLoaded state is still processed despite the guard`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
+
+        vm.startListeningForPalletScans("510019068")
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        // Over-correcting into ignoring every scan is worse than the original bug: the operator
+        // would think the reader is broken. A legitimate scan from the normal scanning state must
+        // still open the bag-entry dialog.
+        val state = vm.uiState.value
+        assertTrue(state is MixingUiState.EnteringBagDetails)
+        assertEquals("EPC:300833", (state as MixingUiState.EnteringBagDetails).palletTag)
+    }
+
+    @Test
     fun `pauseScanning cancels the active scan job so further scans are ignored`() = runTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)

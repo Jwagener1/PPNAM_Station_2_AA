@@ -142,11 +142,19 @@ class MixingViewModel @Inject constructor(
             // Barcode scans are accepted here too as a stand-in for RFID tags until
             // real RFID hardware is available on this handheld.
             scanEventBus.events.collect { event ->
-                val palletTag = when (event) {
-                    is ScanEvent.RfidTag -> event.tagId
-                    is ScanEvent.Barcode -> event.value
+                // A scan landing mid-request or over an open dialog would clobber in-flight state
+                // or dismiss the dialog under the operator's hands. Ignore reads until the screen
+                // settles; scanning the next pallet from the normal state is still fine.
+                when (_uiState.value) {
+                    is MixingUiState.OrderLoaded -> {
+                        val palletTag = when (event) {
+                            is ScanEvent.RfidTag -> event.tagId
+                            is ScanEvent.Barcode -> event.value
+                        }
+                        _uiState.value = MixingUiState.EnteringBagDetails(palletTag)
+                    }
+                    else -> return@collect
                 }
-                _uiState.value = MixingUiState.EnteringBagDetails(palletTag)
             }
         }
     }
