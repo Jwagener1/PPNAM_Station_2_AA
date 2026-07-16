@@ -13,10 +13,12 @@ import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
 import com.ppnam.station2aa.ui.mixing.MixingViewModel
 import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
+import com.ppnam.station2aa.ui.session.SessionWatcher
 import com.ppnam.station2aa.ui.settings.SettingsScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController = rememberNavController()) {
+    SessionWatcher(navController)
     NavHost(navController = navController, startDestination = NavRoutes.LOGIN) {
         composable(NavRoutes.LOGIN) {
             LoginScreen(
