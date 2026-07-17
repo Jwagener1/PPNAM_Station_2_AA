@@ -747,6 +747,74 @@ class MixingUseCaseTest {
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
     }
 
+    // --- waiveShortBags ---
+
+    @Test
+    fun `a waiver sends credentials on its first submission and carries no pallet`() = runTest {
+        // Not a reject-then-retry: there is no scan to fail first.
+        whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(collectionId = "COL_000123"), NextAction.SCAN_INGREDIENT))
+
+        useCase.waiveShortBags(
+            collectionId = "COL_000123", requestedMaterialCode = "1600000301", shortBagCount = 1.0,
+            managerUsername = "manager1", managerPassword = "secret",
+            auditReason = "One damaged bag unavailable.",
+        )
+
+        verify(mockMqtt).request(
+            eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
+            argThat<Any> {
+                this is com.ppnam.station2aa.data.mqtt.dto.ShortBagWaiverPayload &&
+                    collectionId == "COL_000123" &&
+                    requestedMaterialCode == "1600000301" &&
+                    shortBagCount == 1.0 &&
+                    managerUsername == "manager1" && managerPassword == "secret" &&
+                    auditReason == "One damaged bag unavailable."
+            },
+            eq("COL_000123"), eq(IngredientScanResultResponse::class.java),
+        )
+    }
+
+    @Test
+    fun `a waiver without credentials surfaces as needing approval, not a generic failure`() = runTest {
+        whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
+            .thenReturn(
+                MqttOutcome.Rejected(
+                    IngredientScanResultResponse(requiresManagerApproval = true),
+                    null, "Manager approval required.", NextAction.RETRY_WITH_MANAGER_APPROVAL,
+                )
+            )
+
+        val outcome = useCase.waiveShortBags("COL_000123", "1600000301", 1.0, "", "", "One damaged bag unavailable.")
+            .getOrThrow()
+
+        assertTrue(outcome is IngredientScanOutcome.NeedsApprovalForWaiver)
+    }
+
+    @Test
+    fun `an accepted waiver returns the refreshed lines`() = runTest {
+        whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
+            .thenReturn(
+                MqttOutcome.Accepted(
+                    IngredientScanResultResponse(
+                        collectionId = "COL_000123",
+                        ingredients = listOf(
+                            BomLineResponse(lineNumber = 0, materialCode = "1600000301",
+                                requiredQuantity = 532.049, approvedShortBags = 1.0, bagSize = "25.000 kg")
+                        ),
+                    ),
+                    NextAction.SCAN_INGREDIENT,
+                )
+            )
+
+        val outcome = useCase.waiveShortBags("COL_000123", "1600000301", 1.0, "manager1", "secret", "One damaged bag unavailable.")
+            .getOrThrow()
+
+        // A waiver adjusts the line's requirement directly; it never produces a scanned line.
+        val lines = (outcome as IngredientScanOutcome.Accepted).updatedLines
+        assertEquals(1.0, lines.single().approvedShortBags!!, 0.001)
+    }
+
     // --- recoverHolding ---
 
     @Test

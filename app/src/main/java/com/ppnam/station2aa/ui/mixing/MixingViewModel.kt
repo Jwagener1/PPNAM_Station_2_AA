@@ -241,6 +241,14 @@ class MixingViewModel @Inject constructor(
                 _supervisorError.trySend(outcome.reason)
                 _uiState.value = MixingUiState.OrderLoaded(order)
             }
+            is IngredientScanOutcome.NeedsApprovalForWaiver -> {
+                // TODO(Task 6): waiveShortBags() is not yet wired into this ViewModel, so a
+                // waiver can't actually reach this branch today. Minimal handling to keep the
+                // `when` exhaustive: surface the reason and fall back to the loaded order — the
+                // UI re-collecting credentials into a fresh waiveShortBags() call is Task 6's job.
+                _supervisorError.trySend(outcome.reason)
+                _uiState.value = MixingUiState.OrderLoaded(order)
+            }
         }
     }
 

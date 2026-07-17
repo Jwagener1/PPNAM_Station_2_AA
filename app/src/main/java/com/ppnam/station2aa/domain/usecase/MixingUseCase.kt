@@ -16,6 +16,7 @@ import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultRespon
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardLoadPayload
+import com.ppnam.station2aa.data.mqtt.dto.ShortBagWaiverPayload
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
@@ -200,6 +201,63 @@ class MixingUseCase @Inject constructor(
                     outcome.nextAction == NextAction.RECOVER_HOLDING ->
                         IngredientScanOutcome.NeedsRecovery(outcome.reason)
                     else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Ingredient scan rejected")
+                }
+            )
+            is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
+        }
+    }
+
+    /**
+     * Waives a short bag on a line. NOT a reject-then-retry: credentials travel on the FIRST
+     * submission, because there is no scan to attempt and fail first — the operator is declaring
+     * up front that a line will be short. Shares `ingredient_scan_requested` but sends a distinct
+     * [ShortBagWaiverPayload]: no pallet, no bag size, `shortBagCount` instead.
+     */
+    suspend fun waiveShortBags(
+        collectionId: String,
+        requestedMaterialCode: String,
+        shortBagCount: Double,
+        managerUsername: String,
+        managerPassword: String,
+        auditReason: String,
+    ): Result<IngredientScanOutcome> {
+        val outcome = mqttRepository.request(
+            requestType = "ingredient_scan_requested",
+            responseType = "ingredient_scan_result",
+            payload = ShortBagWaiverPayload(
+                collectionId = collectionId,
+                requestedMaterialCode = requestedMaterialCode,
+                shortBagCount = shortBagCount,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                auditReason = auditReason,
+            ),
+            correlationKey = collectionId,
+            responseClass = IngredientScanResultResponse::class.java,
+        )
+
+        return when (outcome) {
+            is MqttOutcome.Accepted -> Result.success(
+                IngredientScanOutcome.Accepted(
+                    // Same rule as scanIngredient: a waiver adjusts the line's requirement
+                    // directly and never produces a scanned line, but the backflush line still
+                    // needs filtering out of the wholesale-replaced line list.
+                    outcome.body.ingredients
+                        .filter { it.issueType != "im_Backflush" }
+                        .map { it.toBomLine() }
+                )
+            )
+            is MqttOutcome.Rejected -> Result.success(
+                when {
+                    outcome.body.requiresManagerApproval -> IngredientScanOutcome.NeedsApprovalForWaiver(
+                        collectionId = collectionId,
+                        requestedMaterialCode = requestedMaterialCode,
+                        shortBagCount = shortBagCount,
+                        reason = outcome.reason ?: "Manager approval required",
+                    )
+                    outcome.nextAction == NextAction.RECOVER_HOLDING ->
+                        IngredientScanOutcome.NeedsRecovery(outcome.reason)
+                    else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Waiver rejected")
                 }
             )
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))

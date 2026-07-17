@@ -53,3 +53,24 @@ data class IngredientScanResultResponse(
     /** Required by the contract in every scan result — including the ingredient-ready scan. */
     val hoppers: List<HopperBoardEntry> = emptyList(),
 )
+
+/**
+ * A short-bag waiver. Shares the `ingredient_scan_requested` topic but is a DISTINCT operation:
+ * there is no pallet and no bag size — the operator is declaring up front that a line will be short.
+ *
+ * Credentials go on the FIRST submission, not a retry: there is no scan to attempt and fail. Sent
+ * without them it is rejected outright with requiresManagerApproval.
+ *
+ * `requestedMaterialCode` is REQUIRED — there is no pallet to identify the line.
+ *
+ * The approver must hold `ingredient_approve_short_bag` — a different action id from an override's
+ * `ingredient_approve_override`. Station 2 checks that against the approver's account; we never do.
+ */
+data class ShortBagWaiverPayload(
+    val collectionId: String,
+    val requestedMaterialCode: String,
+    val shortBagCount: Double,
+    val managerUsername: String,
+    val managerPassword: String,
+    val auditReason: String,
+)
