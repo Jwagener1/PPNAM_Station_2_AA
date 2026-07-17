@@ -288,7 +288,12 @@ fun IngredientScanScreen(
                 TextButton(
                     enabled = exceptionUsername.isNotBlank() && exceptionPassword.isNotBlank(),
                     onClick = {
-                        viewModel.submitManagerApproval(exceptionUsername, exceptionPassword)
+                        // TODO(Task 7): no audit-reason input exists on this dialog yet. Passing ""
+                        // is safe — MixingViewModel.submitManagerApproval refuses a blank audit
+                        // reason fail-closed (nothing reaches the wire) and surfaces
+                        // validationError on this same state instead. Task 7 should add a real
+                        // reason field and stop relying on this placeholder.
+                        viewModel.submitManagerApproval(exceptionUsername, exceptionPassword, "")
                         exceptionUsername = ""
                         exceptionPassword = ""
                     }

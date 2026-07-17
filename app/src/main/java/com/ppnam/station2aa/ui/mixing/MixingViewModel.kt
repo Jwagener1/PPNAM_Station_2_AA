@@ -38,9 +38,11 @@ sealed class MixingUiState {
     /**
      * v3 has no exceptionId/approval token — approval is an inline resubmit of the pending scan
      * (held in the ViewModel, see [MixingViewModel.submitManagerApproval]), so this state carries
-     * only the reason to show the operator.
+     * only the reason to show the operator. [validationError] is set when a submission was refused
+     * client-side (blank credentials/audit reason) without ever reaching the wire — distinct from
+     * [reason], which is why approval was needed in the first place.
      */
-    data class IngredientExceptionApproval(val reason: String) : MixingUiState()
+    data class IngredientExceptionApproval(val reason: String, val validationError: String? = null) : MixingUiState()
     data class PalletRecoveryPrompt(val palletTag: String) : MixingUiState()
     data class Error(val message: String) : MixingUiState()
 
@@ -170,6 +172,25 @@ class MixingViewModel @Inject constructor(
      */
     private var pendingApproval: IngredientScanOutcome.NeedsManagerApproval? = null
 
+    /**
+     * Track the in-flight privileged submission, mirroring [scanJob]'s discipline: an in-flight
+     * guard (ignore re-entry — a fast double-tap on Approve/Waive must not fire two concurrent
+     * credentialed requests, each minting its own messageId and each processed as a distinct
+     * privileged action by Station 2) plus a cancellable handle so [cancelManagerApproval] can
+     * kill a still-running submission rather than let its late response silently overwrite
+     * whatever state the operator has since moved to.
+     */
+    private var approvalJob: Job? = null
+    private var waiverJob: Job? = null
+
+    /** Fail-closed: refuse to put a blank credential or a blank audit trail entry on the wire. */
+    private fun blankCredentialsMessage(managerUsername: String, managerPassword: String, auditReason: String): String? =
+        when {
+            managerUsername.isBlank() || managerPassword.isBlank() -> "Manager username and password are required."
+            auditReason.isBlank() -> "Audit reason is required."
+            else -> null
+        }
+
     fun pauseScanning() {
         scanJob?.cancel()
     }
@@ -255,13 +276,21 @@ class MixingViewModel @Inject constructor(
      * there is no approval token to retry against). No-op when nothing is pending, e.g. called
      * after the dialog was already dismissed via [cancelManagerApproval] or already resolved.
      *
-     * auditReason defaults to "" only to keep IngredientScanScreen's pre-Task-7 two-argument call
-     * site compiling; Task 7 should wire a real reason field and stop relying on the default.
+     * Ignores re-entry while a submission is already in flight ([approvalJob]), and refuses
+     * (fail-closed, nothing sent) blank credentials or a blank audit reason — surfaced as
+     * [MixingUiState.IngredientExceptionApproval.validationError] so the dialog can show why,
+     * rather than silently doing nothing.
      */
-    fun submitManagerApproval(managerUsername: String, managerPassword: String, auditReason: String = "") {
+    fun submitManagerApproval(managerUsername: String, managerPassword: String, auditReason: String) {
+        if (approvalJob?.isActive == true) return
         val approval = pendingApproval ?: return
         val order = cachedOrder ?: return
-        viewModelScope.launch {
+        val validationMessage = blankCredentialsMessage(managerUsername, managerPassword, auditReason)
+        if (validationMessage != null) {
+            _uiState.value = MixingUiState.IngredientExceptionApproval(approval.reason, validationMessage)
+            return
+        }
+        approvalJob = viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
             useCase.scanIngredient(
                 approval.collectionId,
@@ -287,6 +316,11 @@ class MixingViewModel @Inject constructor(
      * front that a line will be short. requestedMaterialCode is passed explicitly rather than read
      * from the armed line: Task 7's per-line waiver button targets whichever line the operator
      * taps "waive" on, independent of which line (if any) is currently armed for scanning.
+     *
+     * Same discipline as [submitManagerApproval]: ignores re-entry while [waiverJob] is already
+     * running, and refuses (fail-closed, nothing sent) blank credentials or a blank audit reason —
+     * surfaced via [supervisorError] since, unlike the approval dialog, there is no pre-existing
+     * waiver-dialog state to attach a validation message to on a first submission.
      */
     fun submitShortBagWaiver(
         requestedMaterialCode: String,
@@ -295,8 +329,14 @@ class MixingViewModel @Inject constructor(
         managerPassword: String,
         auditReason: String,
     ) {
+        if (waiverJob?.isActive == true) return
         val order = cachedOrder ?: return
-        viewModelScope.launch {
+        val validationMessage = blankCredentialsMessage(managerUsername, managerPassword, auditReason)
+        if (validationMessage != null) {
+            _supervisorError.trySend(validationMessage)
+            return
+        }
+        waiverJob = viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
             useCase.waiveShortBags(
                 order.collectionId,
@@ -312,6 +352,10 @@ class MixingViewModel @Inject constructor(
     }
 
     fun cancelManagerApproval() {
+        // Kill any in-flight resubmit too — otherwise its late response lands after the dialog is
+        // gone and silently overwrites whatever state the operator has since moved to.
+        approvalJob?.cancel()
+        approvalJob = null
         pendingScan = null
         pendingApproval = null
         val order = cachedOrder ?: return

@@ -10,7 +10,9 @@ import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +23,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.*
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MixingViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -379,6 +382,244 @@ class MixingViewModelTest {
             eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
             eq("manager1"), eq("secret"), eq("reason"),
         )
+    }
+
+    @Test
+    fun `submitManagerApproval refuses a blank audit reason without touching the wire`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.selectLine(0)
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+            Result.success(
+                IngredientScanOutcome.NeedsManagerApproval(
+                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
+                    reason = "Wrong material",
+                )
+            )
+        )
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        viewModel.submitManagerApproval("manager1", "secret", "")
+        advanceUntilIdle()
+
+        // Never even attempted a resubmit with these credentials — the guard returns before the
+        // wire call is built, not after a rejection.
+        verify(mockUseCase, never()).scanIngredient(
+            anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), eq("manager1"), eq("secret"), anyOrNull(),
+        )
+        val state = viewModel.uiState.value
+        assertTrue(state is MixingUiState.IngredientExceptionApproval)
+        state as MixingUiState.IngredientExceptionApproval
+        assertEquals("Wrong material", state.reason)
+        assertEquals("Audit reason is required.", state.validationError)
+    }
+
+    @Test
+    fun `submitManagerApproval refuses blank credentials without touching the wire`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.selectLine(0)
+
+        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+            Result.success(
+                IngredientScanOutcome.NeedsManagerApproval(
+                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
+                    reason = "Wrong material",
+                )
+            )
+        )
+        viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
+        advanceUntilIdle()
+
+        viewModel.submitManagerApproval("", "", "reason")
+        advanceUntilIdle()
+
+        verify(mockUseCase, never()).scanIngredient(
+            anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), any(), any(), anyOrNull(),
+        )
+        val state = viewModel.uiState.value
+        assertTrue(state is MixingUiState.IngredientExceptionApproval)
+        assertEquals(
+            "Manager username and password are required.",
+            (state as MixingUiState.IngredientExceptionApproval).validationError,
+        )
+    }
+
+    @Test
+    fun `a fast double-tap on Approve fires exactly one credentialed resubmit`() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        runTest(dispatcher) {
+            val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+
+            whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+            vm.lookupJob("510019068")
+            advanceUntilIdle()
+            vm.selectLine(0)
+
+            whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+                Result.success(
+                    IngredientScanOutcome.NeedsManagerApproval(
+                        collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                        requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
+                        reason = "Wrong material",
+                    )
+                )
+            )
+            vm.confirmIngredientScan("EPC:300833", "full", 2.0)
+            advanceUntilIdle()
+
+            val approvalGate = CompletableDeferred<Result<IngredientScanOutcome>>()
+            mockUseCase.stub {
+                onBlocking {
+                    scanIngredient(
+                        eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+                        eq("manager1"), eq("secret"), eq("Approved after verified spillage."),
+                    )
+                } doSuspendableAnswer { approvalGate.await() }
+            }
+
+            // The first tap's request is genuinely in flight (suspended on the gate) when the
+            // second tap lands — this is what an unconfined dispatcher can't reproduce.
+            vm.submitManagerApproval("manager1", "secret", "Approved after verified spillage.")
+            runCurrent()
+            assertTrue(
+                "sanity check: the first submission should be in flight before the double-tap",
+                vm.uiState.value is MixingUiState.Loading
+            )
+            vm.submitManagerApproval("manager1", "secret", "Approved after verified spillage.")
+            runCurrent()
+
+            val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
+            approvalGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            advanceUntilIdle()
+
+            verify(mockUseCase, times(1)).scanIngredient(
+                eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+                eq("manager1"), eq("secret"), eq("Approved after verified spillage."),
+            )
+            assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
+        }
+    }
+
+    @Test
+    fun `cancelManagerApproval cancels an in-flight resubmit so a late response cannot overwrite state`() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        runTest(dispatcher) {
+            val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+
+            whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+            vm.lookupJob("510019068")
+            advanceUntilIdle()
+            vm.selectLine(0)
+
+            whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+                Result.success(
+                    IngredientScanOutcome.NeedsManagerApproval(
+                        collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                        requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
+                        reason = "Wrong material",
+                    )
+                )
+            )
+            vm.confirmIngredientScan("EPC:300833", "full", 2.0)
+            advanceUntilIdle()
+            assertTrue(vm.uiState.value is MixingUiState.IngredientExceptionApproval)
+
+            val approvalGate = CompletableDeferred<Result<IngredientScanOutcome>>()
+            mockUseCase.stub {
+                onBlocking {
+                    scanIngredient(
+                        eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+                        eq("manager1"), eq("secret"), eq("reason"),
+                    )
+                } doSuspendableAnswer { approvalGate.await() }
+            }
+
+            vm.submitManagerApproval("manager1", "secret", "reason")
+            runCurrent()
+            assertTrue(
+                "sanity check: the resubmit should be in flight before it's cancelled",
+                vm.uiState.value is MixingUiState.Loading
+            )
+
+            vm.cancelManagerApproval()
+            advanceUntilIdle()
+            assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
+            assertEquals(0, (vm.uiState.value as MixingUiState.OrderLoaded).selectedLineNumber)
+
+            // The stale response lands late, after the operator has already moved on.
+            val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
+            approvalGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            advanceUntilIdle()
+
+            // Must still be the plain, unmutated OrderLoaded set by cancelManagerApproval — not
+            // clobbered by the cancelled request's outcome.
+            val state = vm.uiState.value
+            assertTrue(state is MixingUiState.OrderLoaded)
+            assertEquals(sampleOrder, (state as MixingUiState.OrderLoaded).order)
+        }
+    }
+
+    @Test
+    fun `submitShortBagWaiver refuses blank credentials or a blank audit reason without touching the wire`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        val errors = mutableListOf<String>()
+        val job = launch(testDispatcher) { viewModel.supervisorError.collect { errors.add(it) } }
+
+        viewModel.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "")
+        advanceUntilIdle()
+
+        verify(mockUseCase, never()).waiveShortBags(any(), any(), any(), any(), any(), any())
+        assertTrue(errors.any { it.contains("Audit reason") })
+        job.cancel()
+    }
+
+    @Test
+    fun `a fast double-tap on Waive fires exactly one waiver call`() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        runTest(dispatcher) {
+            val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+
+            whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+            vm.lookupJob("510019068")
+            advanceUntilIdle()
+
+            val waiverGate = CompletableDeferred<Result<IngredientScanOutcome>>()
+            mockUseCase.stub {
+                onBlocking {
+                    waiveShortBags(eq("premix-1"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("Short by 2 bags"))
+                } doSuspendableAnswer { waiverGate.await() }
+            }
+
+            vm.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
+            runCurrent()
+            assertTrue(
+                "sanity check: the first submission should be in flight before the double-tap",
+                vm.uiState.value is MixingUiState.Loading
+            )
+            vm.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
+            runCurrent()
+
+            val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
+            waiverGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            advanceUntilIdle()
+
+            verify(mockUseCase, times(1)).waiveShortBags(
+                eq("premix-1"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("Short by 2 bags"),
+            )
+        }
     }
 
     @Test
