@@ -362,6 +362,21 @@ class MixingViewModel @Inject constructor(
         _uiState.value = orderLoadedState(order)
     }
 
+    /**
+     * Dismisses a rejected short-bag waiver ([MixingUiState.ShortBagWaiverNeedsApproval]),
+     * mirroring [cancelManagerApproval]: kills any still-in-flight resubmit ([waiverJob]) so a
+     * late response landing after the operator has moved on cannot silently overwrite whatever
+     * state they're now in. Unlike [cancelManagerApproval] there is no pendingScan/pendingApproval
+     * to clear here — the waiver flow never populates them (see [handleScanOutcome]'s
+     * NeedsApprovalForWaiver branch).
+     */
+    fun cancelShortBagWaiver() {
+        waiverJob?.cancel()
+        waiverJob = null
+        val order = cachedOrder ?: return
+        _uiState.value = orderLoadedState(order)
+    }
+
     fun confirmPalletRecovery() {
         val order = cachedOrder ?: return
         val scan = pendingScan ?: return

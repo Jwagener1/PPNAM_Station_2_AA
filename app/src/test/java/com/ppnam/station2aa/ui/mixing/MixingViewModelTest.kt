@@ -706,6 +706,75 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `cancelShortBagWaiver cancels an in-flight waiver so a late response cannot overwrite state`() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        runTest(dispatcher) {
+            val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+
+            whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+            vm.lookupJob("510019068")
+            advanceUntilIdle()
+
+            val waiverGate = CompletableDeferred<Result<IngredientScanOutcome>>()
+            mockUseCase.stub {
+                onBlocking {
+                    waiveShortBags(eq("premix-1"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("reason"))
+                } doSuspendableAnswer { waiverGate.await() }
+            }
+
+            vm.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "reason")
+            runCurrent()
+            assertTrue(
+                "sanity check: the waiver should be in flight before it's cancelled",
+                vm.uiState.value is MixingUiState.Loading
+            )
+
+            vm.cancelShortBagWaiver()
+            advanceUntilIdle()
+            assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
+
+            // The stale response lands late, after the operator has already moved on.
+            val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
+            waiverGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            advanceUntilIdle()
+
+            // Must still be the plain, unmutated OrderLoaded set by cancelShortBagWaiver — not
+            // clobbered by the cancelled request's outcome.
+            val state = vm.uiState.value
+            assertTrue(state is MixingUiState.OrderLoaded)
+            assertEquals(sampleOrder, (state as MixingUiState.OrderLoaded).order)
+        }
+    }
+
+    @Test
+    fun `cancelShortBagWaiver dismisses a rejected waiver and returns to OrderLoaded`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        whenever(mockUseCase.waiveShortBags("premix-1", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags"))
+            .thenReturn(
+                Result.success(
+                    IngredientScanOutcome.NeedsApprovalForWaiver(
+                        collectionId = "premix-1", requestedMaterialCode = "MAT-001",
+                        shortBagCount = 2.0, reason = "Manager approval required",
+                    )
+                )
+            )
+        viewModel.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value is MixingUiState.ShortBagWaiverNeedsApproval)
+
+        viewModel.cancelShortBagWaiver()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is MixingUiState.OrderLoaded)
+        assertEquals(sampleOrder, (state as MixingUiState.OrderLoaded).order)
+    }
+
+    @Test
     fun `confirmPalletRecovery on success retries the pending scan`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")

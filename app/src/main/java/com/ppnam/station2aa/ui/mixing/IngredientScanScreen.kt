@@ -42,6 +42,16 @@ fun IngredientScanScreen(
     var bagCountText by rememberSaveable { mutableStateOf("1") }
     var exceptionUsername by remember { mutableStateOf("") }
     var exceptionPassword by remember { mutableStateOf("") }
+    var exceptionAuditReason by remember { mutableStateOf("") }
+    var showWaiverDialog by rememberSaveable { mutableStateOf(false) }
+    var waiverLineMaterialCode by remember { mutableStateOf("") }
+    var waiverShortBagCountText by rememberSaveable { mutableStateOf("") }
+    var waiverUsername by remember { mutableStateOf("") }
+    var waiverPassword by remember { mutableStateOf("") }
+    var waiverAuditReason by remember { mutableStateOf("") }
+    var rejectedWaiverUsername by remember { mutableStateOf("") }
+    var rejectedWaiverPassword by remember { mutableStateOf("") }
+    var rejectedWaiverAuditReason by remember { mutableStateOf("") }
 
     val allIngredientsSatisfied = (uiState as? MixingUiState.OrderLoaded)?.order?.lines?.all { bomLine ->
         bomLine.isSatisfied
@@ -246,17 +256,21 @@ fun IngredientScanScreen(
     }
 
     if (uiState is MixingUiState.IngredientExceptionApproval) {
-        val exceptionReason = (uiState as MixingUiState.IngredientExceptionApproval).reason
+        val exceptionState = uiState as MixingUiState.IngredientExceptionApproval
         AlertDialog(
             onDismissRequest = {
                 viewModel.cancelManagerApproval()
                 exceptionUsername = ""
                 exceptionPassword = ""
+                exceptionAuditReason = ""
             },
             title = { Text("Manager or admin approval required", color = TextPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(exceptionReason, color = TextMuted)
+                    Text(exceptionState.reason, color = TextMuted)
+                    exceptionState.validationError?.let { validationError ->
+                        Text(validationError, color = DangerRed, style = MaterialTheme.typography.labelMedium)
+                    }
                     OutlinedTextField(
                         value = exceptionUsername,
                         onValueChange = { exceptionUsername = it },
@@ -282,20 +296,28 @@ fun IngredientScanScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    OutlinedTextField(
+                        value = exceptionAuditReason,
+                        onValueChange = { exceptionAuditReason = it },
+                        label = { Text("Audit reason") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             },
             confirmButton = {
                 TextButton(
-                    enabled = exceptionUsername.isNotBlank() && exceptionPassword.isNotBlank(),
+                    enabled = exceptionUsername.isNotBlank() && exceptionPassword.isNotBlank() && exceptionAuditReason.isNotBlank(),
                     onClick = {
-                        // TODO(Task 7): no audit-reason input exists on this dialog yet. Passing ""
-                        // is safe — MixingViewModel.submitManagerApproval refuses a blank audit
-                        // reason fail-closed (nothing reaches the wire) and surfaces
-                        // validationError on this same state instead. Task 7 should add a real
-                        // reason field and stop relying on this placeholder.
-                        viewModel.submitManagerApproval(exceptionUsername, exceptionPassword, "")
+                        viewModel.submitManagerApproval(exceptionUsername, exceptionPassword, exceptionAuditReason)
                         exceptionUsername = ""
                         exceptionPassword = ""
+                        exceptionAuditReason = ""
                     }
                 ) { Text("Approve", color = AmberPrimary) }
             },
@@ -305,6 +327,7 @@ fun IngredientScanScreen(
                         viewModel.cancelManagerApproval()
                         exceptionUsername = ""
                         exceptionPassword = ""
+                        exceptionAuditReason = ""
                     }
                 ) { Text("Cancel", color = TextPrimary) }
             },
@@ -322,6 +345,189 @@ fun IngredientScanScreen(
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissPalletRecovery() }) { Text("No", color = TextPrimary) }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    // First-attempt short-bag waiver entry: purely local UI state, opened from the "Short bags"
+    // button on a line. Credentials travel on this first submission (unlike a scan there is no
+    // preceding attempt to reject first) — see MixingViewModel.submitShortBagWaiver.
+    if (showWaiverDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showWaiverDialog = false
+                waiverShortBagCountText = ""
+                waiverUsername = ""
+                waiverPassword = ""
+                waiverAuditReason = ""
+            },
+            title = { Text("Waive short bags", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Material: $waiverLineMaterialCode", color = TextMuted)
+                    OutlinedTextField(
+                        value = waiverShortBagCountText,
+                        onValueChange = { waiverShortBagCountText = it },
+                        label = { Text("Short bag count") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = waiverUsername,
+                        onValueChange = { waiverUsername = it },
+                        label = { Text("Manager/Admin Username") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = waiverPassword,
+                        onValueChange = { waiverPassword = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = waiverAuditReason,
+                        onValueChange = { waiverAuditReason = it },
+                        label = { Text("Audit reason") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = waiverShortBagCountText.toDoubleOrNull()?.let { it > 0.0 } == true &&
+                        waiverUsername.isNotBlank() && waiverPassword.isNotBlank() && waiverAuditReason.isNotBlank(),
+                    onClick = {
+                        val count = waiverShortBagCountText.toDoubleOrNull() ?: return@TextButton
+                        viewModel.submitShortBagWaiver(waiverLineMaterialCode, count, waiverUsername, waiverPassword, waiverAuditReason)
+                        showWaiverDialog = false
+                        waiverShortBagCountText = ""
+                        waiverUsername = ""
+                        waiverPassword = ""
+                        waiverAuditReason = ""
+                    }
+                ) { Text("Submit", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showWaiverDialog = false
+                        waiverShortBagCountText = ""
+                        waiverUsername = ""
+                        waiverPassword = ""
+                        waiverAuditReason = ""
+                    }
+                ) { Text("Cancel", color = TextPrimary) }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    if (uiState is MixingUiState.ShortBagWaiverNeedsApproval) {
+        val waiverState = uiState as MixingUiState.ShortBagWaiverNeedsApproval
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.cancelShortBagWaiver()
+                rejectedWaiverUsername = ""
+                rejectedWaiverPassword = ""
+                rejectedWaiverAuditReason = ""
+            },
+            title = { Text("Manager or admin approval required", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Material: ${waiverState.requestedMaterialCode}", color = TextMuted)
+                    Text("Short by %.2f bags".format(waiverState.shortBagCount), color = TextMuted)
+                    Text(waiverState.reason, color = TextMuted)
+                    OutlinedTextField(
+                        value = rejectedWaiverUsername,
+                        onValueChange = { rejectedWaiverUsername = it },
+                        label = { Text("Manager/Admin Username") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = rejectedWaiverPassword,
+                        onValueChange = { rejectedWaiverPassword = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = rejectedWaiverAuditReason,
+                        onValueChange = { rejectedWaiverAuditReason = it },
+                        label = { Text("Audit reason") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = rejectedWaiverUsername.isNotBlank() && rejectedWaiverPassword.isNotBlank() && rejectedWaiverAuditReason.isNotBlank(),
+                    onClick = {
+                        viewModel.submitShortBagWaiver(
+                            waiverState.requestedMaterialCode,
+                            waiverState.shortBagCount,
+                            rejectedWaiverUsername,
+                            rejectedWaiverPassword,
+                            rejectedWaiverAuditReason
+                        )
+                        rejectedWaiverUsername = ""
+                        rejectedWaiverPassword = ""
+                        rejectedWaiverAuditReason = ""
+                    }
+                ) { Text("Approve", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.cancelShortBagWaiver()
+                        rejectedWaiverUsername = ""
+                        rejectedWaiverPassword = ""
+                        rejectedWaiverAuditReason = ""
+                    }
+                ) { Text("Cancel", color = TextPrimary) }
             },
             containerColor = GraphiteSurface
         )
@@ -350,7 +556,7 @@ fun IngredientScanScreen(
                         }
                     }
                     is MixingUiState.Error -> {
-                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopStart) {
+                        Column(Modifier.weight(1f).fillMaxWidth()) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.12f)),
@@ -363,6 +569,11 @@ fun IngredientScanScreen(
                                     modifier = Modifier.padding(16.dp)
                                 )
                             }
+                            Spacer(Modifier.height(12.dp))
+                            Button(
+                                onClick = { viewModel.dismissError() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Dismiss") }
                         }
                     }
                     is MixingUiState.OrderLoaded -> {
@@ -392,6 +603,22 @@ fun IngredientScanScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = if (allSatisfied) SuccessGreen else TextMuted
                                 )
+                                if (order.summary.isNotBlank()) {
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        order.summary,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = TextMuted
+                                    )
+                                }
+                                if (!allSatisfied && state.selectedLineNumber == null) {
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        "Tap a line below to arm it before scanning a pallet.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AmberPrimary
+                                    )
+                                }
                             }
                         }
                         Spacer(Modifier.height(12.dp))
@@ -400,8 +627,9 @@ fun IngredientScanScreen(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(order.lines) { bomLine ->
+                            items(order.lines, key = { it.lineNumber }) { bomLine ->
                                 val satisfied = bomLine.isSatisfied
+                                val armed = state.selectedLineNumber == bomLine.lineNumber
                                 val fraction = if (bomLine.requiredQty > 0.0) {
                                     (bomLine.collectedQty / bomLine.requiredQty).toFloat().coerceIn(0f, 1f)
                                 } else {
@@ -410,13 +638,23 @@ fun IngredientScanScreen(
                                 val displayName = bomLine.itemName.ifBlank { bomLine.itemCode }
 
                                 Card(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { viewModel.selectLine(bomLine.lineNumber) },
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if (satisfied) SuccessGreen.copy(alpha = 0.10f) else GraphiteSurface
+                                        containerColor = when {
+                                            satisfied -> SuccessGreen.copy(alpha = 0.10f)
+                                            armed -> AmberPrimary.copy(alpha = 0.10f)
+                                            else -> GraphiteSurface
+                                        }
                                     ),
                                     border = BorderStroke(
-                                        1.dp,
-                                        if (satisfied) SuccessGreen.copy(alpha = 0.30f) else GraphiteBorder
+                                        if (armed) 2.dp else 1.dp,
+                                        when {
+                                            satisfied -> SuccessGreen.copy(alpha = 0.30f)
+                                            armed -> AmberPrimary
+                                            else -> GraphiteBorder
+                                        }
                                     )
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
@@ -424,12 +662,28 @@ fun IngredientScanScreen(
                                             modifier = Modifier.fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = displayName,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                color = TextPrimary,
-                                                modifier = Modifier.weight(1f)
-                                            )
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "Line ${bomLine.lineNumber}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = TextMuted
+                                                    )
+                                                    if (armed) {
+                                                        Spacer(Modifier.width(6.dp))
+                                                        Text(
+                                                            text = "ARMED",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = AmberPrimary
+                                                        )
+                                                    }
+                                                }
+                                                Text(
+                                                    text = displayName,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = TextPrimary
+                                                )
+                                            }
                                             if (satisfied) {
                                                 Icon(
                                                     imageVector = Icons.Filled.CheckCircle,
@@ -449,6 +703,17 @@ fun IngredientScanScreen(
                                                 color = if (satisfied) SuccessGreen else TextMuted
                                             )
                                         }
+                                        Spacer(Modifier.height(6.dp))
+                                        Text(
+                                            text = buildString {
+                                                append("Available: %.2f %s".format(bomLine.availableQty, bomLine.uom))
+                                                if (bomLine.isBagged) {
+                                                    append(" · Bag size: ${bomLine.bagSize}")
+                                                }
+                                            },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = TextMuted
+                                        )
                                         if (!bomLine.isSatisfied) {
                                             Spacer(Modifier.height(8.dp))
                                             LinearProgressIndicator(
@@ -460,6 +725,48 @@ fun IngredientScanScreen(
                                                 color = if (satisfied) SuccessGreen else AmberPrimary,
                                                 trackColor = GraphiteBorder
                                             )
+                                        }
+                                        // Every element below is gated on isBagged: a bulk line has no
+                                        // bag arithmetic (its bag fields are null, not zero) and must
+                                        // never render bag figures or be treated as bag-incomplete.
+                                        if (bomLine.isBagged) {
+                                            val expectedBags = bomLine.expectedBags ?: 0.0
+                                            val scannedBags = bomLine.scannedBags ?: 0.0
+                                            val bagFraction = if (expectedBags > 0.0) {
+                                                (scannedBags / expectedBags).toFloat().coerceIn(0f, 1f)
+                                            } else {
+                                                0f
+                                            }
+                                            Spacer(Modifier.height(6.dp))
+                                            Text(
+                                                text = "%.2f / %.2f full bags".format(scannedBags, expectedBags),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextMuted
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            LinearProgressIndicator(
+                                                progress = { bagFraction },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(6.dp)
+                                                    .clip(RoundedCornerShape(3.dp)),
+                                                color = if (satisfied) SuccessGreen else AmberPrimary,
+                                                trackColor = GraphiteBorder
+                                            )
+                                            if (!satisfied) {
+                                                Spacer(Modifier.height(4.dp))
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.End
+                                                ) {
+                                                    TextButton(
+                                                        onClick = {
+                                                            waiverLineMaterialCode = bomLine.itemCode
+                                                            showWaiverDialog = true
+                                                        }
+                                                    ) { Text("Short bags", color = AmberPrimary) }
+                                                }
+                                            }
                                         }
                                     }
                                 }
