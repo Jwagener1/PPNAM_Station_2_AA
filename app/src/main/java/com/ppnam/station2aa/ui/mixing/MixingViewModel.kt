@@ -36,7 +36,7 @@ sealed class MixingUiState {
     data class EnteringBagDetails(val palletTag: String) : MixingUiState()
 
     /**
-     * v3 has no exceptionId/approval token — approval is an inline resubmit of the pending scan
+     * v3 has no exception id or approval token — approval is an inline resubmit of the pending scan
      * (held in the ViewModel, see [MixingViewModel.submitManagerApproval]), so this state carries
      * only the reason to show the operator. [validationError] is set when a submission was refused
      * client-side (blank credentials/audit reason) without ever reaching the wire — distinct from
