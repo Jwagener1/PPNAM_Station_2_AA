@@ -26,11 +26,34 @@ sealed class MixingUiState {
     object Idle : MixingUiState()
     object Loading : MixingUiState()
     object Cancelling : MixingUiState()
-    data class OrderLoaded(val order: ProductionOrder) : MixingUiState()
+
+    /**
+     * [selectedLineNumber] is the tap-line-to-arm target (SP3 Task 6): the BOM line whose
+     * itemCode becomes requestedMaterialCode on the next ordinary pallet scan. Null means no line
+     * is armed.
+     */
+    data class OrderLoaded(val order: ProductionOrder, val selectedLineNumber: Int? = null) : MixingUiState()
     data class EnteringBagDetails(val palletTag: String) : MixingUiState()
-    data class IngredientExceptionApproval(val exceptionId: String, val reason: String) : MixingUiState()
+
+    /**
+     * v3 has no exceptionId/approval token — approval is an inline resubmit of the pending scan
+     * (held in the ViewModel, see [MixingViewModel.submitManagerApproval]), so this state carries
+     * only the reason to show the operator.
+     */
+    data class IngredientExceptionApproval(val reason: String) : MixingUiState()
     data class PalletRecoveryPrompt(val palletTag: String) : MixingUiState()
     data class Error(val message: String) : MixingUiState()
+
+    /**
+     * A rejected short-bag waiver. Deliberately distinct from [IngredientExceptionApproval]: a
+     * waiver has no pallet and is never resubmitted through the scan-resubmit path — the UI
+     * re-collects credentials into a fresh [MixingViewModel.submitShortBagWaiver] call.
+     */
+    data class ShortBagWaiverNeedsApproval(
+        val requestedMaterialCode: String,
+        val shortBagCount: Double,
+        val reason: String,
+    ) : MixingUiState()
 }
 
 object MixingNavDestination {
@@ -96,6 +119,11 @@ class MixingViewModel @Inject constructor(
     private var currentOrderNo: String = ""
     private var cachedOrder: ProductionOrder? = null
 
+    /** Tap-line-to-arm target. ViewModel-only, like [pendingScan]/[pendingApproval] below — not Room. */
+    private var armedLineNumber: Int? = null
+
+    private fun orderLoadedState(order: ProductionOrder) = MixingUiState.OrderLoaded(order, armedLineNumber)
+
     fun lookupJob(orderNo: String, collectionId: String = "") {
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
@@ -103,7 +131,10 @@ class MixingViewModel @Inject constructor(
                 .onSuccess { order ->
                     currentOrderNo = orderNo
                     cachedOrder = order
-                    _uiState.value = MixingUiState.OrderLoaded(order)
+                    // A fresh load/resume is a different BOM (possibly a different job entirely) —
+                    // a line number armed against the previous order must not silently carry over.
+                    armedLineNumber = null
+                    _uiState.value = orderLoadedState(order)
                     _navigationEvent.send(MixingNavDestination.JOB_LOADED)
                 }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Unknown error") }
@@ -124,12 +155,20 @@ class MixingViewModel @Inject constructor(
     private data class PendingIngredientScan(
         val palletRfidTag: String,
         val bagSizeOption: String,
-        val bagCount: Double
+        val bagCount: Double,
+        val requestedMaterialCode: String,
     )
 
+    /** The scan pending a Holding-recovery retry. Distinct from [pendingApproval] below. */
     private var pendingScan: PendingIngredientScan? = null
-    private var pendingExceptionId: String = ""
-    private var pendingExceptionMaterialCode: String = ""
+
+    /**
+     * The scan pending manager approval, stored ViewModel-only — never Room. It is short-lived (an
+     * operator standing at a pallet with a manager beside them); persisting it would invite
+     * resuming a stale approval hours later against a collection that has moved on. If the app
+     * dies mid-approval, the recovery path is to re-scan, not to resume.
+     */
+    private var pendingApproval: IngredientScanOutcome.NeedsManagerApproval? = null
 
     fun pauseScanning() {
         scanJob?.cancel()
@@ -142,11 +181,18 @@ class MixingViewModel @Inject constructor(
             // Barcode scans are accepted here too as a stand-in for RFID tags until
             // real RFID hardware is available on this handheld.
             scanEventBus.events.collect { event ->
-                // A scan landing mid-request or over an open dialog would clobber in-flight state
-                // or dismiss the dialog under the operator's hands. Ignore reads while a request is
-                // in flight or a dialog owns the screen. Error is a settled state, not an in-flight
-                // one — clearError() has no caller and the error card has no dismiss button, so
-                // rescanning here is the operator's only way to recover; treat it like OrderLoaded.
+                // Per-state scan-guard decision (SP3 Task 6), decided per state rather than
+                // inherited — fail-closed is the default, with two deliberate exceptions:
+                //  - OrderLoaded: ALLOWED — the normal scanning state; this is the point of the screen.
+                //  - Error: ALLOWED — a settled state, not an in-flight request or an open dialog.
+                //    dismissError() is now a real exit too, but rescanning must keep working as a
+                //    second recovery path — Error must never trap the operator behind a dead reader.
+                //  - Loading, Cancelling: BLOCKED — a request/cancel is in flight; a scan here would
+                //    race or clobber it.
+                //  - Idle: BLOCKED — nothing loaded to scan against.
+                //  - EnteringBagDetails, IngredientExceptionApproval, PalletRecoveryPrompt,
+                //    ShortBagWaiverNeedsApproval: BLOCKED — each owns the screen with a dialog the
+                //    operator is mid-interaction with; a stray scan must not clobber it.
                 when (_uiState.value) {
                     is MixingUiState.OrderLoaded, is MixingUiState.Error -> {
                         val palletTag = when (event) {
@@ -163,38 +209,113 @@ class MixingViewModel @Inject constructor(
 
     fun cancelBagEntry() {
         val order = cachedOrder ?: return
-        _uiState.value = MixingUiState.OrderLoaded(order)
+        _uiState.value = orderLoadedState(order)
+    }
+
+    /**
+     * Arms [lineNumber] as the scan target (tap-line-to-arm). Its itemCode becomes
+     * requestedMaterialCode on the next ordinary pallet scan. Arming survives a successful scan —
+     * several bags against the same line is the common case — and is cleared automatically once
+     * that line is satisfied (see [handleScanOutcome]), or explicitly when the operator arms a
+     * different line. Silently ignored when no order is loaded or [lineNumber] doesn't exist on it.
+     */
+    fun selectLine(lineNumber: Int) {
+        val order = cachedOrder ?: return
+        if (order.lines.none { it.lineNumber == lineNumber }) return
+        armedLineNumber = lineNumber
+        if (_uiState.value is MixingUiState.OrderLoaded) {
+            _uiState.value = orderLoadedState(order)
+        }
     }
 
     fun confirmIngredientScan(palletTag: String, bagSizeOption: String, bagCount: Double) {
         val order = cachedOrder ?: return
-        pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount)
+        val materialCode = armedLineNumber
+            ?.let { ln -> order.lines.firstOrNull { it.lineNumber == ln } }
+            ?.itemCode
+        if (materialCode == null) {
+            // No line armed: never put requestedMaterialCode = "" on the wire. Surface a clear
+            // prompt instead and let the operator pick a line before retrying the scan.
+            _supervisorError.trySend("Select a material line before scanning a pallet.")
+            _uiState.value = orderLoadedState(order)
+            return
+        }
+        pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount, materialCode)
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            // TODO(Task 6): requestedMaterialCode is not yet tracked for an ordinary pallet scan;
-            // "" is a placeholder left for Task 6, which reworks this whole call site.
-            useCase.scanIngredient(order.collectionId, palletTag, bagSizeOption, bagCount, "")
+            useCase.scanIngredient(order.collectionId, palletTag, bagSizeOption, bagCount, materialCode)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
     }
 
-    // TODO(Task 6): v3 deletes approveManagerException and the approvalId handshake it used. The
-    // replacement is an inline resubmit — useCase.scanIngredient(..., managerUsername,
-    // managerPassword, auditReason) using the fields NeedsManagerApproval now carries — but wiring
-    // that up (including capturing an audit reason from the operator) is Task 6's job, not Task 4's.
-    // This stub only keeps the project compiling after Task 4 deleted approveManagerException; it
-    // still dead-ends, same as before.
-    fun submitManagerApproval(managerUsername: String, managerPassword: String) {
-        _supervisorError.trySend("Manager approval is being reimplemented for schema 3.0 (Task 6)")
+    /**
+     * Resubmits the pending [IngredientScanOutcome.NeedsManagerApproval] scan with manager
+     * credentials attached — a fresh scanIngredient() call (the transport mints a new messageId;
+     * there is no approval token to retry against). No-op when nothing is pending, e.g. called
+     * after the dialog was already dismissed via [cancelManagerApproval] or already resolved.
+     *
+     * auditReason defaults to "" only to keep IngredientScanScreen's pre-Task-7 two-argument call
+     * site compiling; Task 7 should wire a real reason field and stop relying on the default.
+     */
+    fun submitManagerApproval(managerUsername: String, managerPassword: String, auditReason: String = "") {
+        val approval = pendingApproval ?: return
+        val order = cachedOrder ?: return
+        viewModelScope.launch {
+            _uiState.value = MixingUiState.Loading
+            useCase.scanIngredient(
+                approval.collectionId,
+                approval.palletRfidTag,
+                approval.bagSizeOption ?: "",
+                approval.bagCount ?: 0.0,
+                approval.requestedMaterialCode,
+                managerUsername,
+                managerPassword,
+                auditReason,
+            )
+                .onSuccess { outcome -> handleScanOutcome(order, outcome) }
+                .onFailure { e ->
+                    pendingApproval = null
+                    _uiState.value = MixingUiState.Error(e.message ?: "Approval failed")
+                }
+        }
+    }
+
+    /**
+     * Waives short bags on [requestedMaterialCode]. Credentials travel on this first submission —
+     * unlike a scan there is no preceding attempt to reject first; the operator is declaring up
+     * front that a line will be short. requestedMaterialCode is passed explicitly rather than read
+     * from the armed line: Task 7's per-line waiver button targets whichever line the operator
+     * taps "waive" on, independent of which line (if any) is currently armed for scanning.
+     */
+    fun submitShortBagWaiver(
+        requestedMaterialCode: String,
+        shortBagCount: Double,
+        managerUsername: String,
+        managerPassword: String,
+        auditReason: String,
+    ) {
+        val order = cachedOrder ?: return
+        viewModelScope.launch {
+            _uiState.value = MixingUiState.Loading
+            useCase.waiveShortBags(
+                order.collectionId,
+                requestedMaterialCode,
+                shortBagCount,
+                managerUsername,
+                managerPassword,
+                auditReason,
+            )
+                .onSuccess { outcome -> handleScanOutcome(order, outcome) }
+                .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Waiver failed") }
+        }
     }
 
     fun cancelManagerApproval() {
         pendingScan = null
-        pendingExceptionId = ""
-        pendingExceptionMaterialCode = ""
+        pendingApproval = null
         val order = cachedOrder ?: return
-        _uiState.value = MixingUiState.OrderLoaded(order)
+        _uiState.value = orderLoadedState(order)
     }
 
     fun confirmPalletRecovery() {
@@ -202,11 +323,11 @@ class MixingViewModel @Inject constructor(
         val scan = pendingScan ?: return
         viewModelScope.launch {
             useCase.recoverHolding(order.collectionId, scan.palletRfidTag)
-                .onSuccess { retryPendingScan(order, "") }
+                .onSuccess { retryPendingScan(order) }
                 .onFailure { e ->
                     pendingScan = null
                     _supervisorError.trySend(e.message ?: "Recovery failed")
-                    _uiState.value = MixingUiState.OrderLoaded(order)
+                    _uiState.value = orderLoadedState(order)
                 }
         }
     }
@@ -214,7 +335,7 @@ class MixingViewModel @Inject constructor(
     fun dismissPalletRecovery() {
         pendingScan = null
         val order = cachedOrder ?: return
-        _uiState.value = MixingUiState.OrderLoaded(order)
+        _uiState.value = orderLoadedState(order)
     }
 
     private fun handleScanOutcome(order: ProductionOrder, outcome: IngredientScanOutcome) {
@@ -223,52 +344,70 @@ class MixingViewModel @Inject constructor(
                 val updatedOrder = order.copy(lines = outcome.updatedLines)
                 cachedOrder = updatedOrder
                 pendingScan = null
-                _uiState.value = MixingUiState.OrderLoaded(updatedOrder)
+                pendingApproval = null
+                // Decision: an armed line survives a successful scan and stays armed until it is
+                // fully satisfied, or the operator arms a different line — repeated bags against
+                // the same material are the common case, so re-arming after every scan would be
+                // needless friction.
+                val armed = armedLineNumber?.let { ln -> updatedOrder.lines.firstOrNull { it.lineNumber == ln } }
+                if (armed != null && armed.isSatisfied) armedLineNumber = null
+                _uiState.value = orderLoadedState(updatedOrder)
             }
             is IngredientScanOutcome.NeedsManagerApproval -> {
-                // TODO(Task 6): v3 has no exceptionId; NeedsManagerApproval now carries the whole
-                // original scan instead so it can be resubmitted with credentials attached. Wiring
-                // that resubmit through submitManagerApproval() is Task 6's job.
-                pendingExceptionId = ""
-                pendingExceptionMaterialCode = outcome.requestedMaterialCode
-                _uiState.value = MixingUiState.IngredientExceptionApproval("", outcome.reason)
+                pendingApproval = outcome
+                _uiState.value = MixingUiState.IngredientExceptionApproval(outcome.reason)
             }
             is IngredientScanOutcome.NeedsRecovery -> {
+                pendingApproval = null
                 _uiState.value = MixingUiState.PalletRecoveryPrompt(pendingScan?.palletRfidTag ?: "")
             }
             is IngredientScanOutcome.Rejected -> {
                 pendingScan = null
+                pendingApproval = null
                 _supervisorError.trySend(outcome.reason)
-                _uiState.value = MixingUiState.OrderLoaded(order)
+                _uiState.value = orderLoadedState(order)
             }
             is IngredientScanOutcome.NeedsApprovalForWaiver -> {
-                // TODO(Task 6): waiveShortBags() is not yet wired into this ViewModel, so a
-                // waiver can't actually reach this branch today. Minimal handling to keep the
-                // `when` exhaustive: surface the reason and fall back to the loaded order — the
-                // UI re-collecting credentials into a fresh waiveShortBags() call is Task 6's job.
-                _supervisorError.trySend(outcome.reason)
-                _uiState.value = MixingUiState.OrderLoaded(order)
+                // Distinct from NeedsManagerApproval BY USER DECISION: a waiver is never
+                // resubmitted through the scan path (it has no pallet), so this must NOT populate
+                // pendingScan/pendingApproval — those exist only for the scan-resubmit flow. The UI
+                // re-collects credentials into a fresh submitShortBagWaiver() call instead.
+                pendingScan = null
+                pendingApproval = null
+                _uiState.value = MixingUiState.ShortBagWaiverNeedsApproval(
+                    outcome.requestedMaterialCode, outcome.shortBagCount, outcome.reason
+                )
             }
         }
     }
 
-    private fun retryPendingScan(order: ProductionOrder, approvalId: String) {
+    private fun retryPendingScan(order: ProductionOrder) {
         val scan = pendingScan
         if (scan == null) {
-            _uiState.value = MixingUiState.OrderLoaded(order)
+            _uiState.value = orderLoadedState(order)
             return
         }
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            // TODO(Task 6): same requestedMaterialCode placeholder as confirmIngredientScan.
-            useCase.scanIngredient(order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, "")
+            useCase.scanIngredient(
+                order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, scan.requestedMaterialCode
+            )
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
     }
 
-    fun clearError() {
-        if (_uiState.value is MixingUiState.Error) _uiState.value = MixingUiState.Idle
+    /**
+     * The only exit from [MixingUiState.Error] — replaces clearError(), which had zero callers and
+     * no dismiss button on screen, leaving Error a trap state (SP2's scan guard nearly shipped a
+     * permanently-dead reader over exactly this; it was only saved by letting scans through in
+     * Error, which remains true above). Returns to OrderLoaded, preserving the armed line, when an
+     * order is loaded; otherwise Idle.
+     */
+    fun dismissError() {
+        if (_uiState.value !is MixingUiState.Error) return
+        val order = cachedOrder
+        _uiState.value = if (order != null) orderLoadedState(order) else MixingUiState.Idle
     }
 
     // Waits for premix_cancel_result before touching any local state — a rejected
@@ -298,11 +437,12 @@ class MixingViewModel @Inject constructor(
                 .onSuccess {
                     currentOrderNo = ""
                     cachedOrder = null
+                    armedLineNumber = null
                     _uiState.value = MixingUiState.Idle
                     _cancelOutcome.send(CancelOutcome.Confirmed)
                 }
                 .onFailure { e ->
-                    _uiState.value = orderBeforeCancel?.let { MixingUiState.OrderLoaded(it) } ?: MixingUiState.Idle
+                    _uiState.value = orderBeforeCancel?.let { orderLoadedState(it) } ?: MixingUiState.Idle
                     if (orderBeforeCancel != null) startListeningForPalletScans(jobCardNumber)
                     _cancelOutcome.send(CancelOutcome.Failed(e.message ?: "Cancel failed"))
                 }
