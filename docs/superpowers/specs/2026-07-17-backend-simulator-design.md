@@ -80,7 +80,10 @@ Each run creates `tools/backend-sim/logs/<UTC timestamp>/`:
 
 ### Self-test (selftest.py)
 
-A fake handheld (`handheld_selftest`) connects to the same broker and drives: presence → login → open SAP job cards → job load → ingredient scans (including one over-tolerance rejection + approved retry and one short-bag waiver) → `choose_destination` → two-hopper start → partial finish → final finish (`ReadyForAllocation`) → extruder start consuming the pre-mix → finish → `station2_work_complete`. Plus negative probes: wrong schema, replayed messageId with changed body, stale timestamp, request on closed session. Exits non-zero on any contract deviation — run this before trusting the simulator to judge the app.
+Two transports: `--direct` runs the simulator **in-process** (no broker needed —
+added because the shared broker is not always reachable from the dev PC), while
+the default mode connects over MQTT to exercise the real transport. In both, a
+fake handheld (`handheld_selftest`) drives: presence → login → open SAP job cards → job load → ingredient scans (including one over-tolerance rejection + approved retry and one short-bag waiver) → `choose_destination` → two-hopper start → partial finish → final finish (`ReadyForAllocation`) → extruder start consuming the pre-mix → finish → `station2_work_complete`. Plus negative probes: wrong schema, replayed messageId with changed body, stale timestamp, request on closed session. Exits non-zero on any contract deviation — run this before trusting the simulator to judge the app.
 
 ## Error handling
 

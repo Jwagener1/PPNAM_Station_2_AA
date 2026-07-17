@@ -1,0 +1,205 @@
+{
+  "config": {
+    "overCollectionToleranceBags": 1.0,
+    "timestampWindowSeconds": 300,
+    "sessionHours": 16,
+    "defaultFullBagWeightKg": 25.0
+  },
+  "operators": [
+    {
+      "operatorId": "OP-001",
+      "username": "operator1",
+      "password": "pass",
+      "badgeTag": "BADGE001",
+      "displayName": "Operator One",
+      "role": "Operator",
+      "allowedActions": ["scan_ingredient", "start_machine_cycle", "finish_machine_cycle"],
+      "allowedTabs": ["collect", "premix", "allocation"]
+    },
+    {
+      "operatorId": "OP-012",
+      "username": "manager1",
+      "password": "secret",
+      "badgeTag": "BADGE012",
+      "displayName": "Manager One",
+      "role": "Manager",
+      "allowedActions": [
+        "scan_ingredient", "start_machine_cycle", "finish_machine_cycle",
+        "ingredient_approve_override", "ingredient_approve_short_bag",
+        "ingredient_collection_cancel", "machine_force_close",
+        "allocation_return", "allocation_transfer"
+      ],
+      "allowedTabs": ["collect", "premix", "allocation", "admin"]
+    }
+  ],
+  "machines": [
+    { "machineCode": "MXR-01", "displayName": "Hopper 1", "family": "Hopper", "status": "Available" },
+    { "machineCode": "MXR-02", "displayName": "Hopper 2", "family": "Hopper", "status": "Available" },
+    { "machineCode": "MXR-03", "displayName": "Hopper 3", "family": "Hopper", "status": "Inactive", "inactiveReason": "Under maintenance" },
+    { "machineCode": "EXT-03", "displayName": "Extruder 3", "family": "Extruder", "status": "Available" },
+    { "machineCode": "EXT-04", "displayName": "Extruder 4", "family": "Extruder", "status": "Available" },
+    { "machineCode": "RAJ-01", "displayName": "Rajoo 1", "family": "Rajoo", "status": "Available" }
+  ],
+  "materials": {
+    "1600000217": { "bulk": true },
+    "22306":      { "bulk": true }
+  },
+  "pallets": [
+    {
+      "palletRfidTag": "300833B2DDD9014000000001",
+      "palletId": "PAL-001",
+      "productCode": "1600000301",
+      "productName": "HD WHITE",
+      "batchNumber": "BATCH-A01",
+      "remainingQuantity": 625.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000002",
+      "palletId": "PAL-002",
+      "productCode": "1600000217",
+      "productName": "LD MIX WP (PP-PCW)",
+      "batchNumber": "BATCH-A02",
+      "remainingQuantity": 1800.0,
+      "fullBagWeight": null,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000003",
+      "palletId": "PAL-003",
+      "productCode": "1600000070",
+      "productName": "FILLER (GRANIC538/GBU 23/ME1545)",
+      "batchNumber": "BATCH-A03",
+      "remainingQuantity": 600.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": true
+    },
+    {
+      "palletRfidTag": "300833B2DDD901400000000C",
+      "palletId": "PAL-012",
+      "productCode": "1600000070",
+      "productName": "FILLER (GRANIC538/GBU 23/ME1545)",
+      "batchNumber": "BATCH-A12",
+      "remainingQuantity": 700.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000004",
+      "palletId": "PAL-004",
+      "productCode": "1600000233",
+      "productName": "PALLET WRAP (PP)",
+      "batchNumber": "BATCH-A04",
+      "remainingQuantity": 300.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Station1",
+      "palletState": "AtStation1",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000005",
+      "palletId": "PAL-005",
+      "productCode": "1500000326",
+      "productName": "MASTERBATCH WHITE MH 1316 HD / 5001",
+      "batchNumber": "BATCH-A05",
+      "remainingQuantity": 75.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Unknown",
+      "palletState": "Unknown",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000006",
+      "palletId": "PAL-006",
+      "productCode": "1600000309",
+      "productName": "STRETCHHOOD MATERIAL",
+      "batchNumber": "BATCH-A06",
+      "remainingQuantity": 0.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Consumed",
+      "palletState": "Consumed",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000007",
+      "palletId": "PAL-007",
+      "productCode": "1500000331",
+      "productName": "MASTERBATCH ME 005-014A DESICCANT",
+      "batchNumber": "BATCH-A07",
+      "remainingQuantity": 15.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000008",
+      "palletId": "PAL-008",
+      "productCode": "1600000309",
+      "productName": "STRETCHHOOD MATERIAL",
+      "batchNumber": "BATCH-A08",
+      "remainingQuantity": 875.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD9014000000009",
+      "palletId": "PAL-009",
+      "productCode": "1500000326",
+      "productName": "MASTERBATCH WHITE MH 1316 HD / 5001",
+      "batchNumber": "BATCH-A09",
+      "remainingQuantity": 250.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD901400000000A",
+      "palletId": "PAL-010",
+      "productCode": "1600000233",
+      "productName": "PALLET WRAP (PP)",
+      "batchNumber": "BATCH-A10",
+      "remainingQuantity": 450.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    },
+    {
+      "palletRfidTag": "300833B2DDD901400000000B",
+      "palletId": "PAL-011",
+      "productCode": "1500000331",
+      "productName": "MASTERBATCH ME 005-014A DESICCANT",
+      "batchNumber": "BATCH-A11",
+      "remainingQuantity": 500.0,
+      "fullBagWeight": 25.0,
+      "unit": "kg",
+      "localLocation": "Holding",
+      "palletState": "Holding",
+      "blocked": false
+    }
+  ]
+}
