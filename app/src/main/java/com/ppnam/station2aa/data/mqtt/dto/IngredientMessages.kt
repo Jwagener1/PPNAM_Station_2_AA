@@ -1,10 +1,17 @@
 package com.ppnam.station2aa.data.mqtt.dto
 
+import com.ppnam.station2aa.domain.model.HopperBoardEntry
+
 /**
- * `ingredient_scan_requested`. Message-specific fields only.
+ * `ingredient_scan_requested`.
  *
- * Sub-project 3 adds v3's inline manager approval (managerUsername / managerPassword / auditReason
- * on a resubmitted scan with a FRESH messageId) and removes `approvalId`, which v3 does not have.
+ * Manager credentials travel INLINE on a resubmitted scan — v3 has no separate approval message and
+ * no approval token. The resubmit MUST carry a fresh messageId: reusing the rejected one is
+ * rejected as `message_id_reused` and does NOT perform the approval. The transport mints a new UUID
+ * per request() call, so a resubmit is automatically a new operation.
+ *
+ * `auditReason` is the operator's justification for the audit trail — not the same field as a
+ * response's `reason`, which is why Station 2 rejected something.
  */
 data class IngredientScanPayload(
     val collectionId: String,
@@ -13,33 +20,57 @@ data class IngredientScanPayload(
     val bagSizeOption: String? = null,
     val bagCount: Double? = null,
     val quantity: Double? = null,
+    val managerUsername: String? = null,
+    val managerPassword: String? = null,
+    val auditReason: String? = null,
 )
 
-data class BomProgressLineResponse(
-    val materialCode: String = "",
-    val materialName: String = "",
-    val plannedQuantity: Double = 0.0,
-    val issuedQuantity: Double = 0.0,
-    val requiredQuantity: Double = 0.0,
-    val scannedQuantity: Double = 0.0,
-    val remainingQuantity: Double = 0.0,
-    val expectedBags: Double = 0.0,
-    val scannedBags: Double = 0.0,
-    val approvedExtraBags: Double = 0.0,
-    val approvedShortBags: Double = 0.0,
-    val remainingBags: Double = 0.0,
-    val requiresManagerApproval: Boolean = false,
-    val uomCode: String = "",
-    val unit: String = ""
-)
-
+/**
+ * `ingredient_scan_result`.
+ *
+ * Returns the FULL refreshed `ingredients[]` — not just the line this scan touched — so the scanner
+ * always holds the current picture. Every scan on one collection shares a correlationKey, so
+ * `inResponseToMessageId` is the only way to tell which scan a result belongs to (the transport
+ * handles that).
+ *
+ * `overCollectionToleranceBags` is the tolerance Station 2 ACTUALLY APPLIED — never hardcode it.
+ * It is null on a bulk line, where no automatic tolerance applies and any over-collection needs
+ * approval.
+ *
+ * The approver fields are null on an ordinary scan and name the account that authorised an override or
+ * waiver. `approverRole` is informational only.
+ */
 data class IngredientScanResultResponse(
     val collectionId: String = "",
-    val scannedQuantity: Double = 0.0,
-    val isRequirementSatisfied: Boolean = false,
-    val hasApprovedException: Boolean = false,
     val requiresManagerApproval: Boolean = false,
-    val exceptionId: String = "",
-    val consumedApprovalId: String = "",
-    val ingredientProgress: List<BomProgressLineResponse> = emptyList()
+    /** Null on a bulk line: no automatic tolerance applies there. */
+    val overCollectionToleranceBags: Double? = null,
+    val approverUserId: String? = null,
+    val approverDisplayName: String? = null,
+    val approverRole: String? = null,
+    val collectionSummary: CollectionSummaryResponse = CollectionSummaryResponse(),
+    val ingredients: List<BomLineResponse> = emptyList(),
+    /** Required by the contract in every scan result — including the ingredient-ready scan. */
+    val hoppers: List<HopperBoardEntry> = emptyList(),
+)
+
+/**
+ * A short-bag waiver. Shares the `ingredient_scan_requested` topic but is a DISTINCT operation:
+ * there is no pallet and no bag size — the operator is declaring up front that a line will be short.
+ *
+ * Credentials go on the FIRST submission, not a retry: there is no scan to attempt and fail. Sent
+ * without them it is rejected outright with requiresManagerApproval.
+ *
+ * `requestedMaterialCode` is REQUIRED — there is no pallet to identify the line.
+ *
+ * The approver must hold `ingredient_approve_short_bag` — a different action id from an override's
+ * `ingredient_approve_override`. Station 2 checks that against the approver's account; we never do.
+ */
+data class ShortBagWaiverPayload(
+    val collectionId: String,
+    val requestedMaterialCode: String,
+    val shortBagCount: Double,
+    val managerUsername: String,
+    val managerPassword: String,
+    val auditReason: String,
 )

@@ -12,6 +12,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -78,6 +79,11 @@ class MqttRequestCorrelationTest {
 
         val firstId = messageIdOf(0)
         val secondId = messageIdOf(1)
+
+        // The contract requires every request to be a distinct operation: an approval retry that
+        // reuses a messageId is rejected as message_id_reused and silently does NOT approve.
+        // Without this, id collision would surface only as a hang, not a failure.
+        assertNotEquals("every request() call must mint a fresh messageId", firstId, secondId)
 
         // Answer in REVERSE order. Topic-based matching would hand the second response to the
         // first caller; inResponseToMessageId must not.

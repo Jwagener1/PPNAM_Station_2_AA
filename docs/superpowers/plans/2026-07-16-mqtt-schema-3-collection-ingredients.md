@@ -420,9 +420,37 @@ In `MixingUseCase`, replace `BomLoadedResponse.toProductionOrder()`:
 
 **Note the change from SP1:** `requiredQty` now maps from `requiredQuantity`, not `plannedQuantity`. The contract distinguishes them — `plannedQuantity` is SAP's original, `requiredQuantity` is what remains required after any approved waiver adjusts the line. A ledger entry from a prior project flagged the dual-sourcing as a bug that made the progress bar jump.
 
-- [ ] **Step 4: Reuse the mapper for scan progress**
+- [ ] **Step 4: Reuse the mapper for scan progress — and filter backflush there too**
 
-`scanIngredient`'s `toBomLines()` now maps the same `BomLineResponse` type — delete it and call `toBomLine()`.
+`scanIngredient`'s `toBomLines()` now maps the same `BomLineResponse` type. Delete it and map through
+`toBomLine()` — **but keep the `im_Backflush` filter**, which `toBomLines()` currently lacks:
+
+```kotlin
+            is MqttOutcome.Accepted -> Result.success(
+                IngredientScanOutcome.Accepted(
+                    outcome.body.ingredients
+                        // Same rule as the initial load: the backflush line is the product being
+                        // made, not a component to collect. Without this filter a scan response
+                        // reintroduces it as a collectible line, because MixingViewModel replaces
+                        // the whole line list wholesale with this output.
+                        .filter { it.issueType != "im_Backflush" }
+                        .map { it.toBomLine() }
+                )
+            )
+```
+
+**Why this matters:** `MixingViewModel.handleScanOutcome()` does `order.copy(lines = outcome.updatedLines)`
+— a wholesale replacement. So an unfiltered scan response would contradict the initial load's own
+behaviour and put the product being made into the operator's collect list. This was found by Task 1's
+review as a pre-existing bug; the same filter must apply on both paths.
+
+**Also verify the bag fields actually land on the load path.** Task 1's review found
+`toProductionOrder()` mapping no bag fields at all — they defaulted to `null`, so every line read as
+*unbagged* after a job load until its first scan refreshed it. On a resumed collection with a bagged
+line whose quantity is satisfied but whose bags are not, that reports "Fully Allocated" — a false
+positive on the exact axis this sub-project exists to fix, and no test caught it. Step 3's
+`toBomLine()` fixes this by construction; **add a test proving a bagged line survives a job load with
+its `bagSize` and bag figures intact**, because nothing else pins it.
 
 - [ ] **Step 5: Run, build, commit**
 

@@ -8,14 +8,15 @@ import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
+import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
-import com.ppnam.station2aa.data.mqtt.dto.BomProgressLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardLoadPayload
+import com.ppnam.station2aa.data.mqtt.dto.ShortBagWaiverPayload
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
@@ -69,22 +70,35 @@ class MixingUseCase @Inject constructor(
     private fun BomLoadedResponse.toProductionOrder() = ProductionOrder(
         docNo = jobCardNumber,
         collectionId = collectionId,
+        collectionStatus = collectionStatus,
+        summary = collectionSummary.summary,
         // im_Backflush lines stay in Station 2's snapshot but are excluded from the handheld's
         // collection array — the one such line names the product being made.
         productBeingMade = ingredients.firstOrNull { it.issueType == "im_Backflush" }?.materialName,
         lines = ingredients
             .filter { it.issueType != "im_Backflush" }
-            .map { line ->
-                BomLine(
-                    itemCode = line.materialCode,
-                    itemName = line.materialName,
-                    requiredQty = line.plannedQuantity,
-                    scannedQty = line.issuedQuantity,
-                    remainingQty = line.remainingQuantity,
-                    // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
-                    uom = line.unit.ifBlank { line.uomCode },
-                )
-            },
+            .map { it.toBomLine() },
+    )
+
+    private fun BomLineResponse.toBomLine() = BomLine(
+        // Identity. Two lines may legitimately share a materialCode.
+        lineNumber = lineNumber,
+        itemCode = materialCode,
+        itemName = materialName,
+        requiredQty = requiredQuantity,
+        collectedQty = collectedQuantity,
+        weightReceived = weightReceived,
+        remainingQty = remainingQuantity,
+        availableQty = availableQuantity,
+        // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
+        uom = unit.ifBlank { uomCode },
+        // Null on a bulk line, and null is meaningful — do NOT coalesce to 0.0.
+        bagSize = bagSize,
+        expectedBags = expectedBags,
+        scannedBags = scannedBags,
+        approvedExtraBags = approvedExtraBags,
+        approvedShortBags = approvedShortBags,
+        remainingBags = remainingBags,
     )
 
     suspend fun fetchActiveJobCards(): Result<List<ActiveJobCardSummary>> =
@@ -139,6 +153,10 @@ class MixingUseCase @Inject constructor(
         palletRfidTag: String,
         bagSizeOption: String,
         bagCount: Double,
+        requestedMaterialCode: String,
+        managerUsername: String? = null,
+        managerPassword: String? = null,
+        auditReason: String? = null,
     ): Result<IngredientScanOutcome> {
         val outcome = mqttRepository.request(
             requestType = "ingredient_scan_requested",
@@ -146,8 +164,12 @@ class MixingUseCase @Inject constructor(
             payload = IngredientScanPayload(
                 collectionId = collectionId,
                 palletRfidTag = palletRfidTag,
+                requestedMaterialCode = requestedMaterialCode,
                 bagSizeOption = bagSizeOption,
                 bagCount = bagCount,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                auditReason = auditReason,
             ),
             correlationKey = collectionId,
             responseClass = IngredientScanResultResponse::class.java,
@@ -155,40 +177,91 @@ class MixingUseCase @Inject constructor(
 
         return when (outcome) {
             is MqttOutcome.Accepted -> Result.success(
-                IngredientScanOutcome.Accepted(outcome.body.ingredientProgress.toBomLines())
-            )
-            is MqttOutcome.Rejected -> {
-                val body = outcome.body
-                Result.success(
-                    when {
-                        body.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
-                            exceptionId = body.exceptionId,
-                            reason = outcome.reason ?: "Manager approval required",
-                            requestedMaterialCode = body.ingredientProgress
-                                .firstOrNull { it.requiresManagerApproval }?.materialCode.orEmpty(),
-                        )
-                        outcome.nextAction == NextAction.RECOVER_HOLDING ->
-                            IngredientScanOutcome.NeedsRecovery(outcome.reason)
-                        else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Ingredient scan rejected")
-                    }
+                IngredientScanOutcome.Accepted(
+                    outcome.body.ingredients
+                        // Same rule as the initial load: the backflush line is the product being
+                        // made, not a component to collect. Without this filter a scan response
+                        // reintroduces it as a collectible line, because MixingViewModel replaces
+                        // the whole line list wholesale with this output.
+                        .filter { it.issueType != "im_Backflush" }
+                        .map { it.toBomLine() }
                 )
-            }
+            )
+            is MqttOutcome.Rejected -> Result.success(
+                when {
+                    outcome.body.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
+                        // Rebuilt from the REQUEST — the response doesn't echo these back.
+                        collectionId = collectionId,
+                        palletRfidTag = palletRfidTag,
+                        requestedMaterialCode = requestedMaterialCode,
+                        bagSizeOption = bagSizeOption,
+                        bagCount = bagCount,
+                        reason = outcome.reason ?: "Manager approval required",
+                    )
+                    outcome.nextAction == NextAction.RECOVER_HOLDING ->
+                        IngredientScanOutcome.NeedsRecovery(outcome.reason)
+                    else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Ingredient scan rejected")
+                }
+            )
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
     }
 
-    private fun List<BomProgressLineResponse>.toBomLines(): List<BomLine> = map { line ->
-        BomLine(
-            itemCode = line.materialCode,
-            itemName = line.materialName,
-            requiredQty = line.requiredQuantity,
-            scannedQty = line.scannedQuantity,
-            remainingQty = line.remainingQuantity,
-            uom = line.unit.ifBlank { line.uomCode },
-            expectedBags = line.expectedBags,
-            scannedBags = line.scannedBags,
-            remainingBags = line.remainingBags,
+    /**
+     * Waives a short bag on a line. NOT a reject-then-retry: credentials travel on the FIRST
+     * submission, because there is no scan to attempt and fail first — the operator is declaring
+     * up front that a line will be short. Shares `ingredient_scan_requested` but sends a distinct
+     * [ShortBagWaiverPayload]: no pallet, no bag size, `shortBagCount` instead.
+     */
+    suspend fun waiveShortBags(
+        collectionId: String,
+        requestedMaterialCode: String,
+        shortBagCount: Double,
+        managerUsername: String,
+        managerPassword: String,
+        auditReason: String,
+    ): Result<IngredientScanOutcome> {
+        val outcome = mqttRepository.request(
+            requestType = "ingredient_scan_requested",
+            responseType = "ingredient_scan_result",
+            payload = ShortBagWaiverPayload(
+                collectionId = collectionId,
+                requestedMaterialCode = requestedMaterialCode,
+                shortBagCount = shortBagCount,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                auditReason = auditReason,
+            ),
+            correlationKey = collectionId,
+            responseClass = IngredientScanResultResponse::class.java,
         )
+
+        return when (outcome) {
+            is MqttOutcome.Accepted -> Result.success(
+                IngredientScanOutcome.Accepted(
+                    // Same rule as scanIngredient: a waiver adjusts the line's requirement
+                    // directly and never produces a scanned line, but the backflush line still
+                    // needs filtering out of the wholesale-replaced line list.
+                    outcome.body.ingredients
+                        .filter { it.issueType != "im_Backflush" }
+                        .map { it.toBomLine() }
+                )
+            )
+            is MqttOutcome.Rejected -> Result.success(
+                when {
+                    outcome.body.requiresManagerApproval -> IngredientScanOutcome.NeedsApprovalForWaiver(
+                        collectionId = collectionId,
+                        requestedMaterialCode = requestedMaterialCode,
+                        shortBagCount = shortBagCount,
+                        reason = outcome.reason ?: "Manager approval required",
+                    )
+                    outcome.nextAction == NextAction.RECOVER_HOLDING ->
+                        IngredientScanOutcome.NeedsRecovery(outcome.reason)
+                    else -> IngredientScanOutcome.Rejected(outcome.reason ?: "Waiver rejected")
+                }
+            )
+            is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
+        }
     }
 
     /** Delegates to [PalletUseCase] — holding recovery has one implementation, in one place. */
@@ -198,23 +271,4 @@ class MixingUseCase @Inject constructor(
             collectionId = collectionId.ifBlank { null },
             auditReason = "Pallet is physically at Station 2; fixed door read was missed.",
         ).map { }
-
-    @Deprecated(
-        "v3 has no manager_approval_requested topic and no approvalId. A scan needing approval is " +
-            "resubmitted inline with managerUsername/managerPassword/auditReason and a FRESH " +
-            "messageId. Sub-project 3 replaces this flow and deletes this method. Kept only so " +
-            "MixingViewModel and IngredientScanScreen keep compiling; it will not work against a " +
-            "v3 backend."
-    )
-    suspend fun approveManagerException(
-        exceptionId: String,
-        collectionId: String,
-        palletRfidTag: String,
-        requestedMaterialCode: String,
-        managerUsername: String,
-        managerPassword: String,
-        reason: String,
-    ): Result<String> = Result.failure(
-        UnsupportedOperationException("Manager approval is reimplemented in sub-project 3")
-    )
 }
