@@ -321,6 +321,12 @@ class MixingViewModel @Inject constructor(
      * running, and refuses (fail-closed, nothing sent) blank credentials or a blank audit reason —
      * surfaced via [supervisorError] since, unlike the approval dialog, there is no pre-existing
      * waiver-dialog state to attach a validation message to on a first submission.
+     *
+     * Also refuses a blank [requestedMaterialCode] fail-closed: the UI's waiver dialog is opened
+     * with the target line's material code held in `rememberSaveable` Compose state, which can in
+     * principle still arrive here blank (e.g. a caller bug), and this would otherwise put
+     * `waiveShortBags(collectionId, "", ...)` on the wire — a manager-approved waiver logged
+     * against no material.
      */
     fun submitShortBagWaiver(
         requestedMaterialCode: String,
@@ -331,6 +337,10 @@ class MixingViewModel @Inject constructor(
     ) {
         if (waiverJob?.isActive == true) return
         val order = cachedOrder ?: return
+        if (requestedMaterialCode.isBlank()) {
+            _supervisorError.trySend("Select a material line before submitting a waiver.")
+            return
+        }
         val validationMessage = blankCredentialsMessage(managerUsername, managerPassword, auditReason)
         if (validationMessage != null) {
             _supervisorError.trySend(validationMessage)

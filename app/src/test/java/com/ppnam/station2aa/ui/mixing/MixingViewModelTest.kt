@@ -586,6 +586,23 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `submitShortBagWaiver refuses a blank material code without touching the wire`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+
+        val errors = mutableListOf<String>()
+        val job = launch(testDispatcher) { viewModel.supervisorError.collect { errors.add(it) } }
+
+        viewModel.submitShortBagWaiver("", 2.0, "manager1", "secret", "Short by 2 bags")
+        advanceUntilIdle()
+
+        verify(mockUseCase, never()).waiveShortBags(any(), any(), any(), any(), any(), any())
+        assertTrue(errors.any { it.contains("material", ignoreCase = true) })
+        job.cancel()
+    }
+
+    @Test
     fun `a fast double-tap on Waive fires exactly one waiver call`() {
         val dispatcher = StandardTestDispatcher()
         Dispatchers.setMain(dispatcher)

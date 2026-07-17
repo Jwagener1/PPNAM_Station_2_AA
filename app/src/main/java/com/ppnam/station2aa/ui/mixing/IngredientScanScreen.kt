@@ -44,7 +44,10 @@ fun IngredientScanScreen(
     var exceptionPassword by remember { mutableStateOf("") }
     var exceptionAuditReason by remember { mutableStateOf("") }
     var showWaiverDialog by rememberSaveable { mutableStateOf(false) }
-    var waiverLineMaterialCode by remember { mutableStateOf("") }
+    // rememberSaveable, not remember: showWaiverDialog is rememberSaveable and survives process
+    // recreation on its own — if this didn't survive too, the dialog would reopen with a blank
+    // material code (see MixingViewModel.submitShortBagWaiver's matching fail-closed guard below).
+    var waiverLineMaterialCode by rememberSaveable { mutableStateOf("") }
     var waiverShortBagCountText by rememberSaveable { mutableStateOf("") }
     var waiverUsername by remember { mutableStateOf("") }
     var waiverPassword by remember { mutableStateOf("") }
@@ -420,7 +423,8 @@ fun IngredientScanScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = waiverShortBagCountText.toDoubleOrNull()?.let { it > 0.0 } == true &&
+                    enabled = waiverLineMaterialCode.isNotBlank() &&
+                        waiverShortBagCountText.toDoubleOrNull()?.let { it > 0.0 } == true &&
                         waiverUsername.isNotBlank() && waiverPassword.isNotBlank() && waiverAuditReason.isNotBlank(),
                     onClick = {
                         val count = waiverShortBagCountText.toDoubleOrNull() ?: return@TextButton
