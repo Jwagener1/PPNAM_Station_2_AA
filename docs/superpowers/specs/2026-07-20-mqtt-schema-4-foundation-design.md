@@ -111,7 +111,9 @@ using the contract's example codes:
 | MackieBulkMixing | 1 grey mixer | fixed Mackie extruder |
 | RajooMachineMixing | `RAJ-GM-01..03` (layers 1–3) | one 3-layer Rajoo extruder |
 
-**Handlers (`handlers/mixing.py`, replacing cycles.py's v3 paths and allocations.py):**
+**Handlers:** `handlers/cycles.py` and `handlers/allocations.py` are deleted outright
+(their topics are either retired or reborn under v4 semantics); one new
+`handlers/mixing.py` owns all of the following:
 - `mixing_overview_requested`: optional `mixingArea` / `productionOrderDocumentNumber`
   filters; unknown area → `invalid_mixing_area`; returns `equipment`, `activeCycles`,
   `readyMixes` (with `validNextMachineCodes`), `activeRuns`.
