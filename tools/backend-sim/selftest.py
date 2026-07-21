@@ -146,7 +146,8 @@ class DirectHandheld(Handheld):
 def collect_all(hh, col):
     """Drive one collection of job 510019068 from Collecting to ReadyForMixing:
     bag scans, bulk direct weight, over-tolerance approval, short-bag waiver.
-    Returns the final ingredient_scan_result."""
+    Returns the final ingredient_scan_result.
+    Seed pallet stock is sized for ~16 full collections; the suite runs five."""
     def scan(fields, **kw):
         f = {"collectionId": col, "correlationKey": col}
         f.update(fields)
@@ -460,6 +461,24 @@ def main():
     r, _ = hh.request("machine_cycle_finish_requested",
                       {"machineCode": "JAN-04", "cycleId": r["cycleId"]})
     check(r["accepted"], "JANDI 4 run finish")
+
+    print("== JANDI drum gate is per-mix, not global ==")
+    col5 = load_collection(hh, job)
+    collect_all(hh, col5)
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "JAN-MIX-01", "productionOrderDocumentNumber": job,
+                       "collectionId": col5})
+    check(r["accepted"], "second JANDI mixer start")
+    jmix2, jcyc2 = r["mixBatchId"], r["cycleId"]
+    r, _ = hh.request("machine_cycle_finish_requested",
+                      {"machineCode": "JAN-MIX-01", "cycleId": jcyc2})
+    check(r["accepted"], "second JANDI mixer finish")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "JAN-04", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [jmix2]})
+    check(not r["accepted"] and r["errorCode"] == "drum_cycle_required",
+          "a second JANDI mix stays drum-blocked after ANOTHER mix's drum finished "
+          "(gating is per-mix, not a global flag)")
 
     print("== Rajoo layer inputs + force-close ==")
     col4 = load_collection(hh, job)
