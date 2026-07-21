@@ -898,6 +898,43 @@ class MixingViewModelTest {
     }
 
     @Test
+    fun `openShortBagWaiver enters ShortBagWaiverEntry for a bagged line`() = runTest {
+        val baggedOrder = sampleOrder.copy(lines = listOf(
+            BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin",
+                requiredQty = 10.0, bagSize = "25.000 kg")))
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(baggedOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.openShortBagWaiver("MAT-001")
+        val state = viewModel.uiState.value
+        assertTrue(state is MixingUiState.ShortBagWaiverEntry)
+        assertEquals("MAT-001", (state as MixingUiState.ShortBagWaiverEntry).requestedMaterialCode)
+        viewModel.dismissShortBagWaiverEntry()
+        assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
+    }
+
+    @Test
+    fun `a stray scan while the first-attempt waiver dialog is open is ignored`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        val baggedOrder = sampleOrder.copy(lines = listOf(
+            BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin",
+                requiredQty = 10.0, bagSize = "25.000 kg")))
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(baggedOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+        vm.startListeningForPalletScans("510019068")
+        vm.openShortBagWaiver("MAT-001")
+
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:STRAY", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        assertTrue("dialog must survive a stray scan",
+            vm.uiState.value is MixingUiState.ShortBagWaiverEntry)
+    }
+
+    @Test
     fun `confirmPalletRecovery on success retries the pending scan`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")

@@ -44,11 +44,6 @@ fun IngredientScanScreen(
     var exceptionUsername by remember { mutableStateOf("") }
     var exceptionPassword by remember { mutableStateOf("") }
     var exceptionAuditReason by remember { mutableStateOf("") }
-    var showWaiverDialog by rememberSaveable { mutableStateOf(false) }
-    // rememberSaveable, not remember: showWaiverDialog is rememberSaveable and survives process
-    // recreation on its own — if this didn't survive too, the dialog would reopen with a blank
-    // material code (see MixingViewModel.submitShortBagWaiver's matching fail-closed guard below).
-    var waiverLineMaterialCode by rememberSaveable { mutableStateOf("") }
     var waiverShortBagCountText by rememberSaveable { mutableStateOf("") }
     var waiverUsername by remember { mutableStateOf("") }
     var waiverPassword by remember { mutableStateOf("") }
@@ -396,13 +391,14 @@ fun IngredientScanScreen(
         )
     }
 
-    // First-attempt short-bag waiver entry: purely local UI state, opened from the "Short bags"
-    // button on a line. Credentials travel on this first submission (unlike a scan there is no
-    // preceding attempt to reject first) — see MixingViewModel.submitShortBagWaiver.
-    if (showWaiverDialog) {
+    // First-attempt short-bag waiver entry: ViewModel state (SP3 gap 2), opened from the "Short
+    // bags" button on a line. Credentials travel on this first submission (unlike a scan there is
+    // no preceding attempt to reject first) — see MixingViewModel.submitShortBagWaiver.
+    if (uiState is MixingUiState.ShortBagWaiverEntry) {
+        val waiverMaterialCode = (uiState as MixingUiState.ShortBagWaiverEntry).requestedMaterialCode
         AlertDialog(
             onDismissRequest = {
-                showWaiverDialog = false
+                viewModel.dismissShortBagWaiverEntry()
                 waiverShortBagCountText = ""
                 waiverUsername = ""
                 waiverPassword = ""
@@ -411,7 +407,7 @@ fun IngredientScanScreen(
             title = { Text("Waive short bags", color = TextPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Material: $waiverLineMaterialCode", color = TextMuted)
+                    Text("Material: $waiverMaterialCode", color = TextMuted)
                     OutlinedTextField(
                         value = waiverShortBagCountText,
                         onValueChange = { waiverShortBagCountText = it },
@@ -466,13 +462,11 @@ fun IngredientScanScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = waiverLineMaterialCode.isNotBlank() &&
-                        waiverShortBagCountText.toDoubleOrNull()?.let { it > 0.0 } == true &&
+                    enabled = waiverShortBagCountText.toDoubleOrNull()?.let { it > 0.0 } == true &&
                         waiverUsername.isNotBlank() && waiverPassword.isNotBlank() && waiverAuditReason.isNotBlank(),
                     onClick = {
                         val count = waiverShortBagCountText.toDoubleOrNull() ?: return@TextButton
-                        viewModel.submitShortBagWaiver(waiverLineMaterialCode, count, waiverUsername, waiverPassword, waiverAuditReason)
-                        showWaiverDialog = false
+                        viewModel.submitShortBagWaiver(waiverMaterialCode, count, waiverUsername, waiverPassword, waiverAuditReason)
                         waiverShortBagCountText = ""
                         waiverUsername = ""
                         waiverPassword = ""
@@ -483,7 +477,7 @@ fun IngredientScanScreen(
             dismissButton = {
                 TextButton(
                     onClick = {
-                        showWaiverDialog = false
+                        viewModel.dismissShortBagWaiverEntry()
                         waiverShortBagCountText = ""
                         waiverUsername = ""
                         waiverPassword = ""
@@ -807,10 +801,7 @@ fun IngredientScanScreen(
                                                     horizontalArrangement = Arrangement.End
                                                 ) {
                                                     TextButton(
-                                                        onClick = {
-                                                            waiverLineMaterialCode = bomLine.itemCode
-                                                            showWaiverDialog = true
-                                                        }
+                                                        onClick = { viewModel.openShortBagWaiver(bomLine.itemCode) }
                                                     ) { Text("Short bags", color = AmberPrimary) }
                                                 }
                                             }

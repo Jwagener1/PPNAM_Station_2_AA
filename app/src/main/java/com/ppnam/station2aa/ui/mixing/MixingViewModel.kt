@@ -59,6 +59,13 @@ sealed class MixingUiState {
         val shortBagCount: Double,
         val reason: String,
     ) : MixingUiState()
+
+    /**
+     * The FIRST-ATTEMPT short-bag waiver entry dialog (SP3 gap 2). ViewModel state, not local
+     * Compose state, so the scan guard sees it and swallows stray RFID reads while it is open.
+     * Distinct from [ShortBagWaiverNeedsApproval], which is a REJECTED waiver being re-approved.
+     */
+    data class ShortBagWaiverEntry(val requestedMaterialCode: String) : MixingUiState()
 }
 
 object MixingNavDestination {
@@ -216,9 +223,9 @@ class MixingViewModel @Inject constructor(
                 //    race or clobber it.
                 //  - Idle: BLOCKED — nothing loaded to scan against.
                 //  - EnteringBagDetails, EnteringQuantityDetails, IngredientExceptionApproval,
-                //    PalletRecoveryPrompt, ShortBagWaiverNeedsApproval: BLOCKED — each owns the
-                //    screen with a dialog the operator is mid-interaction with; a stray scan must
-                //    not clobber it.
+                //    PalletRecoveryPrompt, ShortBagWaiverNeedsApproval, ShortBagWaiverEntry:
+                //    BLOCKED — each owns the screen with a dialog the operator is mid-interaction
+                //    with; a stray scan must not clobber it.
                 when (_uiState.value) {
                     is MixingUiState.OrderLoaded, is MixingUiState.Error -> {
                         val palletTag = when (event) {
@@ -358,6 +365,25 @@ class MixingViewModel @Inject constructor(
                     _uiState.value = MixingUiState.Error(e.message ?: "Approval failed")
                 }
         }
+    }
+
+    /**
+     * Opens the first-attempt waiver dialog for [requestedMaterialCode]. Only from OrderLoaded
+     * (the dialog owns the screen; opening it over another dialog or an in-flight request would
+     * fight the scan guard's whole point), and only for a real bagged line — a bulk line has no
+     * bag arithmetic to waive.
+     */
+    fun openShortBagWaiver(requestedMaterialCode: String) {
+        val order = cachedOrder ?: return
+        if (_uiState.value !is MixingUiState.OrderLoaded) return
+        if (order.lines.none { it.itemCode == requestedMaterialCode && it.isBagged }) return
+        _uiState.value = MixingUiState.ShortBagWaiverEntry(requestedMaterialCode)
+    }
+
+    fun dismissShortBagWaiverEntry() {
+        if (_uiState.value !is MixingUiState.ShortBagWaiverEntry) return
+        val order = cachedOrder ?: return
+        _uiState.value = orderLoadedState(order)
     }
 
     /**
