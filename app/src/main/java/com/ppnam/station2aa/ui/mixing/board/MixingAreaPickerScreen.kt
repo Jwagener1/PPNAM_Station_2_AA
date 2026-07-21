@@ -104,14 +104,3 @@ fun MixingAreaPickerScreen(
         }
     }
 }
-
-// Replaced by the real board screen in the next task; nav wiring compiles today.
-@Composable
-fun MixingBoardScreen(
-    area: MixingArea,
-    onBack: () -> Unit,
-    onLogout: () -> Unit,
-    viewModel: MixingBoardViewModel,
-) {
-    Text("Board for ${area.display}", color = TextPrimary)
-}
