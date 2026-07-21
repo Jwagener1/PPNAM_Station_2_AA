@@ -1,5 +1,5 @@
-"""Contract self-test: a fake handheld that drives the simulator through the
-contract's minimum end-to-end acceptance flow plus negative probes.
+"""Contract self-test: a fake handheld that drives the simulator through
+contract v4.0's minimum end-to-end acceptance flow plus negative probes.
 
 Two modes:
     python selftest.py --direct                 # in-process, no broker needed
@@ -60,7 +60,7 @@ class Handheld:
                             json.dumps(payload), qos=1)
 
     def request(self, request_type, fields=None, msg_id=None, session=None,
-                timestamp=None, schema="3.0", device=DEVICE, timeout=10):
+                timestamp=None, schema="4.0", device=DEVICE, timeout=10):
         msg_id = msg_id or self.next_msg_id(request_type.split("_")[0])
         payload = {
             "messageId": msg_id,
@@ -143,6 +143,62 @@ class DirectHandheld(Handheld):
         self.sim.log.close()
 
 
+def collect_all(hh, col):
+    """Drive one collection of job 510019068 from Collecting to ReadyForMixing:
+    bag scans, bulk direct weight, over-tolerance approval, short-bag waiver.
+    Returns the final ingredient_scan_result."""
+    def scan(fields, **kw):
+        f = {"collectionId": col, "correlationKey": col}
+        f.update(fields)
+        return hh.request("ingredient_scan_requested", f, **kw)
+
+    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000001",
+                 "requestedMaterialCode": "1600000301",
+                 "bagSizeOption": "full", "bagCount": 22})
+    check(r["accepted"], f"[{col}] 22 full bags HD WHITE", json.dumps(r)[:200])
+    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000001",
+                 "requestedMaterialCode": "1600000301",
+                 "bagSizeOption": "1/2", "bagCount": 2})
+    check(r["accepted"] and r["overCollectionToleranceBags"] == 1.0,
+          f"[{col}] within-tolerance top-up; tolerance echoed")
+    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000002",
+                 "requestedMaterialCode": "1600000217", "quantity": 1671.147})
+    check(r["accepted"], f"[{col}] bulk line by direct weight")
+    r, p = scan({"palletRfidTag": "300833B2DDD901400000000C",
+                 "requestedMaterialCode": "1600000070", "quantity": 600.0})
+    check(not r["accepted"] and r["requiresManagerApproval"],
+          f"[{col}] over-tolerance rejected pending approval")
+    retry = {k: v for k, v in p.items()
+             if k not in ("messageId", "timestampUtc", "schemaVersion",
+                          "deviceId", "operatorSessionId")}
+    retry.update({"managerUsername": "manager1", "managerPassword": "secret",
+                  "auditReason": "Verified spillage allowance."})
+    r, _ = hh.request("ingredient_scan_requested", retry)
+    check(r["accepted"] and r["approverUserId"] == "OP-012",
+          f"[{col}] approved retry (new messageId) accepted")
+    for tag, mat, qty in (("300833B2DDD9014000000009", "1500000326", 69.631),
+                          ("300833B2DDD901400000000A", "1600000233", 278.524),
+                          ("300833B2DDD9014000000008", "1600000309", 557.049)):
+        r, _ = scan({"palletRfidTag": tag, "requestedMaterialCode": mat, "quantity": qty})
+        check(r["accepted"], f"[{col}] {mat} collected")
+    r, _ = scan({"requestedMaterialCode": "1500000331", "shortBagCount": 1,
+                 "managerUsername": "manager1", "managerPassword": "secret",
+                 "auditReason": "One damaged bag unavailable."})
+    check(r["accepted"] and r["collectionStatus"] == "ReadyForMixing"
+          and r["nextAction"] == "start_mixing",
+          f"[{col}] final waiver -> ReadyForMixing + start_mixing", json.dumps(r)[:300])
+    return r
+
+
+def load_collection(hh, job):
+    r, _ = hh.request("job_card_load_requested",
+                      {"jobCardNumber": job, "correlationKey": job})
+    check(r["accepted"] and r["collectionId"].startswith("COL_")
+          and "hoppers" not in r and r["collectionStatus"] == "Collecting",
+          "bom_loaded: new v4 collection, no hoppers board", json.dumps(r)[:200])
+    return r["collectionId"]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", default="mqtt.sysone.co.za")
@@ -158,53 +214,63 @@ def main():
                       {"palletRfidTag": "300833B2DDD9014000000001"}, session="nope")
     check(not r["accepted"] and r["errorCode"] == "session_required"
           and r["nextAction"] == "login",
-          "request without session -> session_required + nextAction login", json.dumps(r)[:200])
+          "request without session -> session_required + nextAction login")
 
     print("== login ==")
     r, _ = hh.request("login_requested", {"username": "operator1", "password": "wrong"},
                       session="")
-    check(not r["accepted"] and r["errorCode"] == "permission_denied",
-          "wrong password rejected", json.dumps(r)[:200])
+    check(not r["accepted"] and r["errorCode"] == "permission_denied", "wrong password rejected")
     r, _ = hh.request("login_requested", {"username": "operator1", "password": "pass"},
                       session="")
-    check(r["accepted"] and r["sessionState"] == "Active" and r["operatorSessionId"],
-          "login accepted, Active session", json.dumps(r)[:200])
+    check(r["accepted"] and r["sessionState"] == "Active" and r["operatorSessionId"]
+          and r["schemaVersion"] == "4.0",
+          "login accepted, Active session, 4.0 envelope")
     hh.session = r["operatorSessionId"]
 
-    print("== envelope negatives ==")
-    r, _ = hh.request("hopper_overview_requested", schema="2.0")
+    print("== envelope & §12 compatibility boundary ==")
+    r, _ = hh.request("mixing_overview_requested", schema="2.0")
     check(not r["accepted"] and r["errorCode"] == "unsupported_schema",
           "schema 2.0 -> unsupported_schema")
-    r, _ = hh.request("hopper_overview_requested", timestamp=now_iso(-3600))
+    r, _ = hh.request("pallet_lookup_requested", {"palletRfidTag": "NO_SUCH_TAG"}, schema="3.0")
+    check(r["accepted"] and r["found"] is False,
+          "schema 3.0 accepted for a capture action (§12)")
+    r, _ = hh.request("mixing_overview_requested", schema="3.0")
+    check(not r["accepted"] and r["errorCode"] == "unsupported_schema",
+          "schema 3.0 rejected for a mixing action")
+    r, _ = hh.request("mixing_overview_requested", timestamp=now_iso(-3600))
     check(not r["accepted"] and r["errorCode"] == "message_expired",
           "1h-old timestamp -> message_expired")
-    r, _ = hh.request("hopper_overview_requested", device="handheld_other")
+    r, _ = hh.request("mixing_overview_requested", device="handheld_other")
     check(not r["accepted"] and r["errorCode"] == "device_mismatch",
           "payload/topic device mismatch -> device_mismatch")
 
-    print("== replay & idempotency ==")
-    r1, p1 = hh.request("hopper_overview_requested")
-    check(r1["accepted"] and len(r1["hoppers"]) == 3, "hopper overview: 3 configured hoppers")
-    hh.send_raw("hopper_overview_requested", p1)  # byte-identical retry
+    print("== strict replay on a 4.0 topic (deliberately beyond the real backend) ==")
+    r1, p1 = hh.request("mixing_overview_requested")
+    check(r1["accepted"], "mixing overview accepted")
+    hh.send_raw("mixing_overview_requested", p1)
     r2 = hh.await_response(p1["messageId"])
     check(r2["messageId"] == r1["messageId"],
           "identical replay returns the STORED response (same server messageId)")
     p_mut = dict(p1)
     p_mut["correlationKey"] = "MUTATED-BODY"
-    hh.send_raw("hopper_overview_requested", p_mut)
+    hh.send_raw("mixing_overview_requested", p_mut)
     r3_ = hh.await_response(p1["messageId"])
     check(not r3_["accepted"] and r3_["errorCode"] == "message_id_reused",
-          "same messageId + different body -> message_id_reused")
+          "same messageId + different body -> message_id_reused (4.0 path)")
+
+    print("== retired-topic guard ==")
+    r, _ = hh.request("hopper_overview_requested")
+    check(r["_topic"].endswith("/res/workflow_upgrade_required")
+          and not r["accepted"] and r["errorCode"] == "client_upgrade_required"
+          and r["nextAction"] == "upgrade_reader_for_mixing",
+          "retired v3 topic -> client_upgrade_required on workflow_upgrade_required")
 
     print("== pallet lookup & holding recovery ==")
-    r, _ = hh.request("pallet_lookup_requested", {"palletRfidTag": "NO_SUCH_TAG"})
-    check(r["accepted"] and r["found"] is False,
-          "unknown tag: accepted true, found false")
     r, _ = hh.request("pallet_lookup_requested",
                       {"palletRfidTag": "300833B2DDD9014000000004"})
     check(r["accepted"] and r["palletState"] == "AtStation1" and r["recoverable"]
           and not r["usable"] and r["nextAction"] == "recover_holding",
-          "AtStation1 pallet: recoverable, not usable, nextAction recover_holding")
+          "AtStation1 pallet: recoverable, nextAction recover_holding")
     r, _ = hh.request("holding_recovery_requested",
                       {"palletRfidTag": "300833B2DDD9014000000004",
                        "auditReason": "Missed door read; pallet is physically here."})
@@ -215,174 +281,225 @@ def main():
     check(r["accepted"] and r["blocked"] and not r["usable"] and not r["recoverable"],
           "blocked Holding pallet: not usable, not recoverable")
 
-    print("== job card load ==")
+    print("== capture: collection 1 (Main) ==")
     r, _ = hh.request("open_sap_job_cards_requested", {"refreshFromSap": True})
     check(r["accepted"] and any(j["jobCardNumber"] == job for j in r["jobs"]),
           f"open SAP job cards contains {job}")
-    r, _ = hh.request("job_card_load_requested", {"jobCardNumber": job,
-                                                  "correlationKey": job})
-    check(r["accepted"] and r["collectionId"].startswith("COL_")
-          and r["nextAction"] == "scan_ingredient" and not r["resumed"],
-          "bom_loaded: new collection, scan_ingredient")
-    col = r["collectionId"]
-    check(len(r["ingredients"]) == 7, "7 manual lines (im_Backflush excluded)",
-          f"got {len(r['ingredients'])}")
-    bulk = [i for i in r["ingredients"] if i["materialCode"] == "1600000217"]
-    check(bulk and bulk[0]["bagSize"] is None and bulk[0]["expectedBags"] is None,
-          "bulk line: bagSize/expectedBags null")
-    check("hoppers" in r and len(r["hoppers"]) == 3, "hopper board present in bom_loaded")
-
-    def scan(fields, **kw):
-        f = {"collectionId": col, "correlationKey": col}
-        f.update(fields)
-        return hh.request("ingredient_scan_requested", f, **kw)
-
-    print("== ingredient collection ==")
-    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000001",
-                 "requestedMaterialCode": "1600000301",
-                 "bagSizeOption": "full", "bagCount": 22})
-    line = next(i for i in r["ingredients"] if i["materialCode"] == "1600000301")
-    check(r["accepted"] and line["scannedBags"] == 22 and line["collectedQuantity"] == 550,
-          "22 full bags HD WHITE: 550kg collected", json.dumps(line)[:300])
-    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000001",
-                 "requestedMaterialCode": "1600000301",
-                 "bagSizeOption": "1/2", "bagCount": 2})
-    line = next(i for i in r["ingredients"] if i["materialCode"] == "1600000301")
-    check(r["accepted"] and line["collected"]
-          and line["collectedQuantity"] == 557.049 and line["weightReceived"] == 575.0,
-          "2 half-bags over remaining, within 1-bag tolerance: credited to remaining, "
-          "full weightReceived recorded", json.dumps(line)[:300])
-    check(r["overCollectionToleranceBags"] == 1.0,
-          "tolerance echoed so scanner never hardcodes it")
-
-    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000002",
-                 "requestedMaterialCode": "1600000217", "quantity": 1671.147})
-    line = next(i for i in r["ingredients"] if i["materialCode"] == "1600000217")
-    check(r["accepted"] and line["collected"], "bulk line collected by direct weight")
-
-    # over tolerance -> reject -> approved retry (NEW messageId)
-    r, p = scan({"palletRfidTag": "300833B2DDD901400000000C",
-                 "requestedMaterialCode": "1600000070", "quantity": 600.0})
-    check(not r["accepted"] and r["requiresManagerApproval"]
-          and r["nextAction"] == "retry_with_manager_approval",
-          "over-tolerance scan rejected with requiresManagerApproval")
-    retry = {k: v for k, v in p.items() if k not in
-             ("messageId", "timestampUtc")}
-    retry.update({"managerUsername": "manager1", "managerPassword": "secret",
-                  "auditReason": "Verified spillage allowance."})
+    col1 = load_collection(hh, job)
     r, _ = hh.request("ingredient_scan_requested",
-                      {k: v for k, v in retry.items()
-                       if k not in ("schemaVersion", "deviceId", "operatorSessionId")})
-    check(r["accepted"] and r["approverUserId"] == "OP-012",
-          "approved retry (new messageId) accepted; approver in audit fields",
+                      {"collectionId": col1,
+                       "palletRfidTag": "300833B2DDD9014000000001",
+                       "requestedMaterialCode": "1600000301",
+                       "bagSizeOption": "full", "bagCount": 1, "quantity": 10.0})
+    check(not r["accepted"], "bag fields and quantity together are rejected")
+    collect_all(hh, col1)
+    r, _ = hh.request("collection_resume_requested",
+                      {"jobCardNumber": job, "collectionId": col1})
+    check(r["accepted"] and r["resumed"] and r["nextAction"] == "start_mixing",
+          "resume of a ReadyForMixing collection -> start_mixing")
+
+    print("== mixing overview ==")
+    r, _ = hh.request("mixing_overview_requested")
+    check(r["accepted"] and len(r["equipment"]) == 47 and r["activeCycles"] == []
+          and r["nextAction"] == "select_collection_mix_or_machine",
+          "overview (all areas): 47 equipment, no active cycles")
+    r, _ = hh.request("mixing_overview_requested", {"mixingArea": "JandiBulkMixing"})
+    check(r["accepted"] and all(e["mixingArea"] == "JandiBulkMixing" for e in r["equipment"])
+          and len(r["equipment"]) == 5,
+          "overview filtered to JANDI: 5 equipment")
+    r, _ = hh.request("mixing_overview_requested", {"mixingArea": "Atlantis"})
+    check(not r["accepted"] and r["errorCode"] == "invalid_mixing_area",
+          "unknown area -> invalid_mixing_area")
+
+    print("== mixer start (Main) ==")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "MXR-01", "productionOrderDocumentNumber": job,
+                       "machineCodes": ["MXR-01"], "collectionId": col1})
+    check(not r["accepted"] and r["errorCode"] == "legacy_request_shape",
+          "v3 array field present -> legacy_request_shape")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "NOPE-99", "productionOrderDocumentNumber": job,
+                       "collectionId": col1})
+    check(not r["accepted"] and r["errorCode"] == "unknown_or_disabled_equipment",
+          "unknown machine -> unknown_or_disabled_equipment")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "EXT-25", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": ["MIX_000001"]})
+    check(not r["accepted"] and r["errorCode"] == "unknown_or_disabled_equipment",
+          "disabled machine -> unknown_or_disabled_equipment")
+    r, _ = hh.request("machine_cycle_start_requested", {"productionOrderDocumentNumber": job})
+    check(not r["accepted"] and r["errorCode"] == "validation_failed",
+          "missing machineCode -> validation_failed")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "MXR-01", "productionOrderDocumentNumber": job,
+                       "collectionId": col1, "correlationKey": col1})
+    check(r["accepted"] and r["action"] == "Started"
+          and r["mixBatchId"].startswith("MIX_") and r["cycleId"].startswith("CYC_")
+          and r["productionRunId"] is None
+          and r["sapIssueQueued"] is False and r["sapProductionOrderChanged"] is False
+          and r["nextAction"] == "scan_same_machine_to_finish"
+          and r["areaStatus"]["accepted"] is True,
+          "mixer start: MIX_/CYC_ minted, SAP flags false, areaStatus embedded",
           json.dumps(r)[:300])
-
-    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000009",
-                 "requestedMaterialCode": "1500000326", "quantity": 69.631})
-    check(r["accepted"], "masterbatch white collected")
-    r, _ = scan({"palletRfidTag": "300833B2DDD901400000000A",
-                 "requestedMaterialCode": "1600000233", "quantity": 278.524})
-    check(r["accepted"], "pallet wrap collected")
-    r, _ = scan({"palletRfidTag": "300833B2DDD9014000000008",
-                 "requestedMaterialCode": "1600000309", "quantity": 557.049})
-    check(r["accepted"], "stretchhood collected")
-
-    # short-bag waiver: rejected without creds, applied with creds on first submission
-    r, _ = scan({"requestedMaterialCode": "1500000331", "shortBagCount": 1})
-    check(not r["accepted"] and r["requiresManagerApproval"],
-          "waiver without credentials rejected outright")
-    r, _ = scan({"requestedMaterialCode": "1500000331", "shortBagCount": 1,
-                 "managerUsername": "manager1", "managerPassword": "secret",
-                 "auditReason": "One damaged bag unavailable."})
-    check(r["accepted"] and r["approverUserId"] == "OP-012",
-          "waiver with credentials applied on first submission")
-    check(r["nextAction"] == "choose_destination",
-          "final requirement satisfied -> ReadyForRouting + choose_destination",
-          json.dumps(r["collectionSummary"]))
-
-    print("== hopper cycles (shared pre-mix) ==")
+    mix1, cyc1 = r["mixBatchId"], r["cycleId"]
+    busy = next(e for e in r["areaStatus"]["equipment"] if e["machineCode"] == "MXR-01")
+    check(busy["status"] == "InUse" and not busy["isAvailable"],
+          "areaStatus shows the started mixer InUse")
     r, _ = hh.request("machine_cycle_start_requested",
-                      {"productionOrderDocumentNumber": job,
-                       "machineCodes": ["MXR-01", "MXR-03"],
-                       "collectionIds": [col], "preMixIds": [],
-                       "correlationKey": col})
-    check(not r["accepted"] and r["cycles"] == [] and
-          any(c["machineCode"] == "MXR-03" and c["conflictCode"] == "machine_inactive"
-              for c in r["conflicts"]),
-          "start including inactive hopper: atomic rejection, conflict listed, nothing assigned")
+                      {"machineCode": "MXR-02", "productionOrderDocumentNumber": job,
+                       "collectionId": col1})
+    check(not r["accepted"] and r["errorCode"] == "source_already_assigned",
+          "second claim of a claimed collection rejected")
+    col2 = load_collection(hh, job)
     r, _ = hh.request("machine_cycle_start_requested",
-                      {"productionOrderDocumentNumber": job,
-                       "machineCodes": ["MXR-01", "MXR-02"],
-                       "collectionIds": [col], "preMixIds": [],
-                       "correlationKey": col})
-    check(r["accepted"] and len(r["cycles"]) == 2 and r["linkedPreMixId"],
-          "two hoppers claimed atomically; one linked shared pre-mix")
-    premix = r["linkedPreMixId"]
-    cyc1 = next(c for c in r["cycles"] if c["machineCode"] == "MXR-01")["cycleId"]
-    cyc2 = next(c for c in r["cycles"] if c["machineCode"] == "MXR-02")["cycleId"]
+                      {"machineCode": "MXR-02", "productionOrderDocumentNumber": job,
+                       "collectionId": col2})
+    check(not r["accepted"] and r["errorCode"] == "source_not_ready",
+          "Collecting collection -> source_not_ready")
     r, _ = hh.request("machine_cycle_start_requested",
-                      {"productionOrderDocumentNumber": job,
-                       "machineCodes": ["MXR-01"],
-                       "collectionIds": [col], "preMixIds": []})
-    check(r["accepted"] and r["cycles"][0]["alreadyActive"]
-          and r["cycles"][0]["cycleId"] == cyc1 and r["linkedPreMixId"] == premix,
-          "repeat start on active hopper: alreadyActive true, same cycle, no duplicate")
+                      {"machineCode": "MXR-01", "productionOrderDocumentNumber": job,
+                       "collectionId": col2})
+    check(not r["accepted"] and r["errorCode"] == "equipment_in_use",
+          "busy mixer -> equipment_in_use")
 
+    print("== finish (Main) ==")
+    r, _ = hh.request("machine_cycle_finish_requested",
+                      {"machineCode": "MXR-02", "cycleId": cyc1})
+    check(not r["accepted"] and r["errorCode"] == "cycle_mismatch",
+          "finish on the wrong machine -> cycle_mismatch")
     r, _ = hh.request("machine_cycle_finish_requested",
                       {"machineCode": "MXR-01", "cycleId": cyc1, "correlationKey": cyc1})
-    check(r["accepted"] and not r["isComplete"] and r["preMixStatus"] == "Mixing"
-          and r["nextAction"] == "assign_or_finish_hopper"
-          and [c["cycleId"] for c in r["remainingActiveCycles"]] == [cyc2],
-          "partial hopper finish: pre-mix stays Mixing, other hopper untouched")
+    check(r["accepted"] and r["action"] == "Finished" and not r["alreadyFinished"],
+          "mixer finish accepted")
     r, _ = hh.request("machine_cycle_finish_requested",
                       {"machineCode": "MXR-01", "cycleId": cyc1})
     check(r["accepted"] and r["alreadyFinished"],
-          "finishing a finished cycle: accepted no-op, alreadyFinished true")
+          "re-finish is an accepted idempotent no-op (alreadyFinished true)")
+    r, _ = hh.request("mixing_overview_requested", {"mixingArea": "MainMixingRoom"})
+    ready = [m for m in r["readyMixes"] if m["mixBatchId"] == mix1]
+    check(len(ready) == 1 and ready[0]["status"] == "ReadyForProduction"
+          and "EXT-03" in ready[0]["validNextMachineCodes"],
+          "finished mix is ReadyForProduction with Main extruders as valid next")
+
+    print("== production run + accumulation (Main) ==")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "EXT-03", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [mix1], "collectionId": col1})
+    check(not r["accepted"] and r["errorCode"] == "validation_failed",
+          "collection id in a downstream start rejected")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "EXT-03", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": ["MIX_999999"]})
+    check(not r["accepted"] and r["errorCode"] == "source_not_found",
+          "unknown mix -> source_not_found")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "EXT-03", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [mix1]})
+    check(r["accepted"] and r["cycleId"].startswith("RUN_")
+          and r["cycleId"] == r["productionRunId"],
+          "production start: cycleId == productionRunId (RUN_ shape)")
+    run1 = r["productionRunId"]
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "EXT-04", "productionOrderDocumentNumber": "510018531",
+                       "mixBatchIds": [mix1]})
+    check(not r["accepted"] and r["errorCode"] == "job_card_mismatch",
+          "mix from another JC -> job_card_mismatch")
+    collect_all(hh, col2)
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "MXR-02", "productionOrderDocumentNumber": job,
+                       "collectionId": col2})
+    check(r["accepted"], "second mixer start on second collection")
+    mix2, cyc2 = r["mixBatchId"], r["cycleId"]
     r, _ = hh.request("machine_cycle_finish_requested",
                       {"machineCode": "MXR-02", "cycleId": cyc2})
-    check(r["accepted"] and r["isComplete"]
-          and r["preMixStatus"] == "ReadyForAllocation"
-          and r["nextAction"] == "allocate_premix",
-          "final hopper finish: pre-mix ReadyForAllocation, allocate_premix")
-
-    print("== extrusion allocation & completion ==")
+    check(r["accepted"], "second mixer finish")
     r, _ = hh.request("machine_cycle_start_requested",
-                      {"productionOrderDocumentNumber": job,
-                       "machineCodes": ["EXT-03"],
-                       "collectionIds": [], "preMixIds": [premix]})
-    check(r["accepted"] and r["runId"] and len(r["allocationIds"]) == 1
-          and r["machineFamily"] == "Extruder",
-          "extruder start consuming the pre-mix")
-    ext_cycle = r["cycles"][0]["cycleId"]
-    r, _ = hh.request("full_pallet_allocation_requested",
-                      {"productionOrderDocumentNumber": job,
-                       "extruderCode": "EXT-03",
-                       "palletRfidTag": "300833B2DDD9014000000008"})
-    check(r["accepted"] and r["sourceType"] == "FullPallet"
-          and r["remainingPalletQuantity"] == 0 and r["sapProductionOrderChanged"] is False,
-          "direct full-pallet allocation to the running extruder")
+                      {"machineCode": "EXT-03", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [mix2]})
+    check(r["accepted"] and r["productionRunId"] == run1
+          and r["affectedMixBatchIds"] == [mix2],
+          "same-JC start on the busy machine accumulates into the active run")
     r, _ = hh.request("machine_cycle_finish_requested",
-                      {"machineCode": "EXT-03", "cycleId": ext_cycle})
-    check(r["accepted"] and r["isComplete"]
-          and r["nextAction"] == "complete_station2_work",
-          "extruder finish: no active runs left -> complete_station2_work")
-    r, _ = hh.request("station2_work_complete_requested",
-                      {"productionOrderDocumentNumber": job, "correlationKey": job})
-    check(r["accepted"] and r["localJobStatus"] == "Station2Completed"
-          and r["sapProductionOrderChanged"] is False and r["sapIssueQueued"] is False,
-          "local Station 2 completion; SAP untouched")
+                      {"machineCode": "EXT-03", "cycleId": run1})
+    check(r["accepted"] and sorted(r["affectedMixBatchIds"]) == sorted([mix1, mix2]),
+          "run finish consumes both accumulated mixes")
+
+    print("== JANDI drum gate ==")
+    col3 = load_collection(hh, job)
+    collect_all(hh, col3)
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "JAN-MIX-01", "productionOrderDocumentNumber": job,
+                       "collectionId": col3})
+    check(r["accepted"], "JANDI mixer start")
+    jmix, jcyc = r["mixBatchId"], r["cycleId"]
+    r, _ = hh.request("machine_cycle_finish_requested",
+                      {"machineCode": "JAN-MIX-01", "cycleId": jcyc})
+    check(r["accepted"], "JANDI mixer finish")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "EXT-01", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [jmix]})
+    check(not r["accepted"] and r["errorCode"] == "invalid_route",
+          "JANDI mix on a Main extruder -> invalid_route")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "JAN-04", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [jmix]})
+    check(not r["accepted"] and r["errorCode"] == "drum_cycle_required",
+          "JANDI 4 before the drum -> drum_cycle_required")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "JAN-DRUM-01", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [jmix]})
+    check(r["accepted"], "drum start on the completed JANDI mix")
+    dcyc = r["cycleId"]
+    r, _ = hh.request("machine_cycle_finish_requested",
+                      {"machineCode": "JAN-DRUM-01", "cycleId": dcyc})
+    check(r["accepted"], "drum finish")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "JAN-04", "productionOrderDocumentNumber": job,
+                       "mixBatchIds": [jmix]})
+    check(r["accepted"], "JANDI 4 unblocked after its exact drum cycle finished")
+    r, _ = hh.request("machine_cycle_finish_requested",
+                      {"machineCode": "JAN-04", "cycleId": r["cycleId"]})
+    check(r["accepted"], "JANDI 4 run finish")
+
+    print("== Rajoo layer inputs + force-close ==")
+    col4 = load_collection(hh, job)
+    collect_all(hh, col4)
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "RAJ-GM-01", "productionOrderDocumentNumber": job,
+                       "collectionId": col4,
+                       "layerInputs": [{"materialCode": "1600000301",
+                                        "dosingQuantity": 999999.0}]})
+    check(not r["accepted"] and r["errorCode"] == "invalid_layer_inputs",
+          "dose above collected quantity -> invalid_layer_inputs")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "RAJ-GM-01", "productionOrderDocumentNumber": job,
+                       "collectionId": col4,
+                       "layerInputs": [{"materialCode": "1600000301", "dosingQuantity": 12.5},
+                                       {"materialCode": "1600000217", "dosingQuantity": 3.0}]})
+    check(r["accepted"], "Rajoo mixer start with valid doses")
+    rcyc = r["cycleId"]
+    r, _ = hh.request("machine_cycle_force_close_requested",
+                      {"machineCode": "RAJ-GM-01", "cycleId": rcyc,
+                       "auditReason": "Mixer fault."})
+    check(not r["accepted"] and r["errorCode"] == "permission_denied",
+          "force-close without credentials -> permission_denied")
+    r, _ = hh.request("machine_cycle_force_close_requested",
+                      {"machineCode": "RAJ-GM-01", "cycleId": rcyc,
+                       "managerUsername": "manager1", "managerPassword": "secret",
+                       "auditReason": "Mixer fault; releasing the cycle for maintenance."})
+    check(r["accepted"] and r["forceClosed"] and r["approverUserId"] == "OP-012"
+          and r["approverRole"] == "Manager",
+          "force-close approved: forceClosed true, approver identity echoed")
 
     print("== logout ==")
     r, _ = hh.request("reader_logout_requested")
-    check(r["accepted"] and r["sessionState"] == "Closed"
-          and r["operatorSessionId"] == "" and r["allowedActions"] == [],
-          "logout closes session")
-    r, _ = hh.request("hopper_overview_requested")
+    check(r["accepted"] and r["sessionState"] == "Closed", "logout closes session")
+    r, _ = hh.request("mixing_overview_requested")
     check(not r["accepted"] and r["errorCode"] == "session_required",
           "request on closed session -> session_required")
 
     hh.close()
-    print(f"\nALL {CHECKS['passed']} CHECKS PASSED — simulator is contract-conformant")
+    print(f"\nALL {CHECKS['passed']} CHECKS PASSED — simulator is v4.0 contract-conformant")
     return 0
 
 

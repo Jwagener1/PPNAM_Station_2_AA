@@ -1,9 +1,10 @@
 # Station 2 Backend Simulator
 
-Mimics the Station 2 WPF backend over MQTT (RFID contract **v3**, schema `3.0`)
-so the Android app can be tested end-to-end without the real backend. Every
-message, validation step, business decision, and state change is logged, so
-when the app misbehaves the logs are a second source of truth for diagnosis.
+Mimics the Station 2 WPF backend over MQTT (RFID contract **v4.0**, schema
+`4.0`) so the Android app can be tested end-to-end without the real backend.
+Every message, validation step, business decision, and state change is
+logged, so when the app misbehaves the logs are a second source of truth for
+diagnosis.
 
 ## Setup
 
@@ -57,8 +58,14 @@ State is in-memory only; restarting gives a fresh, repeatable world.
   (use for approvals, waivers, cancels, force-close, return/transfer).
 - **Job cards:** SAP orders `510019068` (Layer-mash-style BOM, 7 manual lines,
   one bulk line `1600000217`) and `510018531`, loaded from real SAP sample dumps.
-- **Hoppers:** `MXR-01`, `MXR-02` available; `MXR-03` Inactive ("Under
-  maintenance"). **Extruders:** `EXT-03`, `EXT-04`. **Rajoo:** `RAJ-01`.
+- **Equipment:** 47 pieces across five mixing areas — `MainMixingRoom`
+  (mixers `MXR-01`..`05`, extruders `EXT-01`..`25`, with `EXT-25` seeded
+  `Disabled`), `JandiBulkMixing` (shared mixer `JAN-MIX-01`, transfer drum
+  `JAN-DRUM-01` gating `JAN-04`, extruders `JAN-02`..`04`),
+  `DolciBulkMixing`, `MackieBulkMixing`, and `RajooMachineMixing`
+  (gravimetric mixers `RAJ-GM-01`..`03` per product layer feeding
+  `RAJ-EXT-01`). Scan-stock pallets are sized to survive four full
+  collections of job `510019068`.
 - **Pallets** (tags abbreviated; see `seed/seed.json` for full 24-char tags):
 
 | Tag suffix | Pallet | Product | State | Exercises |
@@ -79,19 +86,33 @@ State is in-memory only; restarting gives a fresh, repeatable world.
 
 ## Self-test
 
-With the simulator running, verify it against the contract before trusting it
-to judge the app:
+Run it in-process (no broker needed) or against a running simulator:
 
 ```powershell
-python selftest.py [--host …]
+python selftest.py --direct       # in-process, no broker required
+python selftest.py [--host …]     # over MQTT against a running sim
 ```
 
-Drives the contract's minimum acceptance flow end-to-end — login → job load →
-ingredient scans (tolerance, over-tolerance approval retry, short-bag waiver)
-→ two-hopper shared pre-mix → partial/final finish → extruder allocation →
-local completion — plus negative probes (bad schema, stale timestamp, replay,
-`message_id_reused`, device mismatch, closed session). Exits non-zero on any
-deviation.
+Drives contract v4.0's minimum acceptance flow end-to-end across all five
+mixing areas — login → §12 schema-compatibility boundary (3.0 accepted only
+for capture actions, rejected for `mixing_overview_requested`) → retired v3
+topics answering `client_upgrade_required` on `res/workflow_upgrade_required`
+→ pallet lookup/holding recovery → capture collections via
+`job_card_load_requested`/`ingredient_scan_requested` (bag scans, bulk
+direct weight, over-tolerance approval retry, short-bag waiver) to
+`ReadyForMixing` → `mixing_overview_requested` (area filtering,
+`invalid_mixing_area`) → family-dispatched `machine_cycle_start_requested`/
+`machine_cycle_finish_requested` for mixer start/finish, production-run
+accumulation across multiple mixes on the same machine, the JANDI transfer-
+drum gate (`drum_cycle_required`), Rajoo `layerInputs` dosing validation
+(`invalid_layer_inputs`), and manager-gated `machine_cycle_force_close_requested`
+— plus negative probes for every §10 error code (`legacy_request_shape`,
+`unknown_or_disabled_equipment`, `equipment_in_use`, `cycle_mismatch`,
+`source_not_found`, `source_not_ready`, `source_already_assigned`,
+`job_card_mismatch`, `invalid_route`, `permission_denied`,
+`validation_failed`, and more), strict replay on a 4.0 topic
+(`message_id_reused`), stale timestamps, and device mismatch. Exits non-zero
+on any deviation.
 
 ## What it deliberately does not do
 
