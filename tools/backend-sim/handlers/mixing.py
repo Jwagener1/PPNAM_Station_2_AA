@@ -328,6 +328,9 @@ def _start_production(world, log, req, session, eq, po):
     if not isinstance(ids, list) or not ids:
         return _mreject(world, log, req, eq, "validation_failed",
                         "One or more completed same-JC mixBatchIds are required.")
+    if len(ids) != len(set(ids)):
+        return _mreject(world, log, req, eq, "validation_failed",
+                        "mixBatchIds contains duplicate entries.")
     # Resolve and validate ALL mixes first — a single failure rejects the whole request.
     code = eq["machineCode"]
     for mid in ids:
@@ -451,22 +454,24 @@ def _apply_finish(world, log, eq, cycle, forced):
         eq["currentMixBatchIds"] = []
     role = cycle["equipmentRole"]
     if role == "Mixer":
-        mix = world.mix_batches[cycle["mixBatchIds"][0]]
-        if forced:
-            mix["status"] = "Cancelled"
-            col = world.collections.get(cycle["collectionId"])
-            if col:
-                col["claimedByMixBatchId"] = None
-                col["status"] = "ReadyForMixing"
-                log.transition(f"force-close voided {mix['mixBatchId']}; collection "
-                               f"{col['collectionId']} released back to ReadyForMixing")
-        else:
-            mix["status"] = "ReadyForProduction"
+        mix = world.mix_batches.get(cycle["mixBatchIds"][0])
+        if mix:
+            if forced:
+                mix["status"] = "Cancelled"
+                col = world.collections.get(cycle["collectionId"])
+                if col:
+                    col["claimedByMixBatchId"] = None
+                    col["status"] = "ReadyForMixing"
+                    log.transition(f"force-close voided {mix['mixBatchId']}; collection "
+                                   f"{col['collectionId']} released back to ReadyForMixing")
+            else:
+                mix["status"] = "ReadyForProduction"
     elif role == "Transfer":
-        mix = world.mix_batches[cycle["mixBatchIds"][0]]
-        mix["assignedToCycleId"] = None
-        if not forced:
-            mix["drumCompleted"] = True
+        mix = world.mix_batches.get(cycle["mixBatchIds"][0])
+        if mix:
+            mix["assignedToCycleId"] = None
+            if not forced:
+                mix["drumCompleted"] = True
     else:  # ProductionMachine
         run = world.runs.get(cycle["runId"])
         if run:
