@@ -68,4 +68,12 @@ class ResponseEnvelopeTest {
         assertNull(env.correlationKey)
         assertNull(env.nextAction)
     }
+
+    @Test
+    fun `a response with errorCode omitted entirely parses as no error`() {
+        val json = """{"messageId":"S2-1","inResponseToMessageId":"m-1","schemaVersion":"4.0","accepted":true}"""
+        val env = Gson().fromJson(json, ResponseEnvelope::class.java)
+        assertNull(env.errorCode)
+        assertTrue(env.accepted)
+    }
 }

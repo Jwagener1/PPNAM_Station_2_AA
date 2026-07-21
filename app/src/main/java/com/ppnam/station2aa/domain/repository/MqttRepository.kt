@@ -24,6 +24,12 @@ interface MqttRepository {
      * clock problem rather than a generic request failure. Detection only — never auto-correct.
      */
     val clockSkewMillis: StateFlow<Long?>
+    /**
+     * Latched true when Station 2 answers anything with `client_upgrade_required` — the reader
+     * build is too old for the workflow it attempted. There is no un-latch short of installing
+     * the required build; surfacing it as state (not a one-shot error) is the point.
+     */
+    val upgradeRequired: StateFlow<Boolean>
     suspend fun <T : Any> request(
         requestType: String,
         responseType: String,

@@ -73,6 +73,7 @@ class MixingViewModelTest {
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
         whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
         whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
+        whenever(mockMqttRepository.upgradeRequired).thenReturn(MutableStateFlow(false))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
         whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("ingredient_collection_cancel")))
 

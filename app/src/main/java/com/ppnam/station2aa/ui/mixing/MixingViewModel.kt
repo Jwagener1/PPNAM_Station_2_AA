@@ -100,6 +100,8 @@ class MixingViewModel @Inject constructor(
         resolveConnectionStatus(state, stationOnline, skew)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
 
+    val upgradeRequired: StateFlow<Boolean> = mqttRepository.upgradeRequired
+
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
     private val _logoutEvent = Channel<Unit>(Channel.BUFFERED)

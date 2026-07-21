@@ -63,6 +63,9 @@ class MqttRepositoryImpl @Inject constructor(
     private val _clockSkewMillis = MutableStateFlow<Long?>(null)
     override val clockSkewMillis: StateFlow<Long?> = _clockSkewMillis.asStateFlow()
 
+    private val _upgradeRequired = MutableStateFlow(false)
+    override val upgradeRequired: StateFlow<Boolean> = _upgradeRequired.asStateFlow()
+
     /** Test seam for the device clock. */
     @VisibleForTesting
     internal var nowFn: () -> Instant = { Instant.now() }
@@ -374,6 +377,10 @@ class MqttRepositoryImpl @Inject constructor(
                 Log.w(TAG, "Station 2 rejected $expectedResponseType with session_required — clearing local session")
                 sessionHolder.clear()
             }
+            if (code == ErrorCode.CLIENT_UPGRADE_REQUIRED) {
+                Log.w(TAG, "Station 2 requires a newer reader build ($expectedResponseType) — latching upgradeRequired")
+                _upgradeRequired.value = true
+            }
             MqttOutcome.Rejected(
                 body = body,
                 errorCode = code,
@@ -417,6 +424,9 @@ class MqttRepositoryImpl @Inject constructor(
             return
         }
         recordClockSkew(envelope?.timestampUtc ?: "")
+        if (envelope?.errorCode == ErrorCode.CLIENT_UPGRADE_REQUIRED.raw) {
+            _upgradeRequired.value = true
+        }
         val id = envelope?.inResponseToMessageId
         if (id.isNullOrBlank()) {
             Log.w(TAG, "Dropping response on $topic with no inResponseToMessageId")
