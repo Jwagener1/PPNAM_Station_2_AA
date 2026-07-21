@@ -173,7 +173,10 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
             }
 
             item { SectionHeader("Machines") }
-            items(board.overview.equipment.chunked(2)) { pair ->
+            items(
+                board.overview.equipment.chunked(2),
+                key = { pair -> pair.joinToString("|") { it.machineCode } },
+            ) { pair ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     pair.forEach { machine ->
                         MachineCard(
