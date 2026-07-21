@@ -11,6 +11,7 @@ import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.CollectionSummaryResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse
+import com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardLoadPayload
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
@@ -578,7 +579,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")
+        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)
 
         assertTrue(result.isSuccess)
         val outcome = result.getOrThrow()
@@ -611,7 +612,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0).getOrThrow()
 
         val lines = (outcome as IngredientScanOutcome.Accepted).updatedLines
         assertEquals(1, lines.size)
@@ -637,7 +638,7 @@ class MixingUseCaseTest {
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.START_MIXING))
 
         val outcome = useCase.scanIngredient(
-            "COL_000001", "TAG-1", "full", 2.0, "MAT-001"
+            "COL_000001", "TAG-1", "MAT-001", bagSizeOption = "full", bagCount = 2.0
         ).getOrThrow() as IngredientScanOutcome.Accepted
 
         assertEquals("All products collected.", outcome.collectionSummary)
@@ -655,7 +656,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.Timeout))
 
-        useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")
+        useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)
 
         verify(mockMqtt).request(
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
@@ -678,7 +679,7 @@ class MixingUseCaseTest {
                 )
             )
 
-        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "1/2", 3.0, "1600000301").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "1600000301", bagSizeOption = "1/2", bagCount = 3.0).getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.NeedsManagerApproval)
         val needs = outcome as IngredientScanOutcome.NeedsManagerApproval
@@ -721,7 +722,7 @@ class MixingUseCaseTest {
         whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
             .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(), NextAction.SCAN_INGREDIENT))
 
-        useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0, "1600000301")
+        useCase.scanIngredient("COL_000123", "TAG-1", "1600000301", bagSizeOption = "full", bagCount = 1.0)
 
         verify(mockMqtt).request(
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
@@ -743,7 +744,7 @@ class MixingUseCaseTest {
             )
         )
 
-        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0, "1600000301").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "1600000301", bagSizeOption = "full", bagCount = 1.0).getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.NeedsRecovery)
         assertEquals("Pallet is not at Station 2", (outcome as IngredientScanOutcome.NeedsRecovery).reason)
@@ -757,7 +758,7 @@ class MixingUseCaseTest {
             MqttOutcome.Rejected(IngredientScanResultResponse(), null, "Unknown pallet", NextAction.NONE)
         )
 
-        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0).getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.Rejected)
         assertEquals("Unknown pallet", (outcome as IngredientScanOutcome.Rejected).reason)
@@ -769,10 +770,39 @@ class MixingUseCaseTest {
             mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java))
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.NotConnected))
 
-        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")
+        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `scanIngredient with quantity sends quantity and no bag fields`() = runTest {
+        whenever(
+            mockMqtt.request(
+                eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(),
+                eq(IngredientScanResultResponse::class.java)
+            )
+        ).thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(), NextAction.SCAN_INGREDIENT))
+
+        useCase.scanIngredient("COL_1", "TAG-1", "MAT-BULK", quantity = 123.4)
+
+        val payload = argumentCaptor<Any>().apply {
+            verify(mockMqtt).request(any(), any(), capture(), any(), eq(IngredientScanResultResponse::class.java))
+        }.firstValue as IngredientScanPayload
+        assertEquals(123.4, payload.quantity!!, 0.0)
+        assertNull(payload.bagSizeOption)
+        assertNull(payload.bagCount)
+    }
+
+    @Test
+    fun `scanIngredient refuses both shapes or neither without touching the wire`() = runTest {
+        val both = useCase.scanIngredient("COL_1", "TAG-1", "MAT-1",
+            bagSizeOption = "full", bagCount = 1.0, quantity = 5.0)
+        val neither = useCase.scanIngredient("COL_1", "TAG-1", "MAT-1")
+        assertTrue(both.isFailure)
+        assertTrue(neither.isFailure)
+        verifyNoInteractions(mockMqtt)
     }
 
     // --- waiveShortBags ---

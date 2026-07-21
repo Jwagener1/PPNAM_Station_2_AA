@@ -28,6 +28,7 @@ sealed class IngredientScanOutcome {
         val requestedMaterialCode: String,
         val bagSizeOption: String?,
         val bagCount: Double?,
+        val quantity: Double?,
         val reason: String,
     ) : IngredientScanOutcome()
     data class NeedsRecovery(val reason: String?) : IngredientScanOutcome()

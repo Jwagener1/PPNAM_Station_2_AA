@@ -40,6 +40,7 @@ fun IngredientScanScreen(
     var managerPassword by remember { mutableStateOf("") }
     var selectedBagFraction by rememberSaveable { mutableStateOf(0.0) }
     var bagCountText by rememberSaveable { mutableStateOf("1") }
+    var quantityText by rememberSaveable { mutableStateOf("") }
     var exceptionUsername by remember { mutableStateOf("") }
     var exceptionPassword by remember { mutableStateOf("") }
     var exceptionAuditReason by remember { mutableStateOf("") }
@@ -253,6 +254,48 @@ fun IngredientScanScreen(
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelBagEntry() }) { Text("Cancel", color = TextPrimary) }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    if (uiState is MixingUiState.EnteringQuantityDetails) {
+        val palletTag = (uiState as MixingUiState.EnteringQuantityDetails).palletTag
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelQuantityEntry() },
+            title = { Text("Weight received", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Pallet: $palletTag", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Text("Bulk material — enter the exact weight received.", color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = quantityText,
+                        onValueChange = { quantityText = it },
+                        label = { Text("Quantity (kg)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = quantityText.toDoubleOrNull()?.let { it > 0.0 } == true,
+                    onClick = {
+                        val qty = quantityText.toDoubleOrNull() ?: return@TextButton
+                        viewModel.confirmQuantityScan(palletTag, qty)
+                        quantityText = ""
+                    }
+                ) { Text("Confirm Weight", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelQuantityEntry() }) { Text("Cancel", color = TextPrimary) }
             },
             containerColor = GraphiteSurface
         )
