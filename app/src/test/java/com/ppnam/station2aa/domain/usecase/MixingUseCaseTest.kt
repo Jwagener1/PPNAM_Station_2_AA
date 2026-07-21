@@ -619,6 +619,34 @@ class MixingUseCaseTest {
     }
 
     @Test
+    fun `scanIngredient Accepted carries summary, status, tolerance and nextAction through the boundary`() = runTest {
+        val response = IngredientScanResultResponse(
+            collectionId = "COL_000001",
+            collectionStatus = "ReadyForMixing",
+            overCollectionToleranceBags = 1.0,
+            collectionSummary = CollectionSummaryResponse(summary = "All products collected."),
+            ingredients = listOf(
+                BomLineResponse(materialCode = "MAT-001", materialName = "Resin", requiredQuantity = 50.0, collectedQuantity = 50.0)
+            )
+        )
+        whenever(
+            mockMqtt.request(
+                eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(),
+                eq(IngredientScanResultResponse::class.java)
+            )
+        ).thenReturn(MqttOutcome.Accepted(response, NextAction.START_MIXING))
+
+        val outcome = useCase.scanIngredient(
+            "COL_000001", "TAG-1", "full", 2.0, "MAT-001"
+        ).getOrThrow() as IngredientScanOutcome.Accepted
+
+        assertEquals("All products collected.", outcome.collectionSummary)
+        assertEquals("ReadyForMixing", outcome.collectionStatus)
+        assertEquals(1.0, outcome.overCollectionToleranceBags!!, 0.0)
+        assertEquals(NextAction.START_MIXING, outcome.nextAction)
+    }
+
+    @Test
     fun `scanIngredient sends collectionId, palletRfidTag, bagSizeOption and bagCount in the request`() = runTest {
         whenever(
             mockMqtt.request(

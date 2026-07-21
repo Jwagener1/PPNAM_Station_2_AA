@@ -178,13 +178,17 @@ class MixingUseCase @Inject constructor(
         return when (outcome) {
             is MqttOutcome.Accepted -> Result.success(
                 IngredientScanOutcome.Accepted(
-                    outcome.body.ingredients
+                    updatedLines = outcome.body.ingredients
                         // Same rule as the initial load: the backflush line is the product being
                         // made, not a component to collect. Without this filter a scan response
                         // reintroduces it as a collectible line, because MixingViewModel replaces
                         // the whole line list wholesale with this output.
                         .filter { it.issueType != "im_Backflush" }
-                        .map { it.toBomLine() }
+                        .map { it.toBomLine() },
+                    collectionSummary = outcome.body.collectionSummary.summary,
+                    collectionStatus = outcome.body.collectionStatus,
+                    overCollectionToleranceBags = outcome.body.overCollectionToleranceBags,
+                    nextAction = outcome.nextAction,
                 )
             )
             is MqttOutcome.Rejected -> Result.success(
@@ -242,9 +246,13 @@ class MixingUseCase @Inject constructor(
                     // Same rule as scanIngredient: a waiver adjusts the line's requirement
                     // directly and never produces a scanned line, but the backflush line still
                     // needs filtering out of the wholesale-replaced line list.
-                    outcome.body.ingredients
+                    updatedLines = outcome.body.ingredients
                         .filter { it.issueType != "im_Backflush" }
-                        .map { it.toBomLine() }
+                        .map { it.toBomLine() },
+                    collectionSummary = outcome.body.collectionSummary.summary,
+                    collectionStatus = outcome.body.collectionStatus,
+                    overCollectionToleranceBags = outcome.body.overCollectionToleranceBags,
+                    nextAction = outcome.nextAction,
                 )
             )
             is MqttOutcome.Rejected -> Result.success(

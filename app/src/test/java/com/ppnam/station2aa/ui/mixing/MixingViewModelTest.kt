@@ -1,5 +1,6 @@
 package com.ppnam.station2aa.ui.mixing
 
+import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
@@ -209,7 +210,13 @@ class MixingViewModelTest {
 
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
-            .thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            .thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
@@ -217,6 +224,28 @@ class MixingViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state is MixingUiState.OrderLoaded)
         assertEquals(listOf(updatedLine), (state as MixingUiState.OrderLoaded).order.lines)
+    }
+
+    @Test
+    fun `an accepted scan refreshes the order's status and summary from the server`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.selectLine(0)
+        whenever(mockUseCase.scanIngredient(any(), any(), any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                updatedLines = sampleOrder.lines,
+                collectionSummary = "All products collected.",
+                collectionStatus = "ReadyForMixing",
+                overCollectionToleranceBags = 1.0,
+                nextAction = com.ppnam.station2aa.data.mqtt.NextAction.START_MIXING,
+            )))
+        viewModel.confirmIngredientScan("TAG-1", "full", 2.0)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as MixingUiState.OrderLoaded
+        assertEquals("ReadyForMixing", state.order.collectionStatus)
+        assertEquals("All products collected.", state.order.summary)
     }
 
     @Test
@@ -228,7 +257,13 @@ class MixingViewModelTest {
 
         val satisfiedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
-            .thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(satisfiedLine))))
+            .thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                listOf(satisfiedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
@@ -247,7 +282,13 @@ class MixingViewModelTest {
 
         val partialLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 3.0, remainingQty = 1.0)
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
-            .thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(partialLine))))
+            .thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                listOf(partialLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
@@ -326,7 +367,13 @@ class MixingViewModelTest {
                 "COL_000001", "EPC:300833", "full", 2.0, "MAT-001",
                 "manager1", "secret", "Approved after verified spillage.",
             )
-        ).thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+        ).thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
 
         viewModel.submitManagerApproval("manager1", "secret", "Approved after verified spillage.")
         advanceUntilIdle()
@@ -370,7 +417,13 @@ class MixingViewModelTest {
             mockUseCase.scanIngredient(
                 "COL_000001", "EPC:300833", "full", 2.0, "MAT-001", "manager1", "secret", "reason",
             )
-        ).thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+        ).thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
         viewModel.submitManagerApproval("manager1", "secret", "reason")
         advanceUntilIdle()
 
@@ -497,7 +550,13 @@ class MixingViewModelTest {
             runCurrent()
 
             val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-            approvalGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            approvalGate.complete(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
             advanceUntilIdle()
 
             verify(mockUseCase, times(1)).scanIngredient(
@@ -557,7 +616,13 @@ class MixingViewModelTest {
 
             // The stale response lands late, after the operator has already moved on.
             val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-            approvalGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            approvalGate.complete(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
             advanceUntilIdle()
 
             // Must still be the plain, unmutated OrderLoaded set by cancelManagerApproval — not
@@ -630,7 +695,13 @@ class MixingViewModelTest {
             runCurrent()
 
             val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-            waiverGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            waiverGate.complete(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
             advanceUntilIdle()
 
             verify(mockUseCase, times(1)).waiveShortBags(
@@ -648,7 +719,13 @@ class MixingViewModelTest {
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(
             mockUseCase.waiveShortBags("COL_000001", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
-        ).thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+        ).thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
 
         viewModel.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
         advanceUntilIdle()
@@ -753,7 +830,13 @@ class MixingViewModelTest {
 
             // The stale response lands late, after the operator has already moved on.
             val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-            waiverGate.complete(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
+            waiverGate.complete(Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
             advanceUntilIdle()
 
             // Must still be the plain, unmutated OrderLoaded set by cancelShortBagWaiver — not
@@ -807,7 +890,13 @@ class MixingViewModelTest {
         whenever(mockUseCase.recoverHolding("COL_000001", "EPC:300833")).thenReturn(Result.success(Unit))
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
-            Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine)))
+            Result.success(IngredientScanOutcome.Accepted(
+                listOf(updatedLine),
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = null,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            ))
         )
 
         viewModel.confirmPalletRecovery()

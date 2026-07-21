@@ -780,7 +780,9 @@ fun IngredientScanScreen(
                     else -> Spacer(Modifier.weight(1f))
                 }
 
-                if (allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded) {
+                val readyForMixing = (uiState as? MixingUiState.OrderLoaded)
+                    ?.order?.collectionStatus == "ReadyForMixing"
+                if ((readyForMixing || allIngredientsSatisfied) && uiState is MixingUiState.OrderLoaded) {
                     Spacer(Modifier.height(12.dp))
                     Text(
                         "Collection complete. Mixing arrives in the next update.",

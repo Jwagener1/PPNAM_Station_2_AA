@@ -410,7 +410,11 @@ class MixingViewModel @Inject constructor(
     private fun handleScanOutcome(order: ProductionOrder, outcome: IngredientScanOutcome) {
         when (outcome) {
             is IngredientScanOutcome.Accepted -> {
-                val updatedOrder = order.copy(lines = outcome.updatedLines)
+                val updatedOrder = order.copy(
+                    lines = outcome.updatedLines,
+                    collectionStatus = outcome.collectionStatus,
+                    summary = outcome.collectionSummary,
+                )
                 cachedOrder = updatedOrder
                 pendingScan = null
                 pendingApproval = null

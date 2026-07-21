@@ -40,6 +40,8 @@ data class IngredientScanPayload(
  */
 data class IngredientScanResultResponse(
     val collectionId: String = "",
+    /** Collecting | ReadyForMixing | Mixing | Cancelled — refreshed on every scan result. */
+    val collectionStatus: String = "",
     val requiresManagerApproval: Boolean = false,
     /** Null on a bulk line: no automatic tolerance applies there. */
     val overCollectionToleranceBags: Double? = null,

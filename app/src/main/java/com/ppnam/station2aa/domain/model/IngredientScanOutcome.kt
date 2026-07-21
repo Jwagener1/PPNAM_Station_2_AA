@@ -1,7 +1,21 @@
 package com.ppnam.station2aa.domain.model
 
+import com.ppnam.station2aa.data.mqtt.NextAction
+
 sealed class IngredientScanOutcome {
-    data class Accepted(val updatedLines: List<BomLine>) : IngredientScanOutcome()
+    /**
+     * The scan/waiver was applied. Carries the refreshed collection picture through the use-case
+     * boundary so the UI never re-derives readiness locally: Station 2's own summary line, the
+     * collection status (ReadyForMixing gates the SP4b mixing entry point), the tolerance the
+     * server actually applied, and its navigation hint.
+     */
+    data class Accepted(
+        val updatedLines: List<BomLine>,
+        val collectionSummary: String,
+        val collectionStatus: String,
+        val overCollectionToleranceBags: Double?,
+        val nextAction: NextAction,
+    ) : IngredientScanOutcome()
 
     /**
      * Station 2 rejected the scan pending manager approval. Carries the whole original scan, because
