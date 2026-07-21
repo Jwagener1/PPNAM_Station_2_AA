@@ -420,4 +420,23 @@ class MixingBoardViewModelTest {
         val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
         assertNotNull((sheet as BoardSheet.ForceCloseDialog).validationError)
     }
+
+    @Test
+    fun `toggleMix ignores a mix from another job card once one is selected`() = runTest {
+        val overview = mainOverview.copy(readyMixes = listOf(
+            readyMix("MIX_1", validNext = listOf("EXT-03")),
+            readyMix("MIX_OTHER", jc = "510018531", validNext = listOf("EXT-03")),
+        ))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(overview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        viewModel.openArea(MixingArea.Main)
+        advanceUntilIdle()
+
+        viewModel.toggleMix("MIX_1")
+        viewModel.toggleMix("MIX_OTHER") // other JC — the same-JC mirror must ignore this tap
+
+        val selection = (viewModel.uiState.value as MixingBoardUiState.Board).selection
+        assertTrue(selection is BoardSelection.Mixes)
+        assertEquals(listOf("MIX_1"), (selection as BoardSelection.Mixes).mixBatchIds)
+    }
 }
