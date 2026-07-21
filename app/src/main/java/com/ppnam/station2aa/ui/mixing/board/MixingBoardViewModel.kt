@@ -193,6 +193,9 @@ class MixingBoardViewModel @Inject constructor(
                 ?.let { pending -> collections.firstOrNull { it.collectionId == pending } }
                 ?.let { BoardSelection.Collection(it.collectionId, it.jobCardNumber) }
                 ?: BoardSelection.None
+            // One-shot: the auto-nav hint must not re-assert itself over the operator's
+            // later manual choices when a reconnect refresh re-derives this board.
+            pendingCollectionId = null
             _uiState.value = MixingBoardUiState.Board(
                 area = area,
                 overview = overview,

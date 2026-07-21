@@ -159,19 +159,22 @@ class MixingBoardViewModelTest {
                 equipment("EXT-03", role = "ProductionMachine"),
                 equipment("EXT-04", role = "ProductionMachine", status = "InUse", currentJc = "510019068"),
                 equipment("EXT-05", role = "ProductionMachine", status = "InUse", currentJc = "510018531"),
+                equipment("EXT-06", role = "ProductionMachine", status = "InUse", currentJc = "510018531"),
             ),
             readyMixes = listOf(
-                readyMix("MIX_1", validNext = listOf("EXT-03", "EXT-04", "EXT-05")),
-                readyMix("MIX_2", validNext = listOf("EXT-03", "EXT-04")),
+                readyMix("MIX_1", validNext = listOf("EXT-03", "EXT-04", "EXT-05", "EXT-06")),
+                readyMix("MIX_2", validNext = listOf("EXT-03", "EXT-04", "EXT-06")),
             ),
             activeRuns = listOf(
                 ActiveRun("RUN_1", "EXT-04", "510019068", listOf("MIX_0"), "2026-07-21T08:00:00Z"),
                 ActiveRun("RUN_2", "EXT-05", "510018531", listOf("MIX_8"), "2026-07-21T08:00:00Z"),
+                ActiveRun("RUN_3", "EXT-06", "510018531", listOf("MIX_7"), "2026-07-21T08:00:00Z"),
             ),
         )
         val highlights = computeHighlightedMachines(
             overview, BoardSelection.Mixes(listOf("MIX_1", "MIX_2"), "510019068"))
-        // EXT-03 available+in intersection; EXT-04 accumulating same JC; EXT-05 other JC excluded
+        // EXT-03 available+in intersection; EXT-04 accumulating same JC; EXT-05 other JC excluded;
+        // EXT-06 IN intersection but its active run is on another JC — the true accumulation boundary
         assertEquals(setOf("EXT-03", "EXT-04"), highlights)
     }
 
@@ -186,5 +189,22 @@ class MixingBoardViewModelTest {
         val highlights = computeHighlightedMachines(
             overview, BoardSelection.Collection("COL_1", "510019068"))
         assertEquals(setOf("MXR-01"), highlights)
+    }
+
+    @Test
+    fun `the auto-nav pre-selection is one-shot — a refresh does not re-assert it`() = runTest {
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        viewModel.loadAreaPicker("COL_1")
+        advanceUntilIdle()
+        viewModel.openArea(MixingArea.Main)
+        advanceUntilIdle()
+        assertTrue((viewModel.uiState.value as MixingBoardUiState.Board).selection is BoardSelection.Collection)
+
+        viewModel.refresh()
+        advanceUntilIdle()
+
+        assertTrue("a refresh must not re-assert the consumed auto-nav hint",
+            (viewModel.uiState.value as MixingBoardUiState.Board).selection is BoardSelection.None)
     }
 }
