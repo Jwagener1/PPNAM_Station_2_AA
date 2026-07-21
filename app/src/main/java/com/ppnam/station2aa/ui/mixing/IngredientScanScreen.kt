@@ -26,7 +26,7 @@ import com.ppnam.station2aa.ui.theme.*
 @Composable
 fun IngredientScanScreen(
     orderNo: String,
-    onProceedToHopperScan: () -> Unit,
+    onProceedToMixing: () -> Unit,
     onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
@@ -91,7 +91,7 @@ fun IngredientScanScreen(
             title = { Text("Cancel this job card?", color = TextPrimary) },
             text = {
                 Text(
-                    "This closes the job card if it hasn't had any activity yet (ingredients scanned, hopper assigned, SAP issue, etc). You'll be notified if it can't be cancelled.",
+                    "This closes the job card if it hasn't had any activity yet (ingredients scanned, mixing started, etc). You'll be notified if it can't be cancelled.",
                     color = TextMuted
                 )
             },
@@ -783,7 +783,7 @@ fun IngredientScanScreen(
                 if (allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Collection complete. Routing to a Hopper/Extruder/Rajoo is not available in this release yet.",
+                        "Collection complete. Mixing arrives in the next update.",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextMuted
                     )
@@ -802,14 +802,15 @@ fun IngredientScanScreen(
                     ) {
                         Text("Cancel")
                     }
-                    // TODO(sub-project 4): wire routing via machine_cycle_start_requested (Hopper/Extruder/Rajoo).
-                    // Permanently disabled until that flow exists; do not re-enable based on allIngredientsSatisfied.
+                    // SP4b wires this into the five-area Mixing flow (mixing_overview_requested →
+                    // machine_cycle_start_requested). Permanently disabled until that flow exists;
+                    // do not re-enable based on allIngredientsSatisfied.
                     Button(
-                        onClick = onProceedToHopperScan,
+                        onClick = onProceedToMixing,
                         enabled = false,
                         modifier = Modifier.weight(2f).height(56.dp)
                     ) {
-                        Text("Routing available in a later release")
+                        Text("Mixing available in the next update")
                     }
                 }
             }

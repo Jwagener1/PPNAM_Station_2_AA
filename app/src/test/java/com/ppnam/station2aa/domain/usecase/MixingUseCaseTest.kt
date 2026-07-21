@@ -43,7 +43,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0)
             )
@@ -59,7 +59,7 @@ class MixingUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals("510019068", result.getOrThrow().docNo)
-        assertEquals("premix-1", result.getOrThrow().collectionId)
+        assertEquals("COL_000001", result.getOrThrow().collectionId)
         verify(mockBomCacheDao).put(any())
     }
 
@@ -68,7 +68,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "KG")
             )
@@ -90,7 +90,7 @@ class MixingUseCaseTest {
         // and the humanized value ("kg") in a separate unit field.
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "269", unit = "kg")
             )
@@ -131,7 +131,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019231",
             productionOrderDocumentNumber = "510019231",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "1500000326",
@@ -167,7 +167,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", issueType = "im_Manual")
             )
@@ -189,7 +189,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
@@ -414,9 +414,9 @@ class MixingUseCaseTest {
     @Test
     fun `cancelJob succeeds and returns the result body`() = runTest {
         val response = IngredientCollectionCancelResultResponse(
-            preMixId = "premix-1",
+            collectionId = "COL_000001",
             jobCardNumber = "510019068",
-            preMixStatus = "Cancelled",
+            collectionStatus = "Cancelled",
             nextAction = "scan_job_card"
         )
         whenever(
@@ -426,10 +426,10 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_JOB_CARD))
 
-        val result = useCase.cancelJob("premix-1", "510019068", "Operator cancelled — incorrect job card", "Manager1", "5678")
+        val result = useCase.cancelJob("COL_000001", "510019068", "Operator cancelled — incorrect job card", "Manager1", "5678")
 
         assertTrue(result.isSuccess)
-        assertEquals("Cancelled", result.getOrThrow().preMixStatus)
+        assertEquals("Cancelled", result.getOrThrow().collectionStatus)
     }
 
     @Test
@@ -441,13 +441,13 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(IngredientCollectionCancelResultResponse(), NextAction.SCAN_JOB_CARD))
 
-        useCase.cancelJob("premix-1", "510019068", "reason", "Manager1", "5678")
+        useCase.cancelJob("COL_000001", "510019068", "reason", "Manager1", "5678")
 
         verify(mockMqtt).request(
             eq("ingredient_collection_cancel_requested"), eq("ingredient_collection_cancel_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelPayload &&
-                    collectionId == "premix-1" && managerUsername == "Manager1" &&
+                    collectionId == "COL_000001" && managerUsername == "Manager1" &&
                     managerPassword == "5678" && auditReason == "reason"
             },
             any(), eq(IngredientCollectionCancelResultResponse::class.java),
@@ -468,7 +468,7 @@ class MixingUseCaseTest {
             )
         )
 
-        val result = useCase.cancelJob("premix-1", "510019068", "reason", "Manager1", "5678")
+        val result = useCase.cancelJob("COL_000001", "510019068", "reason", "Manager1", "5678")
 
         assertTrue(result.isFailure)
         assertEquals("Manager or admin approval is required.", result.exceptionOrNull()?.message)
@@ -483,7 +483,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.NotConnected))
 
-        val result = useCase.cancelJob("premix-1", "510019068", "reason", "Manager1", "5678")
+        val result = useCase.cancelJob("COL_000001", "510019068", "reason", "Manager1", "5678")
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
@@ -498,7 +498,7 @@ class MixingUseCaseTest {
                 ActiveJobCardSummary(
                     jobCardNumber = "510019068",
                     productionOrderDocumentNumber = "510019068",
-                    collectionId = "premix-1",
+                    collectionId = "COL_000001",
                     productName = "Layer Mash",
                     status = "Open"
                 )
@@ -560,7 +560,7 @@ class MixingUseCaseTest {
     @Test
     fun `scanIngredient accepted maps ingredientProgress into updated BomLine list`() = runTest {
         val response = IngredientScanResultResponse(
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
@@ -578,7 +578,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
+        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")
 
         assertTrue(result.isSuccess)
         val outcome = result.getOrThrow()
@@ -598,7 +598,7 @@ class MixingUseCaseTest {
         // MixingViewModel.handleScanOutcome() replaces the whole line list wholesale with this
         // output. Without this filter, the product being made would reappear as a collectible line.
         val response = IngredientScanResultResponse(
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", issueType = "im_Manual"),
                 BomLineResponse(materialCode = "22306", materialName = "CARRIER BAG LEVY", issueType = "im_Backflush"),
@@ -611,7 +611,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
 
         val lines = (outcome as IngredientScanOutcome.Accepted).updatedLines
         assertEquals(1, lines.size)
@@ -627,16 +627,16 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.Timeout))
 
-        useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
+        useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")
 
         verify(mockMqtt).request(
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload &&
-                    collectionId == "premix-1" && palletRfidTag == "EPC:300833" &&
+                    collectionId == "COL_000001" && palletRfidTag == "EPC:300833" &&
                     bagSizeOption == "full" && bagCount == 2.0
             },
-            eq("premix-1"), eq(IngredientScanResultResponse::class.java),
+            eq("COL_000001"), eq(IngredientScanResultResponse::class.java),
         )
     }
 
@@ -729,7 +729,7 @@ class MixingUseCaseTest {
             MqttOutcome.Rejected(IngredientScanResultResponse(), null, "Unknown pallet", NextAction.NONE)
         )
 
-        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.Rejected)
         assertEquals("Unknown pallet", (outcome as IngredientScanOutcome.Rejected).reason)
@@ -741,7 +741,7 @@ class MixingUseCaseTest {
             mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java))
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.NotConnected))
 
-        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
+        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)

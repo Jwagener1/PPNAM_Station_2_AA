@@ -59,7 +59,7 @@ class MqttRequestCorrelationTest {
 
     private fun respond(inResponseTo: String, accepted: Boolean = true, value: String = "ok") {
         val json = """
-            {"inResponseToMessageId":"$inResponseTo","schemaVersion":"3.0","accepted":$accepted,
+            {"inResponseToMessageId":"$inResponseTo","schemaVersion":"4.0","accepted":$accepted,
              "nextAction":"scan_ingredient","value":"$value"}
         """.trimIndent()
         repo.handleIncomingResponse("PPNAM/handheld_1/res/test_result", json.toByteArray())

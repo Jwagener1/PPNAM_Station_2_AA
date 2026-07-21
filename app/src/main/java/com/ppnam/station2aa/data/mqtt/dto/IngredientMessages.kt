@@ -1,7 +1,5 @@
 package com.ppnam.station2aa.data.mqtt.dto
 
-import com.ppnam.station2aa.domain.model.HopperBoardEntry
-
 /**
  * `ingredient_scan_requested`.
  *
@@ -50,8 +48,6 @@ data class IngredientScanResultResponse(
     val approverRole: String? = null,
     val collectionSummary: CollectionSummaryResponse = CollectionSummaryResponse(),
     val ingredients: List<BomLineResponse> = emptyList(),
-    /** Required by the contract in every scan result — including the ingredient-ready scan. */
-    val hoppers: List<HopperBoardEntry> = emptyList(),
 )
 
 /**

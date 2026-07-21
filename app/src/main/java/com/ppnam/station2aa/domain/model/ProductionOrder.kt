@@ -7,7 +7,7 @@ data class ProductionOrder(
     // made, not a component the operator scans — it's surfaced separately here rather
     // than in `lines`, and isn't always present in the response.
     val productBeingMade: String? = null,
-    /** Collecting | ReadyForRouting | Routed | Cancelled. Mapped in sub-project 3's Task 2. */
+    /** Collecting | ReadyForMixing | Mixing | Cancelled. */
     val collectionStatus: String = "",
     /** Station 2's own human-readable collection summary line. Mapped in sub-project 3's Task 2. */
     val summary: String = "",

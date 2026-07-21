@@ -1,7 +1,5 @@
 package com.ppnam.station2aa.data.mqtt.dto
 
-import com.ppnam.station2aa.domain.model.HopperBoardEntry
-
 /** `job_card_load_requested` — always starts a new collection; never silently resumes. */
 data class JobCardLoadPayload(
     val jobCardNumber: String,
@@ -66,13 +64,11 @@ data class BomLoadedResponse(
     val productionOrderDocumentNumber: String = "",
     val collectionId: String = "",
     val resumed: Boolean = false,
-    /** Collecting | ReadyForRouting | Routed | Cancelled */
+    /** Collecting | ReadyForMixing | Mixing | Cancelled */
     val collectionStatus: String = "",
     val bomSnapshotCapturedAtUtc: String? = null,
     val collectionSummary: CollectionSummaryResponse = CollectionSummaryResponse(),
     val ingredients: List<BomLineResponse> = emptyList(),
-    /** Required by the contract in every bom_loaded — the operator chooses equipment from it. */
-    val hoppers: List<HopperBoardEntry> = emptyList(),
 )
 
 data class ActiveJobCardSummary(
@@ -103,9 +99,9 @@ data class IngredientCollectionCancelPayload(
 )
 
 data class IngredientCollectionCancelResultResponse(
-    val preMixId: String = "",
+    val collectionId: String = "",
     val jobCardNumber: String = "",
-    val preMixStatus: String = "",
+    val collectionStatus: String = "",
     val nextAction: String = "",
     val approverUserId: String = "",
     val approverDisplayName: String = "",

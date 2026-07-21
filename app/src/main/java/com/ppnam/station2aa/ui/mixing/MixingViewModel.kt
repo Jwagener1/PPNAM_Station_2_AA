@@ -479,10 +479,9 @@ class MixingViewModel @Inject constructor(
         _uiState.value = if (order != null) orderLoadedState(order) else MixingUiState.Idle
     }
 
-    // Waits for premix_cancel_result before touching any local state — a rejected
-    // cancel (e.g. the pre-mix already has scanned ingredients, or the manager
-    // approval was denied) must leave the job exactly as it was, per the backend's
-    // "only an untouched JC load can be closed" rule.
+    // Waits for ingredient_collection_cancel_result before touching any local state — a
+    // rejected cancel (e.g. the collection was already claimed by a mixer, or the manager
+    // approval was denied) must leave the job exactly as it was.
     fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
         if (_uiState.value is MixingUiState.Cancelling) return
         // v3 authorises a privileged action solely by the manager credentials carried in the

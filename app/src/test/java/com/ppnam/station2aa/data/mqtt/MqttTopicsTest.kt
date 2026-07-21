@@ -80,7 +80,7 @@ class MqttTopicsTest {
     }
 
     @Test
-    fun `schema version is exactly 3 point 0`() {
-        assertEquals("3.0", MqttSchema.VERSION)
+    fun `schema version is exactly 4 point 0`() {
+        assertEquals("4.0", MqttSchema.VERSION)
     }
 }

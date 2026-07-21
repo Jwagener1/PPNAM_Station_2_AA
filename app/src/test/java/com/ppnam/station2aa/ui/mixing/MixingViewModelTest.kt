@@ -37,7 +37,7 @@ class MixingViewModelTest {
 
     private val sampleOrder = ProductionOrder(
         docNo = "510019068",
-        collectionId = "premix-1",
+        collectionId = "COL_000001",
         lines = listOf(BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0))
     )
 
@@ -63,7 +63,7 @@ class MixingViewModelTest {
         whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
         whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
-        whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("cancel_premix")))
+        whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("ingredient_collection_cancel")))
 
         viewModel = MixingViewModel(
             mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder
@@ -92,11 +92,11 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `lookupJob forwards preMixId to the use case`() = runTest {
-        whenever(mockUseCase.lookupJob("510019068", "premix-1")).thenReturn(Result.success(sampleOrder))
-        viewModel.lookupJob("510019068", "premix-1")
+    fun `lookupJob forwards collectionId to the use case`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068", "COL_000001")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068", "COL_000001")
         advanceUntilIdle()
-        verify(mockUseCase).lookupJob("510019068", "premix-1")
+        verify(mockUseCase).lookupJob("510019068", "COL_000001")
     }
 
     @Test
@@ -208,7 +208,7 @@ class MixingViewModelTest {
         viewModel.selectLine(0)
 
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001"))
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
             .thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -227,7 +227,7 @@ class MixingViewModelTest {
         viewModel.selectLine(0)
 
         val satisfiedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001"))
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
             .thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(satisfiedLine))))
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -246,7 +246,7 @@ class MixingViewModelTest {
         viewModel.selectLine(0)
 
         val partialLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 3.0, remainingQty = 1.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001"))
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
             .thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(partialLine))))
 
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -264,10 +264,10 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     reason = "Wrong material",
                 )
@@ -289,7 +289,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
         )
 
@@ -308,10 +308,10 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     reason = "Wrong material",
                 )
@@ -323,7 +323,7 @@ class MixingViewModelTest {
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(
             mockUseCase.scanIngredient(
-                "premix-1", "EPC:300833", "full", 2.0, "MAT-001",
+                "COL_000001", "EPC:300833", "full", 2.0, "MAT-001",
                 "manager1", "secret", "Approved after verified spillage.",
             )
         ).thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
@@ -332,7 +332,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         verify(mockUseCase).scanIngredient(
-            eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+            eq("COL_000001"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
             eq("manager1"), eq("secret"), eq("Approved after verified spillage."),
         )
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
@@ -353,10 +353,10 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     reason = "Wrong material",
                 )
@@ -368,7 +368,7 @@ class MixingViewModelTest {
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(
             mockUseCase.scanIngredient(
-                "premix-1", "EPC:300833", "full", 2.0, "MAT-001", "manager1", "secret", "reason",
+                "COL_000001", "EPC:300833", "full", 2.0, "MAT-001", "manager1", "secret", "reason",
             )
         ).thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
         viewModel.submitManagerApproval("manager1", "secret", "reason")
@@ -379,7 +379,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         verify(mockUseCase, times(1)).scanIngredient(
-            eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+            eq("COL_000001"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
             eq("manager1"), eq("secret"), eq("reason"),
         )
     }
@@ -391,10 +391,10 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     reason = "Wrong material",
                 )
@@ -425,10 +425,10 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     reason = "Wrong material",
                 )
@@ -463,10 +463,10 @@ class MixingViewModelTest {
             advanceUntilIdle()
             vm.selectLine(0)
 
-            whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+            whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
                 Result.success(
                     IngredientScanOutcome.NeedsManagerApproval(
-                        collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                        collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                         requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                         reason = "Wrong material",
                     )
@@ -479,7 +479,7 @@ class MixingViewModelTest {
             mockUseCase.stub {
                 onBlocking {
                     scanIngredient(
-                        eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+                        eq("COL_000001"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
                         eq("manager1"), eq("secret"), eq("Approved after verified spillage."),
                     )
                 } doSuspendableAnswer { approvalGate.await() }
@@ -501,7 +501,7 @@ class MixingViewModelTest {
             advanceUntilIdle()
 
             verify(mockUseCase, times(1)).scanIngredient(
-                eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+                eq("COL_000001"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
                 eq("manager1"), eq("secret"), eq("Approved after verified spillage."),
             )
             assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
@@ -520,10 +520,10 @@ class MixingViewModelTest {
             advanceUntilIdle()
             vm.selectLine(0)
 
-            whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+            whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
                 Result.success(
                     IngredientScanOutcome.NeedsManagerApproval(
-                        collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                        collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                         requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                         reason = "Wrong material",
                     )
@@ -537,7 +537,7 @@ class MixingViewModelTest {
             mockUseCase.stub {
                 onBlocking {
                     scanIngredient(
-                        eq("premix-1"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
+                        eq("COL_000001"), eq("EPC:300833"), eq("full"), eq(2.0), eq("MAT-001"),
                         eq("manager1"), eq("secret"), eq("reason"),
                     )
                 } doSuspendableAnswer { approvalGate.await() }
@@ -616,7 +616,7 @@ class MixingViewModelTest {
             val waiverGate = CompletableDeferred<Result<IngredientScanOutcome>>()
             mockUseCase.stub {
                 onBlocking {
-                    waiveShortBags(eq("premix-1"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("Short by 2 bags"))
+                    waiveShortBags(eq("COL_000001"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("Short by 2 bags"))
                 } doSuspendableAnswer { waiverGate.await() }
             }
 
@@ -634,7 +634,7 @@ class MixingViewModelTest {
             advanceUntilIdle()
 
             verify(mockUseCase, times(1)).waiveShortBags(
-                eq("premix-1"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("Short by 2 bags"),
+                eq("COL_000001"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("Short by 2 bags"),
             )
         }
     }
@@ -647,13 +647,13 @@ class MixingViewModelTest {
 
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
         whenever(
-            mockUseCase.waiveShortBags("premix-1", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
+            mockUseCase.waiveShortBags("COL_000001", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
         ).thenReturn(Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine))))
 
         viewModel.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
         advanceUntilIdle()
 
-        verify(mockUseCase).waiveShortBags("premix-1", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
+        verify(mockUseCase).waiveShortBags("COL_000001", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
     }
 
@@ -663,11 +663,11 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        whenever(mockUseCase.waiveShortBags("premix-1", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags"))
+        whenever(mockUseCase.waiveShortBags("COL_000001", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags"))
             .thenReturn(
                 Result.success(
                     IngredientScanOutcome.NeedsApprovalForWaiver(
-                        collectionId = "premix-1", requestedMaterialCode = "MAT-001",
+                        collectionId = "COL_000001", requestedMaterialCode = "MAT-001",
                         shortBagCount = 2.0, reason = "Manager approval required",
                     )
                 )
@@ -700,11 +700,11 @@ class MixingViewModelTest {
         advanceUntilIdle()
         vm.startListeningForPalletScans("510019068")
 
-        whenever(mockUseCase.waiveShortBags("premix-1", "MAT-001", 2.0, "manager1", "secret", "reason"))
+        whenever(mockUseCase.waiveShortBags("COL_000001", "MAT-001", 2.0, "manager1", "secret", "reason"))
             .thenReturn(
                 Result.success(
                     IngredientScanOutcome.NeedsApprovalForWaiver(
-                        collectionId = "premix-1", requestedMaterialCode = "MAT-001",
+                        collectionId = "COL_000001", requestedMaterialCode = "MAT-001",
                         shortBagCount = 2.0, reason = "Manager approval required",
                     )
                 )
@@ -736,7 +736,7 @@ class MixingViewModelTest {
             val waiverGate = CompletableDeferred<Result<IngredientScanOutcome>>()
             mockUseCase.stub {
                 onBlocking {
-                    waiveShortBags(eq("premix-1"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("reason"))
+                    waiveShortBags(eq("COL_000001"), eq("MAT-001"), eq(2.0), eq("manager1"), eq("secret"), eq("reason"))
                 } doSuspendableAnswer { waiverGate.await() }
             }
 
@@ -770,11 +770,11 @@ class MixingViewModelTest {
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
 
-        whenever(mockUseCase.waiveShortBags("premix-1", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags"))
+        whenever(mockUseCase.waiveShortBags("COL_000001", "MAT-001", 2.0, "manager1", "secret", "Short by 2 bags"))
             .thenReturn(
                 Result.success(
                     IngredientScanOutcome.NeedsApprovalForWaiver(
-                        collectionId = "premix-1", requestedMaterialCode = "MAT-001",
+                        collectionId = "COL_000001", requestedMaterialCode = "MAT-001",
                         shortBagCount = 2.0, reason = "Manager approval required",
                     )
                 )
@@ -798,15 +798,15 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
         )
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
 
-        whenever(mockUseCase.recoverHolding("premix-1", "EPC:300833")).thenReturn(Result.success(Unit))
+        whenever(mockUseCase.recoverHolding("COL_000001", "EPC:300833")).thenReturn(Result.success(Unit))
         val updatedLine = BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 1.0, remainingQty = 0.0)
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(IngredientScanOutcome.Accepted(listOf(updatedLine)))
         )
 
@@ -814,7 +814,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
-        verify(mockUseCase).recoverHolding("premix-1", "EPC:300833")
+        verify(mockUseCase).recoverHolding("COL_000001", "EPC:300833")
     }
 
     @Test
@@ -824,7 +824,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(IngredientScanOutcome.NeedsRecovery("Pallet not in Holding"))
         )
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
@@ -843,7 +843,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
         viewModel.selectLine(0)
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001"))
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
             .thenReturn(Result.failure(RuntimeException("Station 2 did not respond")))
         viewModel.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
@@ -943,7 +943,7 @@ class MixingViewModelTest {
         advanceUntilIdle()
 
         verify(mockUseCase).cancelJob(
-            eq("premix-1"), eq("510019068"), any(), eq("Manager1"), eq("5678")
+            eq("COL_000001"), eq("510019068"), any(), eq("Manager1"), eq("5678")
         )
     }
 
@@ -1036,10 +1036,10 @@ class MixingViewModelTest {
         // it is not restarted per-dialog, so this reproduces the real collector lifecycle.
         vm.startListeningForPalletScans("510019068")
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001")).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "premix-1", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     reason = "Wrong material",
                 )
@@ -1100,7 +1100,7 @@ class MixingViewModelTest {
 
         vm.startListeningForPalletScans("510019068")
 
-        whenever(mockUseCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001"))
+        whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "full", 2.0, "MAT-001"))
             .thenReturn(Result.failure(RuntimeException("Station 2 did not respond")))
         vm.confirmIngredientScan("EPC:300833", "full", 2.0)
         advanceUntilIdle()
