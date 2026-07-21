@@ -27,13 +27,31 @@ from paho.mqtt.properties import Properties
 
 import envelope
 from envelope import Rejection, Replay, build_response
-from handlers import REGISTRY
+from handlers import REGISTRY, RETIRED_REQUEST_TYPES
 from simlog import SimLogger
 from state import World
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATION_ID = "station_2"
 STATUS_TOPIC = f"PPNAM/{STATION_ID}/status"
+
+
+def _redacted(payload):
+    """Wire-log payloads with credentials masked. The workflow still receives the
+    original bytes — only the log copy is redacted (contract: credentials are
+    redacted from application and MQTT logs)."""
+    try:
+        body = json.loads(payload)
+    except (ValueError, UnicodeDecodeError):
+        return payload
+    if not isinstance(body, dict):
+        return payload
+    masked = False
+    for key in ("password", "managerPassword"):
+        if body.get(key) is not None:
+            body[key] = "***"
+            masked = True
+    return json.dumps(body, ensure_ascii=False) if masked else payload
 
 
 class Simulator:
@@ -127,7 +145,25 @@ class Simulator:
                 self.log.fail("unhandled error in worker:\n" + traceback.format_exc())
 
     def handle_request(self, device_id, request_type, payload):
-        self.log.wire("in", f"PPNAM/{device_id}/req/{request_type}", payload)
+        self.log.wire("in", f"PPNAM/{device_id}/req/{request_type}", _redacted(payload))
+        if request_type in RETIRED_REQUEST_TYPES:
+            self.log.fail(f"req/{request_type} from {device_id}: RETIRED v3 production request "
+                          f"— answering client_upgrade_required (v4 tripwire)")
+            try:
+                body = json.loads(payload)
+                if not isinstance(body, dict):
+                    body = {}
+            except (ValueError, UnicodeDecodeError):
+                body = {}
+            body.setdefault("deviceId", device_id)
+            response = build_response(
+                self.world, body, accepted=False,
+                error_code="client_upgrade_required",
+                reason="This request was retired by contract v4.0. Upgrade the reader "
+                       "build for the unified Mixing workflow.",
+                next_action="upgrade_reader_for_mixing")
+            self.publish_response(device_id, "workflow_upgrade_required", response)
+            return
         entry = REGISTRY.get(request_type)
         if not entry:
             self.log.warn(f"req/{request_type} from {device_id}: unknown request type — "
@@ -175,7 +211,7 @@ class Simulator:
     # ------------------------------------------------------------- run ----
     def run(self):
         self.log.ok(f"Station 2 backend simulator starting "
-                    f"(schema {envelope.SCHEMA_VERSION}, contract v3) — "
+                    f"(schema {envelope.SCHEMA_VERSION}, contract v4) — "
                     f"window ±{self.world.config['timestampWindowSeconds']}s, "
                     f"tolerance {self.world.config['overCollectionToleranceBags']} bag(s)")
         self.log.ok(f"logs: {self.log.run_dir}")
@@ -216,7 +252,7 @@ class Simulator:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Station 2 MQTT backend simulator (contract v3)")
+    parser = argparse.ArgumentParser(description="Station 2 MQTT backend simulator (contract v4)")
     parser.add_argument("--host", default="mqtt.sysone.co.za", help="MQTT broker host")
     parser.add_argument("--port", type=int, default=1883, help="MQTT broker port")
     parser.add_argument("--window", type=int, default=None,
