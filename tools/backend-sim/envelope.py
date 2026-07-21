@@ -1,4 +1,4 @@
-"""Common JSON envelope handling: the contract's validation order, the
+"""Common JSON envelope handling for contract v4.0: the contract's validation order, the
 response envelope builder, and the privileged-action approval helper.
 
 Validation order (RFID_MQTT_CONTRACT.md):
@@ -14,7 +14,17 @@ Validation order (RFID_MQTT_CONTRACT.md):
 
 from state import World, utc_now, iso, parse_iso
 
-SCHEMA_VERSION = "3.0"
+SCHEMA_VERSION = "4.0"
+
+# Contract §12: during cutover, schema 3.0 is temporarily accepted ONLY for the
+# capture actions below. Every other request requires exactly 4.0.
+V3_COMPAT_ACTIONS = frozenset({
+    "login_requested", "reader_logout_requested",
+    "pallet_lookup_requested", "holding_recovery_requested",
+    "active_job_cards_requested", "open_sap_job_cards_requested",
+    "job_card_load_requested", "collection_resume_requested",
+    "ingredient_collection_cancel_requested", "ingredient_scan_requested",
+})
 
 ENVELOPE_FIELDS = ("messageId", "schemaVersion", "deviceId", "operatorSessionId", "timestampUtc")
 
@@ -108,9 +118,15 @@ def validate(world, log, topic_device, request_type, payload_bytes, is_login, ct
         ctx["_bodyHash"] = body_hash
 
     # -- step 3: schema / topic device / configured device / timestamp ----
-    if req["schemaVersion"] != SCHEMA_VERSION:
-        log.fail(f"step 3 schema: got '{req['schemaVersion']}', require '{SCHEMA_VERSION}'")
-        raise Rejection("unsupported_schema", f"schemaVersion must be exactly '{SCHEMA_VERSION}'.")
+    allowed = {SCHEMA_VERSION}
+    if request_type in V3_COMPAT_ACTIONS:
+        allowed.add("3.0")
+    if req["schemaVersion"] not in allowed:
+        log.fail(f"step 3 schema: got '{req['schemaVersion']}' on {request_type}, "
+                 f"allowed {sorted(allowed)}")
+        raise Rejection("unsupported_schema",
+                        f"schemaVersion must be '{SCHEMA_VERSION}' "
+                        f"(3.0 is accepted only for capture actions during cutover).")
     if req["deviceId"] != topic_device:
         log.fail(f"step 3 device: payload deviceId '{req['deviceId']}' != topic device '{topic_device}'")
         raise Rejection("device_mismatch", "Payload deviceId differs from the MQTT topic.")
