@@ -170,7 +170,19 @@ class MixingBoardUseCaseTest {
         val rejected = outcome as MachineCycleOutcome.Rejected
         assertEquals(ErrorCode.EQUIPMENT_IN_USE, rejected.errorCode)
         assertEquals("Busy.", rejected.reason)
-        assertEquals(1, rejected.areaStatus.equipment.size)
+        assertEquals(1, rejected.areaStatus!!.equipment.size)
+    }
+
+    @Test
+    fun `an envelope-level rejection with no areaStatus maps to null`() = runTest {
+        val response = MachineCycleResultResponse()
+        whenever(mockMqtt.request(any(), any(), any(), anyOrNull(), eq(MachineCycleResultResponse::class.java)))
+            .thenReturn(MqttOutcome.Rejected(response, ErrorCode.SESSION_REQUIRED, "No valid session.", NextAction.NONE))
+
+        val outcome = useCase.finish("MXR-01", "CYC_1")
+
+        assertTrue(outcome is MachineCycleOutcome.Rejected)
+        assertNull((outcome as MachineCycleOutcome.Rejected).areaStatus)
     }
 
     @Test

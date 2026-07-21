@@ -333,6 +333,46 @@ class MixingBoardViewModelTest {
     }
 
     @Test
+    fun `a rejection without areaStatus keeps the current board picture`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        whenever(mockUseCase.startMixer(any(), any(), any())).thenReturn(
+            com.ppnam.station2aa.domain.model.MachineCycleOutcome.Rejected(
+                errorCode = com.ppnam.station2aa.data.mqtt.ErrorCode.SESSION_REQUIRED,
+                reason = "No valid session.", areaStatus = null))
+        viewModel.selectCollection("COL_1")
+        viewModel.machineChosen("MXR-01")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertTrue("an envelope-level rejection must not blank the board",
+            board.overview.equipment.isNotEmpty())
+        assertTrue(board.overview.equipment.any { it.machineCode == "MXR-01" })
+        assertTrue("selection survives a rejection so the operator can retry elsewhere",
+            board.selection is BoardSelection.Collection)
+    }
+
+    @Test
+    fun `a late area load cannot overwrite a newer one`() = runTest {
+        val slowGate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Dolci), anyOrNull())).doSuspendableAnswer {
+            slowGate.await()
+            Result.success(mainOverview)
+        }
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull()))
+            .thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+
+        viewModel.openArea(MixingArea.Dolci) // suspends on the gate
+        viewModel.openArea(MixingArea.Main)  // cancels the Dolci load
+        advanceUntilIdle()
+        slowGate.complete(Unit)              // late Dolci result must be dead
+        advanceUntilIdle()
+
+        assertEquals(MixingArea.Main, (viewModel.uiState.value as MixingBoardUiState.Board).area)
+    }
+
+    @Test
     fun `rajoo confirm validates doses fail-closed`() = runTest {
         val rajooOverview = mainOverview.copy(equipment = listOf(
             equipment("RAJ-GM-01", area = MixingArea.Rajoo)))

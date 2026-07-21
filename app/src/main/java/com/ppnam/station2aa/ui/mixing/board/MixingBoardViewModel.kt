@@ -148,6 +148,9 @@ class MixingBoardViewModel @Inject constructor(
     /** Task 5: in-flight cycle-operation guard (the capture VM's approvalJob discipline). */
     private var actionJob: Job? = null
 
+    /** Cancels a superseded area load so a late response can't overwrite a newer one. */
+    private var loadJob: Job? = null
+
     init {
         // Reconnect refresh (§13.11): the board is stale after any transport drop.
         viewModelScope.launch {
@@ -181,7 +184,8 @@ class MixingBoardViewModel @Inject constructor(
 
     fun loadAreaPicker(pendingCollectionId: String?) {
         this.pendingCollectionId = pendingCollectionId?.takeIf { it.isNotBlank() }
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.value = MixingBoardUiState.Loading
             useCase.fetchOverview()
                 .onSuccess {
@@ -195,7 +199,8 @@ class MixingBoardViewModel @Inject constructor(
     }
 
     fun openArea(area: MixingArea) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.value = MixingBoardUiState.Loading
             val overview = useCase.fetchOverview(area).getOrElse {
                 _uiState.value = MixingBoardUiState.Error(it.message ?: "Could not load $area")
@@ -439,10 +444,12 @@ class MixingBoardViewModel @Inject constructor(
     }
 
     /**
-     * Applies a machine-cycle outcome. Both decided outcomes carry areaStatus (§8) — the
-     * board refreshes from the response itself. Accepted clears the selection and re-fetches
-     * ready collections (a mixer start consumes one); Rejected keeps the selection so the
-     * operator can retry another machine against the refreshed board.
+     * Applies a machine-cycle outcome. Accepted always carries areaStatus (§8) — the board
+     * refreshes from the response itself, clears the selection, and re-fetches ready
+     * collections (a mixer start consumes one). Rejected carries areaStatus for business
+     * rejections too, but null for envelope/session-level rejections — in that case the
+     * board's current overview is kept as-is. Rejected keeps the selection so the operator
+     * can retry another machine against the refreshed board.
      */
     private suspend fun applyOutcome(
         outcome: MachineCycleOutcome,
@@ -463,7 +470,7 @@ class MixingBoardViewModel @Inject constructor(
             }
             is MachineCycleOutcome.Rejected -> {
                 setBoard(board.copy(
-                    overview = outcome.areaStatus,
+                    overview = outcome.areaStatus ?: board.overview,
                     sheet = BoardSheet.None,
                     busy = false,
                 ))

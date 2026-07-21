@@ -197,7 +197,12 @@ class MixingBoardUseCase @Inject constructor(
             is MqttOutcome.Rejected -> MachineCycleOutcome.Rejected(
                 errorCode = outcome.errorCode,
                 reason = outcome.reason ?: "Machine cycle rejected",
-                areaStatus = outcome.body.areaStatus.toAreaOverview(),
+                areaStatus = outcome.body.areaStatus.toAreaOverview().takeUnless {
+                    // Envelope-level rejections carry no areaStatus; Gson defaults it to
+                    // empty. A real business rejection always embeds equipment (§8).
+                    it.equipment.isEmpty() && it.activeCycles.isEmpty() &&
+                        it.readyMixes.isEmpty() && it.activeRuns.isEmpty()
+                },
             )
             is MqttOutcome.NoResponse -> MachineCycleOutcome.Failed(outcome.kind.message())
         }

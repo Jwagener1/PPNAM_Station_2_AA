@@ -96,9 +96,12 @@ data class LayerInput(
 )
 
 /**
- * The outcome of one machine-cycle operation. Both decided outcomes carry the embedded
- * areaStatus — a rejected start still refreshes the board (§8); [Failed] means Station 2
- * never decided (timeout/transport) and carries nothing.
+ * The outcome of one machine-cycle operation. [Accepted] always carries the embedded
+ * areaStatus — a business rejection also embeds it (§8), since every area has equipment.
+ * [Rejected.areaStatus] is null when the rejection was envelope/session-level (session_required,
+ * message_expired, client_upgrade_required, message_id_reused…) and so carried no operational
+ * area data — the board must keep its current picture rather than overwrite it with emptiness.
+ * [Failed] means Station 2 never decided (timeout/transport) and carries nothing.
  */
 sealed class MachineCycleOutcome {
     data class Accepted(
@@ -117,7 +120,7 @@ sealed class MachineCycleOutcome {
     data class Rejected(
         val errorCode: ErrorCode?,
         val reason: String,
-        val areaStatus: AreaOverview,
+        val areaStatus: AreaOverview?,
     ) : MachineCycleOutcome()
 
     data class Failed(val message: String) : MachineCycleOutcome()
