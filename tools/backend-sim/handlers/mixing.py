@@ -95,7 +95,6 @@ def area_overview(world, area=None, po=None):
         return po is None or str(item_po) == str(po)
 
     return {
-        "accepted": True,
         "mixingArea": area,
         "productionOrderDocumentNumber": po,
         "equipment": [_equipment_payload(e) for e in world.equipment.values()
@@ -163,7 +162,6 @@ def overview(world, log, req, session):
            f"{len(ov['equipment'])} equipment, {len(ov['activeCycles'])} active cycles, "
            f"{len(ov['readyMixes'])} ready mixes, {len(ov['activeRuns'])} active runs")
     extras = dict(ov)
-    del extras["accepted"]  # build_response owns the envelope's accepted flag
     return build_response(world, req, next_action="select_collection_mix_or_machine",
                           response_extras=extras)
 
