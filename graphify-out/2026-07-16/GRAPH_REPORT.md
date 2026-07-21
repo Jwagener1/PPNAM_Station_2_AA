@@ -1,0 +1,362 @@
+# Graph Report - PPNAM_Station_2_AA  (2026-07-16)
+
+## Corpus Check
+- 105 files · ~111,760 words
+- Verdict: corpus is large enough that graph structure adds value.
+
+## Summary
+- 1076 nodes · 1385 edges · 118 communities (50 shown, 68 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 106 edges (avg confidence: 0.8)
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `0c3dd9eb`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
+
+## Community Hubs (Navigation)
+- Room DAO Tests
+- Offline Queue Repository & RFID Scan Bus
+- Operator Session & App Entry
+- Pre-Mix Hopper Domain Models
+- MQTT Message Envelope & Repository Impl
+- Mixing ViewModel State Machine
+- Typed MQTT Result & Repository Contract
+- Operator Login & Auth Use Case
+- Job Resume & Lookup Flow
+- Dashboard & RFID Recovery ViewModels
+- Job Cancel & Exception Approval Tests
+- MQTT Client Factory & Reconnection Tests
+- Mixing Screen Flow & Navigation
+- Rajoo Allocation ViewModel
+- Job Card Lifecycle Planning Docs
+- MQTT Topic Builder Tests
+- Rajoo Use Case & Tests
+- App Settings Defaults & Tests
+- Final MQTT Bugfix Round
+- Shared UI Scaffold & Screens
+- MQTT Topic Construction
+- Dashboard Use Case & Tests
+- Shared Scan UI Components
+- Login & Session Design Docs
+- Production Order & BOM Line Model
+- Settings ViewModel Tests
+- Settings Feature Design Docs
+- Mixing Use Case Core Actions
+- Settings Screen UI
+- Settings PIN State Machine
+- Android App Architecture Design Docs
+- Pre-Mix Hopper Design Docs
+- BOM Line Response & Lookup Tests
+- Navigation Routes
+- UI Modernisation Design Docs
+- MQTT Reconnection Fix Docs
+- Settings Persistence Repository
+- App / Hilt Bootstrap
+- MQTT Client Factory Tests
+- Gradle Wrapper Script
+- Android Instrumented Test Boilerplate
+- MQTT Repository Reconnect Contract
+- Unit Test Boilerplate
+- Repo Rules & Graphify Workflow
+- Design
+- Global Constraints
+- BOM Ingredient Progress Display — Design Spec
+- Global Constraints
+- Global Constraints
+- HomeTile
+- IngredientScanOutcome
+- External Repo Read-Only Except RFID_MQTT_CONTRACT.md
+- Graphify Query-First Workflow for Codebase Questions
+- AppModule (Hilt DI)
+- DataWedgeReceiver
+- HomeViewModel
+- IngredientScanScreen
+- JobLookupScreen
+- MixerCodeScreen
+- MixingUseCase
+- MixingViewModel
+- MqttRepository interface
+- MqttRepositoryImpl
+- MqttTopics
+- OfflineQueueRepository
+- PreMix / ScannedIngredient domain model
+- PreMixCompleteScreen
+- ProductionOrder / BomLine domain model
+- ScanEventBus
+- AppScaffold shared composable
+- LabelValueRow shared composable
+- AppSettings data class
+- MqttClientFactory
+- SettingsRepository (DataStore-backed)
+- SettingsScreen
+- SettingsViewModel
+- HopperScanScreen
+- HopperStatus / HopperAvailability
+- IngredientValidationResult (Valid/Invalid)
+- AuthUseCase
+- OperatorSession data class
+- OperatorSessionHolder
+- MqttRepository.sendTyped / MqttTypedResult
+- ActiveJobCardSummary / ActiveJobCardsListResponse
+- MixingUseCase.cancelJob / PreMixCancelResultResponse
+- CancelOutcome (Confirmed/Failed)
+- handleTransportDisconnected
+- isTransportConnected AtomicBoolean flag
+- retryBounded generic retry helper
+- DataWedge RFID/Barcode Scan Integration via ScanEventBus
+- Layered MVVM + Clean Architecture Pattern
+- MQTT Request/Response Correlation-ID Pattern
+- Two-Layer Offline Queue Retry Strategy (connectivity callback + WorkManager fallback)
+- Dark Graphite + Amber Design System
+- Test & Apply MQTT Reconnect Flow
+- Hopper Allocation Workflow (replaces Mixer Code capture)
+- Supervisor-Gated Ingredient Exception Override
+- Login Mandatory at Startup (LoginScreen is nav-graph start destination)
+- LoginScreen
+- LoginViewModel
+- In-Memory-Only Operator Session (never persisted, fresh login every cold start)
+- Parallel Typed sendTyped Transport (coexists with legacy kebab-case transport during migration)
+- Active Job List Tap-to-Load (spec section B1)
+- Cancel With Role-Gated Approval (cancel_premix_direct capability, backend re-verifies server-side as defense-in-depth) (spec section B3)
+- Per-Line Allocation Status Surfaced from bom_loaded (spec section B2)
+- Transport-Connected State Guard + Bounded Subscribe Retry Fix
+- Superseded Decision: Backend Already Auto-Resumes Pre-Mix by jobCardNumber+operator+handheld
+- RFID MQTT Contract (sibling repo, RFID_MQTT_CONTRACT.md)
+- Global Constraints
+- SettingsViewModel.kt
+- Design
+- SettingsViewModel
+- SettingsRepository
+
+## God Nodes (most connected - your core abstractions)
+1. `MixingViewModel` - 40 edges
+2. `MqttRepositoryImpl` - 34 edges
+3. `MixingUseCaseTest` - 34 edges
+4. `MixingViewModelTest` - 32 edges
+5. `PalletUseCaseTest` - 22 edges
+6. `OperatorSessionHolder` - 21 edges
+7. `AppSettings` - 21 edges
+8. `MqttRequestCorrelationTest` - 20 edges
+9. `MqttRepository` - 19 edges
+10. `RfidViewModelTest` - 18 edges
+
+## Surprising Connections (you probably didn't know these)
+- `MixingUseCaseTest` --references--> `BomCacheDao`  [EXTRACTED]
+  app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingUseCaseTest.kt → app/src/main/java/com/ppnam/station2aa/data/local/BomCacheDao.kt
+- `MqttRepositoryImpl` --references--> `MqttConnectionState`  [EXTRACTED]
+  app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttRepositoryImpl.kt → app/src/main/java/com/ppnam/station2aa/domain/repository/MqttRepository.kt
+- `MqttRepositoryImpl` --implements--> `MqttRepository`  [EXTRACTED]
+  app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttRepositoryImpl.kt → app/src/main/java/com/ppnam/station2aa/domain/repository/MqttRepository.kt
+- `MqttClockSkewTest` --references--> `MqttRepositoryImpl`  [EXTRACTED]
+  app/src/test/java/com/ppnam/station2aa/data/mqtt/MqttClockSkewTest.kt → app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttRepositoryImpl.kt
+- `MqttRepositoryImplTest` --references--> `MqttRepositoryImpl`  [EXTRACTED]
+  app/src/test/java/com/ppnam/station2aa/data/mqtt/MqttRepositoryImplTest.kt → app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttRepositoryImpl.kt
+
+## Import Cycles
+- None detected.
+
+## Communities (118 total, 68 thin omitted)
+
+### Community 0 - "Room DAO Tests"
+Cohesion: 0.10
+Nodes (8): BomCacheDaoTest, AppDatabase, BomCacheDao, String, BomCacheEntity, AppModule, Context, RoomDatabase
+
+### Community 1 - "Offline Queue Repository & RFID Scan Bus"
+Cohesion: 0.09
+Nodes (9): ErrorCode, NextAction, Boolean, Int, String, MqttRequestCorrelationTest, TestBody, MqttVocabularyTest (+1 more)
+
+### Community 2 - "Operator Session & App Entry"
+Cohesion: 0.07
+Nodes (13): StateFlow, String, OperatorSession, OperatorSessionHolder, HomeViewModel, Flow, StateFlow, Unit (+5 more)
+
+### Community 3 - "Pre-Mix Hopper Domain Models"
+Cohesion: 0.07
+Nodes (6): BomLine, Boolean, BomLineTest, String, MixingViewModelTest, MutableSharedFlow
+
+### Community 4 - "MQTT Message Envelope & Repository Impl"
+Cohesion: 0.07
+Nodes (16): Any, Boolean, Class, Int, Job, Long, Mqtt5AsyncClient, StateFlow (+8 more)
+
+### Community 5 - "Mixing ViewModel State Machine"
+Cohesion: 0.10
+Nodes (23): Cancelling, CancelOutcome, Confirmed, EnteringBagDetails, Error, Failed, Idle, IngredientExceptionApproval (+15 more)
+
+### Community 6 - "Typed MQTT Result & Repository Contract"
+Cohesion: 0.13
+Nodes (9): PalletLookupResultResponse, Accepted, FailureKind, T, MqttOutcome, NoResponse, Rejected, PalletUseCaseTest (+1 more)
+
+### Community 7 - "Operator Login & Auth Use Case"
+Cohesion: 0.13
+Nodes (11): BadgeLoginPayload, CredentialsLoginPayload, OperatorContextResponse, AuthUseCase, Badge, Credentials, String, Unit (+3 more)
+
+### Community 8 - "Job Resume & Lookup Flow"
+Cohesion: 0.11
+Nodes (18): File Map, Global Constraints, PPNAM Station 2 Android App — Implementation Plan, Self-Review Checklist, Task 10: MixingUseCase & Job Lookup Screen, Task 11: Remaining Mixing Screens (IngredientScan → MixerCode → PreMixComplete), Task 12: Rajoo Flow, Task 13: RFID Recovery (+10 more)
+
+### Community 9 - "Dashboard & RFID Recovery ViewModels"
+Cohesion: 0.05
+Nodes (27): IngredientScanPayload, IngredientCollectionCancelPayload, HoldingRecoveryPayload, PalletLookupPayload, PalletInfo, PalletState, ProductionOrder, Double (+19 more)
+
+### Community 10 - "Job Cancel & Exception Approval Tests"
+Cohesion: 0.08
+Nodes (24): Definition of Done, Global Constraints, Handoff to sub-project 2, MQTT Schema 3.0 Protocol Foundation Implementation Plan, Open questions for the Station 2 developer, QoS must be verified by inspection, not by unit test, Sequencing Rationale, Task 10: Pallet lookup and holding recovery (+16 more)
+
+### Community 11 - "MQTT Client Factory & Reconnection Tests"
+Cohesion: 0.14
+Nodes (3): Mqtt5AsyncClient, MqttClientFactory, MqttRepositoryImplTest
+
+### Community 12 - "Mixing Screen Flow & Navigation"
+Cohesion: 0.05
+Nodes (35): MainActivity, AppNavGraph(), AppScaffold(), String, Unit, String, LabelValueRow(), Modifier (+27 more)
+
+### Community 13 - "Rajoo Allocation ViewModel"
+Cohesion: 0.09
+Nodes (22): 1. The transport owns the envelope, 2. Correlation, 3. Retry, 4. Result type, 5. Error and nextAction vocabulary, 6. Topics, 7. Presence, 8. Clock skew (+14 more)
+
+### Community 14 - "Job Card Lifecycle Planning Docs"
+Cohesion: 0.10
+Nodes (19): §6 — Contract Doc Sync (already applied), App, App, B1 — Active Job List, B2 — Per-Line Allocation Status, B3 — Cancel With Role-Gated Approval, Backend, Backend (+11 more)
+
+### Community 16 - "Rajoo Use Case & Tests"
+Cohesion: 0.27
+Nodes (4): Any, String, LoginPayload, RequestEnvelopeTest
+
+### Community 17 - "App Settings Defaults & Tests"
+Cohesion: 0.19
+Nodes (3): AppSettings, MqttClientFactoryTest, AppSettingsTest
+
+### Community 18 - "Final MQTT Bugfix Round"
+Cohesion: 0.05
+Nodes (28): Barcode, SharedFlow, RfidTag, ScanEvent, ScanEventBus, Any, Boolean, Class (+20 more)
+
+### Community 19 - "Shared UI Scaffold & Screens"
+Cohesion: 0.29
+Nodes (5): EmptyPayload, Any, String, RequestEnvelope, Gson
+
+### Community 23 - "Login & Session Design Docs"
+Cohesion: 0.08
+Nodes (24): 1.1 Topics — `MqttTopics` rewritten, 1.2 Device identity — new `AppSettings.deviceId`, 1.3 Envelope — typed per-message classes, no generic wrapper, 1.4 `MqttRepository` — new typed send path, 1.5 Login is never offline-queued, 1. MQTT Layer, 2.1 New `OperatorSession`, 2.2 New `OperatorSessionHolder` (Hilt `@Singleton`, `data/session/`) (+16 more)
+
+### Community 25 - "Settings ViewModel Tests"
+Cohesion: 0.12
+Nodes (15): Deleted files, File Map, Global Constraints, Manual Test Checklist, Modified files, MQTT Pre-Mix & Hopper Workflow Implementation Plan, New files, Task 1: Domain Models (+7 more)
+
+### Community 26 - "Settings Feature Design Docs"
+Cohesion: 0.08
+Nodes (24): Access & Entry, Apply behaviour, Apply state display (below the button), Configuration zone, Data Layer, Data Model, `data/mqtt/MqttClientFactory.kt`, `data/settings/SettingsRepository.kt` (+16 more)
+
+### Community 29 - "Settings PIN State Machine"
+Cohesion: 0.13
+Nodes (14): Final check, Global Constraints, MQTT Contract Foundation & Operator Login Implementation Plan, Task 10: Operator identity + logout (`AppScaffold`, `HomeViewModel`, `HomeScreen`), Task 11: `SettingsScreen` — Device ID field, Task 1: `AppSettings.deviceId` + persistence, Task 2: `MqttTopics` — contract topic functions, Task 3: Contract envelope DTOs (+6 more)
+
+### Community 30 - "Android App Architecture Design Docs"
+Cohesion: 0.08
+Nodes (23): 10. Dependencies, 11. Open Items, 1. Purpose & Scope, 2.1 Pattern, 2.2 Package Structure, 2. Architecture, 3. Screens & Navigation, 4.1 Pattern (+15 more)
+
+### Community 31 - "Pre-Mix Hopper Design Docs"
+Cohesion: 0.07
+Nodes (29): 1.1 Updated and new action strings, 1.2 New broadcast subscription — `station2/hopper/status`, 1.3 MqttRepository interface + MqttRepositoryImpl changes, 1. MQTT Layer, 2.1 Updated `BomLine`, 2.2 New `IngredientValidationResult`, 2.3 New `HopperStatus`, 2.4 Updated `ScannedIngredient` (+21 more)
+
+### Community 36 - "BOM Line Response & Lookup Tests"
+Cohesion: 0.08
+Nodes (10): BomProgressLineResponse, IngredientScanResultResponse, ActiveJobCardsListResponse, ActiveJobCardSummary, BomLineResponse, BomLoadedResponse, CollectionResumePayload, IngredientCollectionCancelResultResponse (+2 more)
+
+### Community 38 - "UI Modernisation Design Docs"
+Cohesion: 0.11
+Nodes (18): 1. Color System, 2. Typography, 3. AppScaffold Component, 4. HomeScreen, 5. Mixing Workflow Screens, 6. Rajoo Workflow Screens, 7. RfidRecoveryScreen, 8. DashboardScreen (+10 more)
+
+### Community 39 - "MQTT Reconnection Fix Docs"
+Cohesion: 0.13
+Nodes (14): 1. New internal transport-state tracking, 2. `connect()` becomes idempotent against a live transport, 3. `connect()` gets the same timeout `reconnectWith()` already has, 4. Subscribe-only retry on the automatic-reconnect path, 5. `onDisconnected` sets `RECONNECTING`, not `DISCONNECTED`, 6. `scheduleReconnectRetry()` scope narrows, Approaches Considered, Context (+6 more)
+
+### Community 40 - "Settings Persistence Repository"
+Cohesion: 0.14
+Nodes (13): File Map, Global Constraints, Self-Review Checklist, Settings Screen Implementation Plan, Task 1: AppSettings data class + DataStore dependency, Task 2: SettingsRepository, Task 3: MqttClientFactory, Task 4: Interface + DAO + Topics changes (+5 more)
+
+### Community 41 - "App / Hilt Bootstrap"
+Cohesion: 0.17
+Nodes (8): DataWedgeReceiver, Context, PpnamApplication, Application, BroadcastReceiver, Configuration, HiltWorkerFactory, Intent
+
+### Community 43 - "MQTT Client Factory Tests"
+Cohesion: 0.15
+Nodes (12): 1. Scan interaction, 2. Live progress replaces the static snapshot, 3. Exception → manager approval (one uniform flow), 4. Pallet-recovery detour, 5. New `MixingUiState` states, 6. Removed, Context, Data verified from source (not assumed) (+4 more)
+
+### Community 44 - "Gradle Wrapper Script"
+Cohesion: 0.83
+Nodes (3): gradlew script, die(), warn()
+
+### Community 46 - "MQTT Repository Reconnect Contract"
+Cohesion: 0.18
+Nodes (10): Global Constraints, Task 1: Theme Layer + Material Icons Dependency, Task 2: Shared UI Components — AppScaffold & LabelValueRow, Task 3: ViewModel Connection State Flows, Task 4: HomeScreen Redesign, Task 5: Mixing Screens, Task 6: Rajoo Screens, Task 7: RFID Recovery Screen (+2 more)
+
+### Community 48 - "Repo Rules & Graphify Workflow"
+Cohesion: 0.50
+Nodes (3): External directory: C:\Dev\PPNAM-Station-2, graphify, Repo Rules
+
+### Community 54 - "Design"
+Cohesion: 0.18
+Nodes (10): Android app — data layer, Android app — domain layer, Android app — ViewModel/UI, Contract (`C:\Dev\PPNAM-Station-2\RFID_MQTT_CONTRACT.md` only), Design, Error handling, Out of scope, Problem (+2 more)
+
+### Community 55 - "Global Constraints"
+Cohesion: 0.20
+Nodes (9): Global Constraints, Ingredient Scanning Migration Implementation Plan, Task 1: Ingredient-scan contract DTOs and BomLine bag-progress fields, Task 2: MixingUseCase.scanIngredient, Task 3: MixingUseCase.approveManagerException, Task 4: MixingUseCase.recoverHolding, Task 5: MixingViewModel — pallet-scan-driven ingredient flow, Task 6: IngredientScanScreen — bag-entry sheet and new dialogs (+1 more)
+
+### Community 56 - "BOM Ingredient Progress Display — Design Spec"
+Cohesion: 0.20
+Nodes (9): 1. `BomLine` gains a `uom` field, 2. `MixingUseCase.lookupJob` maps `uomCode` through, 3. `IngredientScanScreen` per-line card, BOM Ingredient Progress Display — Design Spec, Context, Design, Formatting, Out of Scope (+1 more)
+
+### Community 57 - "Global Constraints"
+Cohesion: 0.22
+Nodes (8): Global Constraints, Job Card Lifecycle — Android Implementation Plan, Task 1: Per-line allocation status (§B2), Task 2: Active job list — DTOs, use case, view model (§B1), Task 3: `JobLookupScreen` — render active jobs, tap-to-load (§B1), Task 4: Cancel DTOs and use case (§B3), Task 5: `MixingViewModel` cancel state machine and role gate (§B3), Task 6: `IngredientScanScreen` — approval dialog and outcome handling (§B3)
+
+### Community 58 - "Global Constraints"
+Cohesion: 0.22
+Nodes (8): Global Constraints, Manual Verification (required before this ships, per the spec's Verification Caveat), MQTT Reconnection Reliability Fix Implementation Plan, Task 1: Transport-connected flag guards `connect()` against a live client, Task 2: Generic bounded-retry helper, Task 3: Extract `handleTransportDisconnected`, set `RECONNECTING` not `DISCONNECTED`, Task 4: Bounded subscribe-retry replaces the buggy re-`connect()` path, Task 5: Timeout guard on `connect()`'s connect attempt
+
+### Community 61 - "IngredientScanOutcome"
+Cohesion: 0.60
+Nodes (5): Accepted, IngredientScanOutcome, NeedsManagerApproval, NeedsRecovery, Rejected
+
+### Community 119 - "Global Constraints"
+Cohesion: 0.18
+Nodes (10): Global Constraints, Job Card Lookup as Landing Screen — Implementation Plan, Task 1: `MixingViewModel` gains `pauseScanning()`, `session`, and `logout()`, Task 2: `AppScaffold` gains an RFID Pallet Lookup top-bar action, Task 3: `JobLookupScreen` becomes the landing screen (session, logout, settings, RFID button, saveable input), Task 4: `IngredientScanScreen` gets the RFID button and saveable local state, Task 5: `HopperScanScreen` gets the RFID button, Task 6: `PreMixCompleteScreen` gets the RFID button and saveable confirmation state (+2 more)
+
+### Community 120 - "SettingsViewModel.kt"
+Cohesion: 0.36
+Nodes (8): ApplyState, Failure, Idle, Locked, PinState, Success, Testing, Unlocked
+
+### Community 121 - "Design"
+Cohesion: 0.20
+Nodes (9): App Redesign Phase 1: Job Card Lookup as Landing Screen — Design, Design, Job Lookup top-bar parity (operator name, Logout, Settings), Navigation graph (`app/src/main/java/com/ppnam/station2aa/navigation/AppNavGraph.kt`, `NavRoutes.kt`), Out of scope, Problem, Returning to the exact prior state, RFID Pallet Lookup as a top-bar action (+1 more)
+
+### Community 122 - "SettingsViewModel"
+Cohesion: 0.29
+Nodes (3): StateFlow, String, SettingsViewModel
+
+### Community 124 - "SettingsRepository"
+Cohesion: 0.33
+Nodes (3): Keys, Flow, SettingsRepository
+
+## Knowledge Gaps
+- **343 isolated node(s):** `FailureKind`, `MqttSchema`, `EmptyPayload`, `ResponseEnvelope`, `Keys` (+338 more)
+  These have ≤1 connection - possible missing edges or undocumented components.
+- **68 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+
+## Suggested Questions
+_Questions this graph is uniquely positioned to answer:_
+
+- **Why does `MqttRepository` connect `Final MQTT Bugfix Round` to `Room DAO Tests`, `Operator Session & App Entry`, `Pre-Mix Hopper Domain Models`, `MQTT Message Envelope & Repository Impl`, `BOM Line Response & Lookup Tests`, `Typed MQTT Result & Repository Contract`, `Operator Login & Auth Use Case`, `Dashboard & RFID Recovery ViewModels`, `HomeTile`?**
+  _High betweenness centrality (0.096) - this node is a cross-community bridge._
+- **Why does `MqttRepositoryImpl` connect `MQTT Message Envelope & Repository Impl` to `Room DAO Tests`, `Offline Queue Repository & RFID Scan Bus`, `Operator Session & App Entry`, `MQTT Client Factory & Reconnection Tests`, `Final MQTT Bugfix Round`?**
+  _High betweenness centrality (0.083) - this node is a cross-community bridge._
+- **Why does `MqttConnectionState` connect `Final MQTT Bugfix Round` to `Operator Session & App Entry`, `MQTT Message Envelope & Repository Impl`, `Mixing ViewModel State Machine`, `Dashboard & RFID Recovery ViewModels`, `Mixing Screen Flow & Navigation`, `SettingsViewModel`?**
+  _High betweenness centrality (0.060) - this node is a cross-community bridge._
+- **What connects `FailureKind`, `MqttSchema`, `EmptyPayload` to the rest of the system?**
+  _349 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Room DAO Tests` be split into smaller, more focused modules?**
+  _Cohesion score 0.10333333333333333 - nodes in this community are weakly interconnected._
+- **Should `Offline Queue Repository & RFID Scan Bus` be split into smaller, more focused modules?**
+  _Cohesion score 0.08907563025210084 - nodes in this community are weakly interconnected._
+- **Should `Operator Session & App Entry` be split into smaller, more focused modules?**
+  _Cohesion score 0.07073170731707316 - nodes in this community are weakly interconnected._

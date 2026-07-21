@@ -59,7 +59,7 @@ class MqttRequestCorrelationTest {
 
     private fun respond(inResponseTo: String, accepted: Boolean = true, value: String = "ok") {
         val json = """
-            {"inResponseToMessageId":"$inResponseTo","schemaVersion":"3.0","accepted":$accepted,
+            {"inResponseToMessageId":"$inResponseTo","schemaVersion":"4.0","accepted":$accepted,
              "nextAction":"scan_ingredient","value":"$value"}
         """.trimIndent()
         repo.handleIncomingResponse("PPNAM/handheld_1/res/test_result", json.toByteArray())
@@ -263,6 +263,36 @@ class MqttRequestCorrelationTest {
             "code after request() must not run once the caller was cancelled mid-publish",
             !ranAfterRequestReturned
         )
+    }
+
+    @Test
+    fun `client_upgrade_required latches the upgradeRequired flag`() = runTest {
+        assertTrue(!repo.upgradeRequired.value)
+        val call = async {
+            repo.request("machine_cycle_start_requested", "machine_cycle_result",
+                EmptyPayload, null, TestBody::class.java)
+        }
+        while (published.isEmpty()) yield()
+        val id = messageIdOf(0)
+        repo.handleIncomingResponse(
+            "PPNAM/handheld_1/res/workflow_upgrade_required",
+            """{"inResponseToMessageId":"$id","accepted":false,
+                "errorCode":"client_upgrade_required",
+                "nextAction":"upgrade_reader_for_mixing"}""".toByteArray()
+        )
+        val outcome = call.await() as MqttOutcome.Rejected
+        assertEquals(ErrorCode.CLIENT_UPGRADE_REQUIRED, outcome.errorCode)
+        assertTrue(repo.upgradeRequired.value)
+    }
+
+    @Test
+    fun `an UNSOLICITED upgrade rejection still latches the flag`() = runTest {
+        repo.handleIncomingResponse(
+            "PPNAM/handheld_1/res/workflow_upgrade_required",
+            """{"inResponseToMessageId":"nobody-is-waiting","accepted":false,
+                "errorCode":"client_upgrade_required"}""".toByteArray()
+        )
+        assertTrue(repo.upgradeRequired.value)
     }
 
     @Test

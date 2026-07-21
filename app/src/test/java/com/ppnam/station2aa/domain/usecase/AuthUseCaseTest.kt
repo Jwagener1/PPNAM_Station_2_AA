@@ -38,7 +38,7 @@ class AuthUseCaseTest {
         displayName = "Operator One",
         role = "Operator",
         allowedActions = listOf("scan_ingredient", "start_machine_cycle"),
-        allowedTabs = listOf("collect", "premix"),
+        allowedTabs = listOf("collect", "mixing"),
     )
 
     @Before
@@ -99,7 +99,7 @@ class AuthUseCaseTest {
         assertEquals("Operator One", session.operatorName)
         assertEquals("Operator", session.role)
         assertEquals(listOf("scan_ingredient", "start_machine_cycle"), session.allowedActions)
-        assertEquals(listOf("collect", "premix"), session.allowedTabs)
+        assertEquals(listOf("collect", "mixing"), session.allowedTabs)
         assertEquals("session-id", sessionHolder.session.value?.operatorSessionId)
     }
 

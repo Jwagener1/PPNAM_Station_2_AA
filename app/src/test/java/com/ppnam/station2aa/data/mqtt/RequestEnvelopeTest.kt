@@ -29,7 +29,7 @@ class RequestEnvelopeTest {
         val json = JsonParser.parseString(build(LoginPayload("operator1", "secret"))).asJsonObject
 
         assertEquals("login-0001", json.get("messageId").asString)
-        assertEquals("3.0", json.get("schemaVersion").asString)
+        assertEquals("4.0", json.get("schemaVersion").asString)
         assertEquals("handheld_1", json.get("deviceId").asString)
         assertEquals("", json.get("operatorSessionId").asString)
         assertEquals("2026-07-16T08:00:00Z", json.get("timestampUtc").asString)
@@ -72,7 +72,7 @@ class RequestEnvelopeTest {
         val json = JsonParser.parseString(build(EmptyPayload)).asJsonObject
 
         assertEquals("login-0001", json.get("messageId").asString)
-        assertEquals("3.0", json.get("schemaVersion").asString)
+        assertEquals("4.0", json.get("schemaVersion").asString)
         assertEquals(5, json.entrySet().size)
     }
 

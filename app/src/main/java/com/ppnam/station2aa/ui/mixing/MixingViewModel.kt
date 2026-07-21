@@ -35,6 +35,9 @@ sealed class MixingUiState {
     data class OrderLoaded(val order: ProductionOrder, val selectedLineNumber: Int? = null) : MixingUiState()
     data class EnteringBagDetails(val palletTag: String) : MixingUiState()
 
+    /** Direct-weight entry for a bulk line (SP3 gap 1) — the bag picker never opens for bulk. */
+    data class EnteringQuantityDetails(val palletTag: String) : MixingUiState()
+
     /**
      * v3 has no exception id or approval token — approval is an inline resubmit of the pending scan
      * (held in the ViewModel, see [MixingViewModel.submitManagerApproval]), so this state carries
@@ -56,6 +59,13 @@ sealed class MixingUiState {
         val shortBagCount: Double,
         val reason: String,
     ) : MixingUiState()
+
+    /**
+     * The FIRST-ATTEMPT short-bag waiver entry dialog (SP3 gap 2). ViewModel state, not local
+     * Compose state, so the scan guard sees it and swallows stray RFID reads while it is open.
+     * Distinct from [ShortBagWaiverNeedsApproval], which is a REJECTED waiver being re-approved.
+     */
+    data class ShortBagWaiverEntry(val requestedMaterialCode: String) : MixingUiState()
 }
 
 object MixingNavDestination {
@@ -89,6 +99,8 @@ class MixingViewModel @Inject constructor(
     ) { state, stationOnline, skew ->
         resolveConnectionStatus(state, stationOnline, skew)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
+
+    val upgradeRequired: StateFlow<Boolean> = mqttRepository.upgradeRequired
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
@@ -156,8 +168,9 @@ class MixingViewModel @Inject constructor(
 
     private data class PendingIngredientScan(
         val palletRfidTag: String,
-        val bagSizeOption: String,
-        val bagCount: Double,
+        val bagSizeOption: String?,
+        val bagCount: Double?,
+        val quantity: Double?,
         val requestedMaterialCode: String,
     )
 
@@ -211,16 +224,26 @@ class MixingViewModel @Inject constructor(
                 //  - Loading, Cancelling: BLOCKED — a request/cancel is in flight; a scan here would
                 //    race or clobber it.
                 //  - Idle: BLOCKED — nothing loaded to scan against.
-                //  - EnteringBagDetails, IngredientExceptionApproval, PalletRecoveryPrompt,
-                //    ShortBagWaiverNeedsApproval: BLOCKED — each owns the screen with a dialog the
-                //    operator is mid-interaction with; a stray scan must not clobber it.
+                //  - EnteringBagDetails, EnteringQuantityDetails, IngredientExceptionApproval,
+                //    PalletRecoveryPrompt, ShortBagWaiverNeedsApproval, ShortBagWaiverEntry:
+                //    BLOCKED — each owns the screen with a dialog the operator is mid-interaction
+                //    with; a stray scan must not clobber it.
                 when (_uiState.value) {
                     is MixingUiState.OrderLoaded, is MixingUiState.Error -> {
                         val palletTag = when (event) {
                             is ScanEvent.RfidTag -> event.tagId
                             is ScanEvent.Barcode -> event.value
                         }
-                        _uiState.value = MixingUiState.EnteringBagDetails(palletTag)
+                        // A bulk line arms direct-weight entry; arming a bulk line for a
+                        // bag scan is impossible by construction (gap 1).
+                        val armedLine = armedLineNumber?.let { ln ->
+                            cachedOrder?.lines?.firstOrNull { it.lineNumber == ln }
+                        }
+                        _uiState.value = if (armedLine != null && !armedLine.isBagged) {
+                            MixingUiState.EnteringQuantityDetails(palletTag)
+                        } else {
+                            MixingUiState.EnteringBagDetails(palletTag)
+                        }
                     }
                     else -> return@collect
                 }
@@ -251,20 +274,55 @@ class MixingViewModel @Inject constructor(
 
     fun confirmIngredientScan(palletTag: String, bagSizeOption: String, bagCount: Double) {
         val order = cachedOrder ?: return
-        val materialCode = armedLineNumber
-            ?.let { ln -> order.lines.firstOrNull { it.lineNumber == ln } }
-            ?.itemCode
-        if (materialCode == null) {
+        val line = armedLineNumber?.let { ln -> order.lines.firstOrNull { it.lineNumber == ln } }
+        if (line == null) {
             // No line armed: never put requestedMaterialCode = "" on the wire. Surface a clear
             // prompt instead and let the operator pick a line before retrying the scan.
             _supervisorError.trySend("Select a material line before scanning a pallet.")
             _uiState.value = orderLoadedState(order)
             return
         }
-        pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount, materialCode)
+        if (!line.isBagged) {
+            _supervisorError.trySend("${line.itemCode} is a bulk material — enter its weight instead.")
+            _uiState.value = orderLoadedState(order)
+            return
+        }
+        pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount, null, line.itemCode)
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
-            useCase.scanIngredient(order.collectionId, palletTag, bagSizeOption, bagCount, materialCode)
+            useCase.scanIngredient(order.collectionId, palletTag, line.itemCode,
+                bagSizeOption = bagSizeOption, bagCount = bagCount)
+                .onSuccess { outcome -> handleScanOutcome(order, outcome) }
+                .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
+        }
+    }
+
+    fun cancelQuantityEntry() {
+        val order = cachedOrder ?: return
+        _uiState.value = orderLoadedState(order)
+    }
+
+    fun confirmQuantityScan(palletTag: String, quantity: Double) {
+        val order = cachedOrder ?: return
+        val line = armedLineNumber?.let { ln -> order.lines.firstOrNull { it.lineNumber == ln } }
+        if (line == null) {
+            _supervisorError.trySend("Select a material line before scanning a pallet.")
+            _uiState.value = orderLoadedState(order)
+            return
+        }
+        if (line.isBagged) {
+            _supervisorError.trySend("${line.itemCode} is a bagged material — scan bags instead.")
+            _uiState.value = orderLoadedState(order)
+            return
+        }
+        if (quantity <= 0.0) {
+            _supervisorError.trySend("Quantity must be a positive number.")
+            return
+        }
+        pendingScan = PendingIngredientScan(palletTag, null, null, quantity, line.itemCode)
+        viewModelScope.launch {
+            _uiState.value = MixingUiState.Loading
+            useCase.scanIngredient(order.collectionId, palletTag, line.itemCode, quantity = quantity)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
         }
@@ -295,12 +353,13 @@ class MixingViewModel @Inject constructor(
             useCase.scanIngredient(
                 approval.collectionId,
                 approval.palletRfidTag,
-                approval.bagSizeOption ?: "",
-                approval.bagCount ?: 0.0,
                 approval.requestedMaterialCode,
-                managerUsername,
-                managerPassword,
-                auditReason,
+                bagSizeOption = approval.bagSizeOption,
+                bagCount = approval.bagCount,
+                quantity = approval.quantity,
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                auditReason = auditReason,
             )
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e ->
@@ -308,6 +367,25 @@ class MixingViewModel @Inject constructor(
                     _uiState.value = MixingUiState.Error(e.message ?: "Approval failed")
                 }
         }
+    }
+
+    /**
+     * Opens the first-attempt waiver dialog for [requestedMaterialCode]. Only from OrderLoaded
+     * (the dialog owns the screen; opening it over another dialog or an in-flight request would
+     * fight the scan guard's whole point), and only for a real bagged line — a bulk line has no
+     * bag arithmetic to waive.
+     */
+    fun openShortBagWaiver(requestedMaterialCode: String) {
+        val order = cachedOrder ?: return
+        if (_uiState.value !is MixingUiState.OrderLoaded) return
+        if (order.lines.none { it.itemCode == requestedMaterialCode && it.isBagged }) return
+        _uiState.value = MixingUiState.ShortBagWaiverEntry(requestedMaterialCode)
+    }
+
+    fun dismissShortBagWaiverEntry() {
+        if (_uiState.value !is MixingUiState.ShortBagWaiverEntry) return
+        val order = cachedOrder ?: return
+        _uiState.value = orderLoadedState(order)
     }
 
     /**
@@ -410,7 +488,11 @@ class MixingViewModel @Inject constructor(
     private fun handleScanOutcome(order: ProductionOrder, outcome: IngredientScanOutcome) {
         when (outcome) {
             is IngredientScanOutcome.Accepted -> {
-                val updatedOrder = order.copy(lines = outcome.updatedLines)
+                val updatedOrder = order.copy(
+                    lines = outcome.updatedLines,
+                    collectionStatus = outcome.collectionStatus,
+                    summary = outcome.collectionSummary,
+                )
                 cachedOrder = updatedOrder
                 pendingScan = null
                 pendingApproval = null
@@ -459,7 +541,9 @@ class MixingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = MixingUiState.Loading
             useCase.scanIngredient(
-                order.collectionId, scan.palletRfidTag, scan.bagSizeOption, scan.bagCount, scan.requestedMaterialCode
+                order.collectionId, scan.palletRfidTag, scan.requestedMaterialCode,
+                bagSizeOption = scan.bagSizeOption, bagCount = scan.bagCount,
+                quantity = scan.quantity,
             )
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
@@ -479,10 +563,9 @@ class MixingViewModel @Inject constructor(
         _uiState.value = if (order != null) orderLoadedState(order) else MixingUiState.Idle
     }
 
-    // Waits for premix_cancel_result before touching any local state — a rejected
-    // cancel (e.g. the pre-mix already has scanned ingredients, or the manager
-    // approval was denied) must leave the job exactly as it was, per the backend's
-    // "only an untouched JC load can be closed" rule.
+    // Waits for ingredient_collection_cancel_result before touching any local state — a
+    // rejected cancel (e.g. the collection was already claimed by a mixer, or the manager
+    // approval was denied) must leave the job exactly as it was.
     fun cancelJob(managerUsername: String = "", managerPassword: String = "") {
         if (_uiState.value is MixingUiState.Cancelling) return
         // v3 authorises a privileged action solely by the manager credentials carried in the

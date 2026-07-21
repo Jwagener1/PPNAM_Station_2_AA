@@ -16,7 +16,7 @@ class ResponseEnvelopeTest {
             {
               "messageId": "server-generated",
               "inResponseToMessageId": "machine-start-0001",
-              "schemaVersion": "3.0",
+              "schemaVersion": "4.0",
               "deviceId": "handheld_1",
               "operatorSessionId": "session-id",
               "timestampUtc": "2026-07-16T10:30:01Z",
@@ -31,7 +31,7 @@ class ResponseEnvelopeTest {
         val env = gson.fromJson(json, ResponseEnvelope::class.java)
 
         assertEquals("machine-start-0001", env.inResponseToMessageId)
-        assertEquals("3.0", env.schemaVersion)
+        assertEquals("4.0", env.schemaVersion)
         assertEquals("COL_000123", env.correlationKey)
         assertTrue(env.accepted)
         assertNull(env.reason)
@@ -67,5 +67,13 @@ class ResponseEnvelopeTest {
         assertEquals(false, env.accepted)
         assertNull(env.correlationKey)
         assertNull(env.nextAction)
+    }
+
+    @Test
+    fun `a response with errorCode omitted entirely parses as no error`() {
+        val json = """{"messageId":"S2-1","inResponseToMessageId":"m-1","schemaVersion":"4.0","accepted":true}"""
+        val env = Gson().fromJson(json, ResponseEnvelope::class.java)
+        assertNull(env.errorCode)
+        assertTrue(env.accepted)
     }
 }

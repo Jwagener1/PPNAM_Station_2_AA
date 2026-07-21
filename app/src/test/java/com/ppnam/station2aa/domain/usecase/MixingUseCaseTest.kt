@@ -11,6 +11,7 @@ import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.CollectionSummaryResponse
 import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultResponse
+import com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardLoadPayload
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
@@ -43,7 +44,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0)
             )
@@ -59,7 +60,7 @@ class MixingUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals("510019068", result.getOrThrow().docNo)
-        assertEquals("premix-1", result.getOrThrow().collectionId)
+        assertEquals("COL_000001", result.getOrThrow().collectionId)
         verify(mockBomCacheDao).put(any())
     }
 
@@ -68,7 +69,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "KG")
             )
@@ -90,7 +91,7 @@ class MixingUseCaseTest {
         // and the humanized value ("kg") in a separate unit field.
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", plannedQuantity = 50.0, uomCode = "269", unit = "kg")
             )
@@ -131,7 +132,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019231",
             productionOrderDocumentNumber = "510019231",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "1500000326",
@@ -167,7 +168,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", issueType = "im_Manual")
             )
@@ -189,7 +190,7 @@ class MixingUseCaseTest {
         val response = BomLoadedResponse(
             jobCardNumber = "510019068",
             productionOrderDocumentNumber = "510019068",
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
@@ -414,9 +415,9 @@ class MixingUseCaseTest {
     @Test
     fun `cancelJob succeeds and returns the result body`() = runTest {
         val response = IngredientCollectionCancelResultResponse(
-            preMixId = "premix-1",
+            collectionId = "COL_000001",
             jobCardNumber = "510019068",
-            preMixStatus = "Cancelled",
+            collectionStatus = "Cancelled",
             nextAction = "scan_job_card"
         )
         whenever(
@@ -426,10 +427,10 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_JOB_CARD))
 
-        val result = useCase.cancelJob("premix-1", "510019068", "Operator cancelled — incorrect job card", "Manager1", "5678")
+        val result = useCase.cancelJob("COL_000001", "510019068", "Operator cancelled — incorrect job card", "Manager1", "5678")
 
         assertTrue(result.isSuccess)
-        assertEquals("Cancelled", result.getOrThrow().preMixStatus)
+        assertEquals("Cancelled", result.getOrThrow().collectionStatus)
     }
 
     @Test
@@ -441,13 +442,13 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(IngredientCollectionCancelResultResponse(), NextAction.SCAN_JOB_CARD))
 
-        useCase.cancelJob("premix-1", "510019068", "reason", "Manager1", "5678")
+        useCase.cancelJob("COL_000001", "510019068", "reason", "Manager1", "5678")
 
         verify(mockMqtt).request(
             eq("ingredient_collection_cancel_requested"), eq("ingredient_collection_cancel_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelPayload &&
-                    collectionId == "premix-1" && managerUsername == "Manager1" &&
+                    collectionId == "COL_000001" && managerUsername == "Manager1" &&
                     managerPassword == "5678" && auditReason == "reason"
             },
             any(), eq(IngredientCollectionCancelResultResponse::class.java),
@@ -468,7 +469,7 @@ class MixingUseCaseTest {
             )
         )
 
-        val result = useCase.cancelJob("premix-1", "510019068", "reason", "Manager1", "5678")
+        val result = useCase.cancelJob("COL_000001", "510019068", "reason", "Manager1", "5678")
 
         assertTrue(result.isFailure)
         assertEquals("Manager or admin approval is required.", result.exceptionOrNull()?.message)
@@ -483,7 +484,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.NotConnected))
 
-        val result = useCase.cancelJob("premix-1", "510019068", "reason", "Manager1", "5678")
+        val result = useCase.cancelJob("COL_000001", "510019068", "reason", "Manager1", "5678")
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
@@ -498,7 +499,7 @@ class MixingUseCaseTest {
                 ActiveJobCardSummary(
                     jobCardNumber = "510019068",
                     productionOrderDocumentNumber = "510019068",
-                    collectionId = "premix-1",
+                    collectionId = "COL_000001",
                     productName = "Layer Mash",
                     status = "Open"
                 )
@@ -560,7 +561,7 @@ class MixingUseCaseTest {
     @Test
     fun `scanIngredient accepted maps ingredientProgress into updated BomLine list`() = runTest {
         val response = IngredientScanResultResponse(
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(
                     materialCode = "MAT-001", materialName = "Resin",
@@ -578,7 +579,7 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
+        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)
 
         assertTrue(result.isSuccess)
         val outcome = result.getOrThrow()
@@ -598,7 +599,7 @@ class MixingUseCaseTest {
         // MixingViewModel.handleScanOutcome() replaces the whole line list wholesale with this
         // output. Without this filter, the product being made would reappear as a collectible line.
         val response = IngredientScanResultResponse(
-            collectionId = "premix-1",
+            collectionId = "COL_000001",
             ingredients = listOf(
                 BomLineResponse(materialCode = "MAT-001", materialName = "Resin", issueType = "im_Manual"),
                 BomLineResponse(materialCode = "22306", materialName = "CARRIER BAG LEVY", issueType = "im_Backflush"),
@@ -611,11 +612,39 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_INGREDIENT))
 
-        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0).getOrThrow()
 
         val lines = (outcome as IngredientScanOutcome.Accepted).updatedLines
         assertEquals(1, lines.size)
         assertEquals("MAT-001", lines.single().itemCode)
+    }
+
+    @Test
+    fun `scanIngredient Accepted carries summary, status, tolerance and nextAction through the boundary`() = runTest {
+        val response = IngredientScanResultResponse(
+            collectionId = "COL_000001",
+            collectionStatus = "ReadyForMixing",
+            overCollectionToleranceBags = 1.0,
+            collectionSummary = CollectionSummaryResponse(summary = "All products collected."),
+            ingredients = listOf(
+                BomLineResponse(materialCode = "MAT-001", materialName = "Resin", requiredQuantity = 50.0, collectedQuantity = 50.0)
+            )
+        )
+        whenever(
+            mockMqtt.request(
+                eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(),
+                eq(IngredientScanResultResponse::class.java)
+            )
+        ).thenReturn(MqttOutcome.Accepted(response, NextAction.START_MIXING))
+
+        val outcome = useCase.scanIngredient(
+            "COL_000001", "TAG-1", "MAT-001", bagSizeOption = "full", bagCount = 2.0
+        ).getOrThrow() as IngredientScanOutcome.Accepted
+
+        assertEquals("All products collected.", outcome.collectionSummary)
+        assertEquals("ReadyForMixing", outcome.collectionStatus)
+        assertEquals(1.0, outcome.overCollectionToleranceBags!!, 0.0)
+        assertEquals(NextAction.START_MIXING, outcome.nextAction)
     }
 
     @Test
@@ -627,16 +656,16 @@ class MixingUseCaseTest {
             )
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.Timeout))
 
-        useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
+        useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)
 
         verify(mockMqtt).request(
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload &&
-                    collectionId == "premix-1" && palletRfidTag == "EPC:300833" &&
+                    collectionId == "COL_000001" && palletRfidTag == "EPC:300833" &&
                     bagSizeOption == "full" && bagCount == 2.0
             },
-            eq("premix-1"), eq(IngredientScanResultResponse::class.java),
+            eq("COL_000001"), eq(IngredientScanResultResponse::class.java),
         )
     }
 
@@ -650,7 +679,7 @@ class MixingUseCaseTest {
                 )
             )
 
-        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "1/2", 3.0, "1600000301").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "1600000301", bagSizeOption = "1/2", bagCount = 3.0).getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.NeedsManagerApproval)
         val needs = outcome as IngredientScanOutcome.NeedsManagerApproval
@@ -693,7 +722,7 @@ class MixingUseCaseTest {
         whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
             .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(), NextAction.SCAN_INGREDIENT))
 
-        useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0, "1600000301")
+        useCase.scanIngredient("COL_000123", "TAG-1", "1600000301", bagSizeOption = "full", bagCount = 1.0)
 
         verify(mockMqtt).request(
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
@@ -715,7 +744,7 @@ class MixingUseCaseTest {
             )
         )
 
-        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "full", 1.0, "1600000301").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000123", "TAG-1", "1600000301", bagSizeOption = "full", bagCount = 1.0).getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.NeedsRecovery)
         assertEquals("Pallet is not at Station 2", (outcome as IngredientScanOutcome.NeedsRecovery).reason)
@@ -729,7 +758,7 @@ class MixingUseCaseTest {
             MqttOutcome.Rejected(IngredientScanResultResponse(), null, "Unknown pallet", NextAction.NONE)
         )
 
-        val outcome = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001").getOrThrow()
+        val outcome = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0).getOrThrow()
 
         assertTrue(outcome is IngredientScanOutcome.Rejected)
         assertEquals("Unknown pallet", (outcome as IngredientScanOutcome.Rejected).reason)
@@ -741,10 +770,39 @@ class MixingUseCaseTest {
             mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java))
         ).thenReturn(MqttOutcome.NoResponse(FailureKind.NotConnected))
 
-        val result = useCase.scanIngredient("premix-1", "EPC:300833", "full", 2.0, "MAT-001")
+        val result = useCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `scanIngredient with quantity sends quantity and no bag fields`() = runTest {
+        whenever(
+            mockMqtt.request(
+                eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(),
+                eq(IngredientScanResultResponse::class.java)
+            )
+        ).thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(), NextAction.SCAN_INGREDIENT))
+
+        useCase.scanIngredient("COL_1", "TAG-1", "MAT-BULK", quantity = 123.4)
+
+        val payload = argumentCaptor<Any>().apply {
+            verify(mockMqtt).request(any(), any(), capture(), any(), eq(IngredientScanResultResponse::class.java))
+        }.firstValue as IngredientScanPayload
+        assertEquals(123.4, payload.quantity!!, 0.0)
+        assertNull(payload.bagSizeOption)
+        assertNull(payload.bagCount)
+    }
+
+    @Test
+    fun `scanIngredient refuses both shapes or neither without touching the wire`() = runTest {
+        val both = useCase.scanIngredient("COL_1", "TAG-1", "MAT-1",
+            bagSizeOption = "full", bagCount = 1.0, quantity = 5.0)
+        val neither = useCase.scanIngredient("COL_1", "TAG-1", "MAT-1")
+        assertTrue(both.isFailure)
+        assertTrue(neither.isFailure)
+        verifyNoInteractions(mockMqtt)
     }
 
     // --- waiveShortBags ---

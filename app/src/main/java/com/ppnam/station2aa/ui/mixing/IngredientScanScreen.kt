@@ -26,13 +26,14 @@ import com.ppnam.station2aa.ui.theme.*
 @Composable
 fun IngredientScanScreen(
     orderNo: String,
-    onProceedToHopperScan: () -> Unit,
+    onProceedToMixing: () -> Unit,
     onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
+    val upgradeRequired by viewModel.upgradeRequired.collectAsState()
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
@@ -40,14 +41,10 @@ fun IngredientScanScreen(
     var managerPassword by remember { mutableStateOf("") }
     var selectedBagFraction by rememberSaveable { mutableStateOf(0.0) }
     var bagCountText by rememberSaveable { mutableStateOf("1") }
+    var quantityText by rememberSaveable { mutableStateOf("") }
     var exceptionUsername by remember { mutableStateOf("") }
     var exceptionPassword by remember { mutableStateOf("") }
     var exceptionAuditReason by remember { mutableStateOf("") }
-    var showWaiverDialog by rememberSaveable { mutableStateOf(false) }
-    // rememberSaveable, not remember: showWaiverDialog is rememberSaveable and survives process
-    // recreation on its own — if this didn't survive too, the dialog would reopen with a blank
-    // material code (see MixingViewModel.submitShortBagWaiver's matching fail-closed guard below).
-    var waiverLineMaterialCode by rememberSaveable { mutableStateOf("") }
     var waiverShortBagCountText by rememberSaveable { mutableStateOf("") }
     var waiverUsername by remember { mutableStateOf("") }
     var waiverPassword by remember { mutableStateOf("") }
@@ -85,13 +82,29 @@ fun IngredientScanScreen(
 
     val isCancelling = uiState is MixingUiState.Cancelling
 
+    if (upgradeRequired) {
+        AlertDialog(
+            onDismissRequest = { /* blocking: only a new build clears this */ },
+            title = { Text("App update required", color = TextPrimary) },
+            text = {
+                Text(
+                    "Station 2 requires the 4.0 reader build for this workflow. " +
+                        "Install the update, then log in again.",
+                    color = TextMuted
+                )
+            },
+            confirmButton = {},
+            containerColor = GraphiteSurface
+        )
+    }
+
     if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = { if (!isCancelling) showCancelDialog = false },
             title = { Text("Cancel this job card?", color = TextPrimary) },
             text = {
                 Text(
-                    "This closes the job card if it hasn't had any activity yet (ingredients scanned, hopper assigned, SAP issue, etc). You'll be notified if it can't be cancelled.",
+                    "This closes the job card if it hasn't had any activity yet (ingredients scanned, mixing started, etc). You'll be notified if it can't be cancelled.",
                     color = TextMuted
                 )
             },
@@ -258,6 +271,48 @@ fun IngredientScanScreen(
         )
     }
 
+    if (uiState is MixingUiState.EnteringQuantityDetails) {
+        val palletTag = (uiState as MixingUiState.EnteringQuantityDetails).palletTag
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelQuantityEntry() },
+            title = { Text("Weight received", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Pallet: $palletTag", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Text("Bulk material — enter the exact weight received.", color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = quantityText,
+                        onValueChange = { quantityText = it },
+                        label = { Text("Quantity (kg)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AmberPrimary,
+                            focusedLabelColor = AmberPrimary,
+                            cursorColor = AmberPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = quantityText.toDoubleOrNull()?.let { it > 0.0 } == true,
+                    onClick = {
+                        val qty = quantityText.toDoubleOrNull() ?: return@TextButton
+                        viewModel.confirmQuantityScan(palletTag, qty)
+                        quantityText = ""
+                    }
+                ) { Text("Confirm Weight", color = AmberPrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelQuantityEntry() }) { Text("Cancel", color = TextPrimary) }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
     if (uiState is MixingUiState.IngredientExceptionApproval) {
         val exceptionState = uiState as MixingUiState.IngredientExceptionApproval
         AlertDialog(
@@ -353,13 +408,14 @@ fun IngredientScanScreen(
         )
     }
 
-    // First-attempt short-bag waiver entry: purely local UI state, opened from the "Short bags"
-    // button on a line. Credentials travel on this first submission (unlike a scan there is no
-    // preceding attempt to reject first) — see MixingViewModel.submitShortBagWaiver.
-    if (showWaiverDialog) {
+    // First-attempt short-bag waiver entry: ViewModel state (SP3 gap 2), opened from the "Short
+    // bags" button on a line. Credentials travel on this first submission (unlike a scan there is
+    // no preceding attempt to reject first) — see MixingViewModel.submitShortBagWaiver.
+    if (uiState is MixingUiState.ShortBagWaiverEntry) {
+        val waiverMaterialCode = (uiState as MixingUiState.ShortBagWaiverEntry).requestedMaterialCode
         AlertDialog(
             onDismissRequest = {
-                showWaiverDialog = false
+                viewModel.dismissShortBagWaiverEntry()
                 waiverShortBagCountText = ""
                 waiverUsername = ""
                 waiverPassword = ""
@@ -368,7 +424,7 @@ fun IngredientScanScreen(
             title = { Text("Waive short bags", color = TextPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Material: $waiverLineMaterialCode", color = TextMuted)
+                    Text("Material: $waiverMaterialCode", color = TextMuted)
                     OutlinedTextField(
                         value = waiverShortBagCountText,
                         onValueChange = { waiverShortBagCountText = it },
@@ -423,13 +479,11 @@ fun IngredientScanScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = waiverLineMaterialCode.isNotBlank() &&
-                        waiverShortBagCountText.toDoubleOrNull()?.let { it > 0.0 } == true &&
+                    enabled = waiverShortBagCountText.toDoubleOrNull()?.let { it > 0.0 } == true &&
                         waiverUsername.isNotBlank() && waiverPassword.isNotBlank() && waiverAuditReason.isNotBlank(),
                     onClick = {
                         val count = waiverShortBagCountText.toDoubleOrNull() ?: return@TextButton
-                        viewModel.submitShortBagWaiver(waiverLineMaterialCode, count, waiverUsername, waiverPassword, waiverAuditReason)
-                        showWaiverDialog = false
+                        viewModel.submitShortBagWaiver(waiverMaterialCode, count, waiverUsername, waiverPassword, waiverAuditReason)
                         waiverShortBagCountText = ""
                         waiverUsername = ""
                         waiverPassword = ""
@@ -440,7 +494,7 @@ fun IngredientScanScreen(
             dismissButton = {
                 TextButton(
                     onClick = {
-                        showWaiverDialog = false
+                        viewModel.dismissShortBagWaiverEntry()
                         waiverShortBagCountText = ""
                         waiverUsername = ""
                         waiverPassword = ""
@@ -764,10 +818,7 @@ fun IngredientScanScreen(
                                                     horizontalArrangement = Arrangement.End
                                                 ) {
                                                     TextButton(
-                                                        onClick = {
-                                                            waiverLineMaterialCode = bomLine.itemCode
-                                                            showWaiverDialog = true
-                                                        }
+                                                        onClick = { viewModel.openShortBagWaiver(bomLine.itemCode) }
                                                     ) { Text("Short bags", color = AmberPrimary) }
                                                 }
                                             }
@@ -780,10 +831,12 @@ fun IngredientScanScreen(
                     else -> Spacer(Modifier.weight(1f))
                 }
 
-                if (allIngredientsSatisfied && uiState is MixingUiState.OrderLoaded) {
+                val readyForMixing = (uiState as? MixingUiState.OrderLoaded)
+                    ?.order?.collectionStatus == "ReadyForMixing"
+                if ((readyForMixing || allIngredientsSatisfied) && uiState is MixingUiState.OrderLoaded) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Collection complete. Routing to a Hopper/Extruder/Rajoo is not available in this release yet.",
+                        "Collection complete. Mixing arrives in the next update.",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextMuted
                     )
@@ -802,14 +855,15 @@ fun IngredientScanScreen(
                     ) {
                         Text("Cancel")
                     }
-                    // TODO(sub-project 4): wire routing via machine_cycle_start_requested (Hopper/Extruder/Rajoo).
-                    // Permanently disabled until that flow exists; do not re-enable based on allIngredientsSatisfied.
+                    // SP4b wires this into the five-area Mixing flow (mixing_overview_requested →
+                    // machine_cycle_start_requested). Permanently disabled until that flow exists;
+                    // do not re-enable based on allIngredientsSatisfied.
                     Button(
-                        onClick = onProceedToHopperScan,
+                        onClick = onProceedToMixing,
                         enabled = false,
                         modifier = Modifier.weight(2f).height(56.dp)
                     ) {
-                        Text("Routing available in a later release")
+                        Text("Mixing available in the next update")
                     }
                 }
             }

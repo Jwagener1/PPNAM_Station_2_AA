@@ -33,9 +33,10 @@ class MqttVocabularyTest {
         assertEquals("", NextAction.NONE.raw)
         assertEquals("login", NextAction.LOGIN.raw)
         assertEquals("recover_holding", NextAction.RECOVER_HOLDING.raw)
-        assertEquals("choose_destination", NextAction.CHOOSE_DESTINATION.raw)
+        assertEquals("start_mixing", NextAction.START_MIXING.raw)
         assertEquals("retry_with_manager_approval", NextAction.RETRY_WITH_MANAGER_APPROVAL.raw)
-        assertEquals("assign_or_finish_hopper", NextAction.ASSIGN_OR_FINISH_HOPPER.raw)
+        assertEquals("select_collection_mix_or_machine", NextAction.SELECT_COLLECTION_MIX_OR_MACHINE.raw)
+        assertEquals("upgrade_reader_for_mixing", NextAction.UPGRADE_READER_FOR_MIXING.raw)
     }
 
     @Test

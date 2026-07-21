@@ -12,29 +12,12 @@ from state import iso, utc_now
 SAP_STATUS_NAMES = {"boposPlanned": "Planned", "boposReleased": "Released"}
 
 
-def _premix_active(world, premix_id):
-    pm = world.premixes.get(premix_id)
-    return bool(pm) and pm["status"] == "Mixing"
-
-
-def _active_hopper_codes(world, premix_id):
-    pm = world.premixes.get(premix_id)
-    if not pm:
-        return []
-    return [world.cycles[c]["machineCode"] for c in pm["cycleIds"]
-            if world.cycles[c]["active"]]
-
-
 def active_list(world, log, req, session):
     jobs = []
     for col in world.collections.values():
         status = col["status"]
         if status == "Cancelled":
             continue
-        if status == "Routed":
-            # only relevant while its shared Hopper pre-mix is still active
-            if not (col["linkedPreMixId"] and _premix_active(world, col["linkedPreMixId"])):
-                continue
         collected, remaining = collection_progress(col)
         jobs.append({
             "collectionId": col["collectionId"],
@@ -44,14 +27,10 @@ def active_list(world, log, req, session):
             "status": status,
             "collectedQuantity": collected,
             "remainingQuantity": remaining,
-            "linkedPreMixId": col["linkedPreMixId"],
-            "activeHopperCodes": _active_hopper_codes(world, col["linkedPreMixId"]),
+            "claimedByMixBatchId": col["claimedByMixBatchId"],
         })
     log.ok(f"active job cards: {len(jobs)} non-terminal collection(s)")
-    return build_response(world, req, response_extras={
-        "jobs": jobs,
-        "hoppers": world.hopper_board(),
-    })
+    return build_response(world, req, response_extras={"jobs": jobs})
 
 
 def open_sap_list(world, log, req, session):
@@ -122,7 +101,6 @@ def bom_loaded_response(world, req, col, resumed, next_action):
         "bomSnapshotCapturedAtUtc": col["bomSnapshotCapturedAtUtc"],
         "collectionSummary": collection_summary(col),
         "ingredients": ingredients_payload(world, col),
-        "hoppers": world.hopper_board(),
     })
 
 
@@ -149,7 +127,7 @@ def load(world, log, req, session):
         "status": "Collecting",
         "bomSnapshotCapturedAtUtc": iso(utc_now()),
         "lines": _snapshot_lines(world, order),
-        "linkedPreMixId": None,
+        "claimedByMixBatchId": None,
         "createdByOperatorId": session["operatorId"],
         "createdFromDevice": req["deviceId"],
     }
@@ -180,14 +158,11 @@ def resume(world, log, req, session):
                         next_action="active_job_cards")
     if status == "Collecting":
         next_action = "scan_ingredient"
-    elif status == "ReadyForRouting":
-        next_action = "choose_destination"
-    elif status == "Routed" and col["linkedPreMixId"] \
-            and _premix_active(world, col["linkedPreMixId"]):
-        next_action = "assign_or_finish_hopper"
+    elif status == "ReadyForMixing":
+        next_action = "start_mixing"
     else:
         raise Rejection("state_conflict",
-                        f"Collection {col_id} is {status} and fully routed; nothing to resume.",
+                        f"Collection {col_id} is {status}; nothing to resume.",
                         next_action="active_job_cards")
     log.ok(f"collection {col_id} resumed on {req['deviceId']} by {session['operatorId']} "
            f"(status {status}, from stored snapshot, no SAP reload) -> {next_action}")
@@ -202,10 +177,10 @@ def cancel(world, log, req, session):
     if not col:
         raise Rejection("not_found", f"Collection '{col_id}' was not found.")
     approver = approve(world, log, req, "ingredient_collection_cancel")
-    if col["status"] not in ("Collecting", "ReadyForRouting"):
+    if col["status"] not in ("Collecting", "ReadyForMixing"):
         raise Rejection("state_conflict",
                         f"Collection {col_id} is {col['status']}; cancellation is rejected "
-                        f"after routing or downstream activity.")
+                        f"after mixing has started.")
     old = col["status"]
     col["status"] = "Cancelled"
     log.transition(f"collection {col_id}: {old} -> Cancelled "

@@ -151,13 +151,25 @@ class MixingUseCase @Inject constructor(
     suspend fun scanIngredient(
         collectionId: String,
         palletRfidTag: String,
-        bagSizeOption: String,
-        bagCount: Double,
         requestedMaterialCode: String,
+        bagSizeOption: String? = null,
+        bagCount: Double? = null,
+        quantity: Double? = null,
         managerUsername: String? = null,
         managerPassword: String? = null,
         auditReason: String? = null,
     ): Result<IngredientScanOutcome> {
+        // The two capture shapes are mutually exclusive on the wire (contract §5): bag
+        // fields for bagged stock, quantity for direct weight. Fail closed before publishing.
+        val bagShape = bagSizeOption != null || bagCount != null
+        if (bagShape == (quantity != null)) {
+            return Result.failure(IllegalArgumentException(
+                "Send either bagSizeOption+bagCount or quantity, never both or neither."))
+        }
+        if (bagShape && (bagSizeOption == null || bagCount == null)) {
+            return Result.failure(IllegalArgumentException(
+                "A bag scan needs both bagSizeOption and bagCount."))
+        }
         val outcome = mqttRepository.request(
             requestType = "ingredient_scan_requested",
             responseType = "ingredient_scan_result",
@@ -167,6 +179,7 @@ class MixingUseCase @Inject constructor(
                 requestedMaterialCode = requestedMaterialCode,
                 bagSizeOption = bagSizeOption,
                 bagCount = bagCount,
+                quantity = quantity,
                 managerUsername = managerUsername,
                 managerPassword = managerPassword,
                 auditReason = auditReason,
@@ -178,13 +191,17 @@ class MixingUseCase @Inject constructor(
         return when (outcome) {
             is MqttOutcome.Accepted -> Result.success(
                 IngredientScanOutcome.Accepted(
-                    outcome.body.ingredients
+                    updatedLines = outcome.body.ingredients
                         // Same rule as the initial load: the backflush line is the product being
                         // made, not a component to collect. Without this filter a scan response
                         // reintroduces it as a collectible line, because MixingViewModel replaces
                         // the whole line list wholesale with this output.
                         .filter { it.issueType != "im_Backflush" }
-                        .map { it.toBomLine() }
+                        .map { it.toBomLine() },
+                    collectionSummary = outcome.body.collectionSummary.summary,
+                    collectionStatus = outcome.body.collectionStatus,
+                    overCollectionToleranceBags = outcome.body.overCollectionToleranceBags,
+                    nextAction = outcome.nextAction,
                 )
             )
             is MqttOutcome.Rejected -> Result.success(
@@ -196,6 +213,7 @@ class MixingUseCase @Inject constructor(
                         requestedMaterialCode = requestedMaterialCode,
                         bagSizeOption = bagSizeOption,
                         bagCount = bagCount,
+                        quantity = quantity,
                         reason = outcome.reason ?: "Manager approval required",
                     )
                     outcome.nextAction == NextAction.RECOVER_HOLDING ->
@@ -242,9 +260,13 @@ class MixingUseCase @Inject constructor(
                     // Same rule as scanIngredient: a waiver adjusts the line's requirement
                     // directly and never produces a scanned line, but the backflush line still
                     // needs filtering out of the wholesale-replaced line list.
-                    outcome.body.ingredients
+                    updatedLines = outcome.body.ingredients
                         .filter { it.issueType != "im_Backflush" }
-                        .map { it.toBomLine() }
+                        .map { it.toBomLine() },
+                    collectionSummary = outcome.body.collectionSummary.summary,
+                    collectionStatus = outcome.body.collectionStatus,
+                    overCollectionToleranceBags = outcome.body.overCollectionToleranceBags,
+                    nextAction = outcome.nextAction,
                 )
             )
             is MqttOutcome.Rejected -> Result.success(

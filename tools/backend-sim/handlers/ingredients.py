@@ -15,12 +15,12 @@ def _result(world, req, col, accepted=True, error_code=None, reason=None,
             next_action="", approver=None, requires_approval=False, tolerance="unset"):
     extras = {
         "collectionId": col["collectionId"],
+        "collectionStatus": col["status"],
         "requiresManagerApproval": requires_approval,
         "overCollectionToleranceBags": (world.config["overCollectionToleranceBags"]
                                         if tolerance == "unset" else tolerance),
         "collectionSummary": collection_summary(col),
         "ingredients": ingredients_payload(world, col),
-        "hoppers": world.hopper_board(),
     }
     extras.update(approver or NO_APPROVER)
     return build_response(world, req, accepted=accepted, error_code=error_code,
@@ -50,10 +50,10 @@ def _find_line(col, material_code):
 
 def _completion_check(world, log, col):
     if col["status"] == "Collecting" and collection_is_complete(col):
-        col["status"] = "ReadyForRouting"
-        log.transition(f"collection {col['collectionId']}: Collecting -> ReadyForRouting "
+        col["status"] = "ReadyForMixing"
+        log.transition(f"collection {col['collectionId']}: Collecting -> ReadyForMixing "
                        f"(all adjusted manual requirements satisfied)")
-        return "choose_destination"
+        return "start_mixing"
     return "scan_ingredient"
 
 
@@ -70,8 +70,8 @@ def scan(world, log, req, session):
         return _reject(world, req, col, "state_conflict",
                        f"Collection {col_id} is {col['status']}; ingredient scanning "
                        f"is only valid while Collecting.",
-                       next_action="choose_destination"
-                       if col["status"] == "ReadyForRouting" else "active_job_cards")
+                       next_action="start_mixing"
+                       if col["status"] == "ReadyForMixing" else "active_job_cards")
 
     if req.get("shortBagCount") is not None:
         return _waiver(world, log, req, session, col)

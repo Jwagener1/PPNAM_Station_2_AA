@@ -3,7 +3,6 @@ package com.ppnam.station2aa.data.mqtt.dto
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class IngredientScanResultTest {
@@ -61,18 +60,15 @@ class IngredientScanResultTest {
     }
 
     @Test
-    fun `the result carries the refreshed summary and hopper board`() {
-        // Both are required by the contract: the scan result is a workflow decision point.
+    fun `the result carries the refreshed summary`() {
+        // Required by the contract: the scan result is a workflow decision point.
         val json = """
             {"collectionId":"COL_000123",
-             "collectionSummary":{"waitingProductCount":1,"summary":"1 product waiting for collection."},
-             "hoppers":[{"displayName":"Hopper 1","machineCode":"MXR-01","status":"Available","isAvailable":true}]}
+             "collectionSummary":{"waitingProductCount":1,"summary":"1 product waiting for collection."}}
         """.trimIndent()
 
         val r = gson.fromJson(json, IngredientScanResultResponse::class.java)
 
         assertEquals("1 product waiting for collection.", r.collectionSummary.summary)
-        assertEquals("MXR-01", r.hoppers.single().machineCode)
-        assertTrue(r.hoppers.single().isAvailable)
     }
 }

@@ -62,9 +62,9 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 IngredientScanScreen(
                     orderNo = orderNo,
-                    // TODO(sub-project 4): wire routing via machine_cycle_start_requested (Hopper/Extruder/Rajoo).
-                    // The button that invokes this is permanently disabled in IngredientScanScreen until then.
-                    onProceedToHopperScan = { },
+                    // SP4b wires this into the five-area Mixing flow. The button that invokes
+                    // this is permanently disabled in IngredientScanScreen until then.
+                    onProceedToMixing = { },
                     onRfidLookup = {
                         viewModel.pauseScanning()
                         navController.navigate(NavRoutes.RFID_RECOVERY)
