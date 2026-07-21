@@ -18,6 +18,7 @@ import com.ppnam.station2aa.ui.mixing.MixingViewModel
 import com.ppnam.station2aa.ui.mixing.board.MixingAreaPickerScreen
 import com.ppnam.station2aa.ui.mixing.board.MixingBoardScreen
 import com.ppnam.station2aa.ui.mixing.board.MixingBoardViewModel
+import com.ppnam.station2aa.ui.components.UpgradeRequiredGate
 import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 import com.ppnam.station2aa.ui.session.SessionWatcher
 import com.ppnam.station2aa.ui.settings.SettingsScreen
@@ -132,4 +133,5 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
     }
+    UpgradeRequiredGate()
 }

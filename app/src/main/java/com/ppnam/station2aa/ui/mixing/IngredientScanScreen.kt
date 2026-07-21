@@ -33,7 +33,6 @@ fun IngredientScanScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
-    val upgradeRequired by viewModel.upgradeRequired.collectAsState()
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
@@ -91,22 +90,6 @@ fun IngredientScanScreen(
     }
 
     val isCancelling = uiState is MixingUiState.Cancelling
-
-    if (upgradeRequired) {
-        AlertDialog(
-            onDismissRequest = { /* blocking: only a new build clears this */ },
-            title = { Text("App update required", color = TextPrimary) },
-            text = {
-                Text(
-                    "Station 2 requires the 4.0 reader build for this workflow. " +
-                        "Install the update, then log in again.",
-                    color = TextMuted
-                )
-            },
-            confirmButton = {},
-            containerColor = GraphiteSurface
-        )
-    }
 
     if (showCancelDialog) {
         AlertDialog(

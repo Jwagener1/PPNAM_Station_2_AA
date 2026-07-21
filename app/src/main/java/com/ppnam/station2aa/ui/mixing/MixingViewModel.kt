@@ -71,7 +71,6 @@ sealed class MixingUiState {
 
 object MixingNavDestination {
     const val JOB_LOADED = "job_loaded"
-    const val HOME = "home"
     const val MIXING_BOARD = "mixing_board"
 }
 
@@ -101,8 +100,6 @@ class MixingViewModel @Inject constructor(
     ) { state, stationOnline, skew ->
         resolveConnectionStatus(state, stationOnline, skew)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
-
-    val upgradeRequired: StateFlow<Boolean> = mqttRepository.upgradeRequired
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 

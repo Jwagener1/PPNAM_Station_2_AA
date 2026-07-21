@@ -73,7 +73,6 @@ class MixingViewModelTest {
             .thenReturn(MutableStateFlow(MqttConnectionState.DISCONNECTED))
         whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
         whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
-        whenever(mockMqttRepository.upgradeRequired).thenReturn(MutableStateFlow(false))
         whenever(mockScanEventBus.events).thenReturn(MutableSharedFlow())
         whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(sessionWithActions("ingredient_collection_cancel")))
 
@@ -1356,5 +1355,47 @@ class MixingViewModelTest {
         collector.cancel()
 
         assertTrue(events.contains(MixingNavDestination.MIXING_BOARD))
+    }
+
+    @Test
+    fun `submitManagerApproval resubmits a QUANTITY-shaped scan with the quantity intact`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(bulkOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.selectLine(0)
+        whenever(mockUseCase.scanIngredient(any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(IngredientScanOutcome.NeedsManagerApproval(
+                collectionId = "COL_1", palletRfidTag = "EPC:1",
+                requestedMaterialCode = "MAT-BULK",
+                bagSizeOption = null, bagCount = null, quantity = 42.5,
+                reason = "over-collection")))
+        viewModel.confirmQuantityScan("EPC:1", 42.5)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value is MixingUiState.IngredientExceptionApproval)
+
+        viewModel.submitManagerApproval("manager1", "secret", "verified")
+        advanceUntilIdle()
+
+        verify(mockUseCase).scanIngredient(
+            eq("COL_1"), eq("EPC:1"), eq("MAT-BULK"),
+            isNull(), isNull(), eq(42.5),
+            eq("manager1"), eq("secret"), eq("verified"))
+    }
+
+    @Test
+    fun `openShortBagWaiver refuses a bulk line`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(bulkOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.openShortBagWaiver("MAT-BULK")
+        assertTrue("a bulk line has no bag arithmetic to waive",
+            viewModel.uiState.value is MixingUiState.OrderLoaded)
+    }
+
+    @Test
+    fun `openShortBagWaiver refuses outside OrderLoaded`() = runTest {
+        // Nothing loaded: Idle state, no cached order.
+        viewModel.openShortBagWaiver("MAT-001")
+        assertTrue(viewModel.uiState.value is MixingUiState.Idle)
     }
 }
