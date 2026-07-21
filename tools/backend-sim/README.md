@@ -64,8 +64,8 @@ State is in-memory only; restarting gives a fresh, repeatable world.
   `JAN-DRUM-01` gating `JAN-04`, extruders `JAN-02`..`04`),
   `DolciBulkMixing`, `MackieBulkMixing`, and `RajooMachineMixing`
   (gravimetric mixers `RAJ-GM-01`..`03` per product layer feeding
-  `RAJ-EXT-01`). Scan-stock pallets are sized to survive four full
-  collections of job `510019068`.
+  `RAJ-EXT-01`). Scan-stock pallets are sized for ~16 full collections;
+  the selftest runs five.
 - **Pallets** (tags abbreviated; see `seed/seed.json` for full 24-char tags):
 
 | Tag suffix | Pallet | Product | State | Exercises |

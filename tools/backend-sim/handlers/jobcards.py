@@ -180,7 +180,7 @@ def cancel(world, log, req, session):
     if col["status"] not in ("Collecting", "ReadyForMixing"):
         raise Rejection("state_conflict",
                         f"Collection {col_id} is {col['status']}; cancellation is rejected "
-                        f"after routing or downstream activity.")
+                        f"after mixing has started.")
     old = col["status"]
     col["status"] = "Cancelled"
     log.transition(f"collection {col_id}: {old} -> Cancelled "

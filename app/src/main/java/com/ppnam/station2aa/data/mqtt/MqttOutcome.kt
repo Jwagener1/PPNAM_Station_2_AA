@@ -5,7 +5,7 @@ package com.ppnam.station2aa.data.mqtt
  *
  * `Rejected` deliberately carries the typed body: the contract guarantees every response topic has
  * one stable payload shape, so a rejected ingredient scan still returns the full refreshed
- * ingredients[], and a rejected machine-cycle start still returns conflicts[].
+ * ingredients[], and a rejected machine-cycle start still returns the refreshed `areaStatus`.
  * Discarding that would force a redundant refresh.
  *
  * `NoResponse` means Station 2 never answered — distinct from a decision it actually made, and an
