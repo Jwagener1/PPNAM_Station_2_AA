@@ -4,14 +4,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.ui.login.LoginScreen
 import com.ppnam.station2aa.ui.mixing.IngredientScanScreen
 import com.ppnam.station2aa.ui.mixing.JobLookupScreen
 import com.ppnam.station2aa.ui.mixing.MixingViewModel
+import com.ppnam.station2aa.ui.mixing.board.MixingAreaPickerScreen
+import com.ppnam.station2aa.ui.mixing.board.MixingBoardScreen
+import com.ppnam.station2aa.ui.mixing.board.MixingBoardViewModel
 import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 import com.ppnam.station2aa.ui.session.SessionWatcher
 import com.ppnam.station2aa.ui.settings.SettingsScreen
@@ -51,6 +57,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                         viewModel.pauseScanning()
                         navController.navigate(NavRoutes.RFID_RECOVERY)
                     },
+                    onOpenMixing = { navController.navigate(NavRoutes.mixingAreas()) },
                     viewModel = viewModel
                 )
             }
@@ -62,9 +69,9 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 val viewModel: MixingViewModel = hiltViewModel(parentEntry)
                 IngredientScanScreen(
                     orderNo = orderNo,
-                    // SP4b wires this into the five-area Mixing flow. The button that invokes
-                    // this is permanently disabled in IngredientScanScreen until then.
-                    onProceedToMixing = { },
+                    onStartMixing = { collectionId ->
+                        navController.navigate(NavRoutes.mixingAreas(collectionId))
+                    },
                     onRfidLookup = {
                         viewModel.pauseScanning()
                         navController.navigate(NavRoutes.RFID_RECOVERY)
@@ -72,6 +79,50 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     onBack = { navController.popBackStack() },
                     viewModel = viewModel
                 )
+            }
+        }
+        navigation(startDestination = NavRoutes.MIXING_AREAS, route = NavRoutes.MIXING_BOARD) {
+            composable(
+                NavRoutes.MIXING_AREAS,
+                arguments = listOf(navArgument("pendingCollectionId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }),
+            ) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(NavRoutes.MIXING_BOARD)
+                }
+                val viewModel: MixingBoardViewModel = hiltViewModel(parentEntry)
+                MixingAreaPickerScreen(
+                    pendingCollectionId = backStackEntry.arguments?.getString("pendingCollectionId"),
+                    onAreaChosen = { area -> navController.navigate(NavRoutes.mixingAreaBoard(area.wire)) },
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        navController.navigate(NavRoutes.LOGIN) { popUpTo(0) }
+                    },
+                    viewModel = viewModel,
+                )
+            }
+            composable(NavRoutes.MIXING_AREA_BOARD) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(NavRoutes.MIXING_BOARD)
+                }
+                val viewModel: MixingBoardViewModel = hiltViewModel(parentEntry)
+                val area = MixingArea.fromWire(backStackEntry.arguments?.getString("area"))
+                if (area == null) {
+                    // Only our own navigate() calls mint this route; a bad value is a bug.
+                    navController.popBackStack()
+                } else {
+                    MixingBoardScreen(
+                        area = area,
+                        onBack = { navController.popBackStack() },
+                        onLogout = {
+                            navController.navigate(NavRoutes.LOGIN) { popUpTo(0) }
+                        },
+                        viewModel = viewModel,
+                    )
+                }
             }
         }
         composable(NavRoutes.RFID_RECOVERY) {

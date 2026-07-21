@@ -26,7 +26,7 @@ import com.ppnam.station2aa.ui.theme.*
 @Composable
 fun IngredientScanScreen(
     orderNo: String,
-    onProceedToMixing: () -> Unit,
+    onStartMixing: (collectionId: String) -> Unit,
     onRfidLookup: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
@@ -79,6 +79,16 @@ fun IngredientScanScreen(
     }
 
     LaunchedEffect(orderNo) { viewModel.startListeningForPalletScans(orderNo) }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { destination ->
+            if (destination == MixingNavDestination.MIXING_BOARD) {
+                (viewModel.uiState.value as? MixingUiState.OrderLoaded)
+                    ?.order?.collectionId?.takeIf { it.isNotBlank() }
+                    ?.let(onStartMixing)
+            }
+        }
+    }
 
     val isCancelling = uiState is MixingUiState.Cancelling
 
@@ -836,7 +846,7 @@ fun IngredientScanScreen(
                 if ((readyForMixing || allIngredientsSatisfied) && uiState is MixingUiState.OrderLoaded) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Collection complete. Mixing arrives in the next update.",
+                        "Collection complete — ready for mixing.",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextMuted
                     )
@@ -855,15 +865,16 @@ fun IngredientScanScreen(
                     ) {
                         Text("Cancel")
                     }
-                    // SP4b wires this into the five-area Mixing flow (mixing_overview_requested →
-                    // machine_cycle_start_requested). Permanently disabled until that flow exists;
-                    // do not re-enable based on allIngredientsSatisfied.
                     Button(
-                        onClick = onProceedToMixing,
-                        enabled = false,
+                        onClick = {
+                            (uiState as? MixingUiState.OrderLoaded)
+                                ?.order?.collectionId?.takeIf { it.isNotBlank() }
+                                ?.let(onStartMixing)
+                        },
+                        enabled = readyForMixing,
                         modifier = Modifier.weight(2f).height(56.dp)
                     ) {
-                        Text("Mixing available in the next update")
+                        Text(if (readyForMixing) "Start Mixing" else "Mixing after collection")
                     }
                 }
             }

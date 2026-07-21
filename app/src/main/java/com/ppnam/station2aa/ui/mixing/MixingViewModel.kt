@@ -2,6 +2,7 @@ package com.ppnam.station2aa.ui.mixing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
@@ -71,6 +72,7 @@ sealed class MixingUiState {
 object MixingNavDestination {
     const val JOB_LOADED = "job_loaded"
     const val HOME = "home"
+    const val MIXING_BOARD = "mixing_board"
 }
 
 sealed class CancelOutcome {
@@ -503,6 +505,12 @@ class MixingViewModel @Inject constructor(
                 val armed = armedLineNumber?.let { ln -> updatedOrder.lines.firstOrNull { it.lineNumber == ln } }
                 if (armed != null && armed.isSatisfied) armedLineNumber = null
                 _uiState.value = orderLoadedState(updatedOrder)
+                // Auto-navigate to Mixing when the server says the collection is ready
+                // (user decision 1). Guidance, not permission — the board re-verifies
+                // everything server-side.
+                if (outcome.nextAction == NextAction.START_MIXING) {
+                    _navigationEvent.trySend(MixingNavDestination.MIXING_BOARD)
+                }
             }
             is IngredientScanOutcome.NeedsManagerApproval -> {
                 pendingApproval = outcome

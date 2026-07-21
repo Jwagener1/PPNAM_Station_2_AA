@@ -1333,4 +1333,28 @@ class MixingViewModelTest {
         verify(mockUseCase, never()).scanIngredient(any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())
         assertTrue(viewModel.uiState.value is MixingUiState.OrderLoaded)
     }
+
+    @Test
+    fun `an accepted outcome with START_MIXING emits the mixing-board navigation event`() = runTest {
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
+        viewModel.lookupJob("510019068")
+        advanceUntilIdle()
+        viewModel.selectLine(0)
+        whenever(mockUseCase.scanIngredient(any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(IngredientScanOutcome.Accepted(
+                updatedLines = sampleOrder.lines,
+                collectionSummary = "All products collected.",
+                collectionStatus = "ReadyForMixing",
+                overCollectionToleranceBags = 1.0,
+                nextAction = com.ppnam.station2aa.data.mqtt.NextAction.START_MIXING,
+            )))
+
+        val events = mutableListOf<String>()
+        val collector = launch { viewModel.navigationEvent.collect { events.add(it) } }
+        viewModel.confirmIngredientScan("TAG-1", "full", 2.0)
+        advanceUntilIdle()
+        collector.cancel()
+
+        assertTrue(events.contains(MixingNavDestination.MIXING_BOARD))
+    }
 }
