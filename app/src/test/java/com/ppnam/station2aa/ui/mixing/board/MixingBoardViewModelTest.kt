@@ -207,4 +207,217 @@ class MixingBoardViewModelTest {
         assertTrue("a refresh must not re-assert the consumed auto-nav hint",
             (viewModel.uiState.value as MixingBoardUiState.Board).selection is BoardSelection.None)
     }
+
+    private suspend fun openMainBoard() {
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        viewModel.openArea(MixingArea.Main)
+    }
+
+    @Test
+    fun `selectCollection highlights mixers and toggleMix respects the same-JC rule`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        viewModel.selectCollection("COL_1")
+        var board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertEquals(setOf("MXR-01"), board.highlightedMachineCodes)
+
+        viewModel.clearSelection()
+        viewModel.toggleMix("MIX_1")
+        board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertTrue(board.selection is BoardSelection.Mixes)
+        assertEquals(setOf("EXT-03", "EXT-04"), board.highlightedMachineCodes)
+
+        // a second toggle removes it -> selection collapses to None
+        viewModel.toggleMix("MIX_1")
+        board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertTrue(board.selection is BoardSelection.None)
+    }
+
+    @Test
+    fun `machineChosen with no selection opens the cycle sheet for a busy machine`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        viewModel.machineChosen("MXR-02")
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        val sheet = board.sheet
+        assertTrue(sheet is BoardSheet.CycleSheet)
+        assertEquals("CYC_9", (sheet as BoardSheet.CycleSheet).cycle.cycleId)
+    }
+
+    @Test
+    fun `machineChosen with no selection on an idle machine only messages`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        viewModel.machineChosen("MXR-01")
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertTrue(board.sheet is BoardSheet.None)
+    }
+
+    @Test
+    fun `machineChosen with a collection on a Rajoo mixer fetches dose rows`() = runTest {
+        val rajooOverview = mainOverview.copy(equipment = listOf(
+            equipment("RAJ-GM-01", area = MixingArea.Rajoo)))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Rajoo), anyOrNull())).thenReturn(Result.success(rajooOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        whenever(mockUseCase.fetchCollectedMaterials("510019068", "COL_1")).thenReturn(
+            Result.success(listOf(
+                com.ppnam.station2aa.domain.model.CollectedMaterial("MAT-1", "Resin", 550.0))))
+        viewModel.openArea(MixingArea.Rajoo)
+        advanceUntilIdle()
+        viewModel.selectCollection("COL_1")
+        viewModel.machineChosen("RAJ-GM-01")
+        advanceUntilIdle()
+
+        val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
+        assertTrue(sheet is BoardSheet.StartConfirm)
+        val rows = (sheet as BoardSheet.StartConfirm).doseRows
+        assertEquals("MAT-1", rows!!.single().materialCode)
+        assertEquals(550.0, rows.single().collectedQty, 0.0)
+    }
+
+    @Test
+    fun `confirmStart for a collection on a plain mixer calls startMixer`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        whenever(mockUseCase.startMixer(any(), any(), any())).thenReturn(
+            com.ppnam.station2aa.domain.model.MachineCycleOutcome.Accepted(
+                action = "Started", machineCode = "MXR-01", cycleId = "CYC_1",
+                mixBatchId = "MIX_5", productionRunId = null,
+                affectedMixBatchIds = listOf("MIX_5"), alreadyFinished = false,
+                forceClosed = false, approverDisplayName = null, areaStatus = mainOverview))
+        viewModel.selectCollection("COL_1")
+        viewModel.machineChosen("MXR-01")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        verify(mockUseCase).startMixer("MXR-01", "510019068", "COL_1")
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertTrue(board.selection is BoardSelection.None)
+        assertTrue(board.sheet is BoardSheet.None)
+        assertFalse(board.busy)
+    }
+
+    @Test
+    fun `confirmStart for mixes calls startDownstream with the selected ids`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        whenever(mockUseCase.startDownstream(any(), any(), any())).thenReturn(
+            com.ppnam.station2aa.domain.model.MachineCycleOutcome.Accepted(
+                action = "Started", machineCode = "EXT-03", cycleId = "RUN_1",
+                mixBatchId = null, productionRunId = "RUN_1",
+                affectedMixBatchIds = listOf("MIX_1"), alreadyFinished = false,
+                forceClosed = false, approverDisplayName = null, areaStatus = mainOverview))
+        viewModel.toggleMix("MIX_1")
+        viewModel.machineChosen("EXT-03")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        verify(mockUseCase).startDownstream("EXT-03", "510019068", listOf("MIX_1"))
+    }
+
+    @Test
+    fun `a rejected start applies the embedded areaStatus and keeps the selection`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        val refreshed = mainOverview.copy(equipment = listOf(equipment("MXR-01", status = "InUse")))
+        whenever(mockUseCase.startMixer(any(), any(), any())).thenReturn(
+            com.ppnam.station2aa.domain.model.MachineCycleOutcome.Rejected(
+                errorCode = com.ppnam.station2aa.data.mqtt.ErrorCode.EQUIPMENT_IN_USE,
+                reason = "Busy on another cycle.", areaStatus = refreshed))
+        viewModel.selectCollection("COL_1")
+        viewModel.machineChosen("MXR-01")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertEquals("InUse", board.overview.equipment.single { it.machineCode == "MXR-01" }.status)
+        assertTrue("selection survives a rejection so the operator can retry elsewhere",
+            board.selection is BoardSelection.Collection)
+        // and highlights were recomputed against the refreshed overview
+        assertTrue(board.highlightedMachineCodes.isEmpty())
+    }
+
+    @Test
+    fun `rajoo confirm validates doses fail-closed`() = runTest {
+        val rajooOverview = mainOverview.copy(equipment = listOf(
+            equipment("RAJ-GM-01", area = MixingArea.Rajoo)))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Rajoo), anyOrNull())).thenReturn(Result.success(rajooOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        whenever(mockUseCase.fetchCollectedMaterials(any(), any())).thenReturn(
+            Result.success(listOf(
+                com.ppnam.station2aa.domain.model.CollectedMaterial("MAT-1", "Resin", 100.0))))
+        viewModel.openArea(MixingArea.Rajoo)
+        advanceUntilIdle()
+        viewModel.selectCollection("COL_1")
+        viewModel.machineChosen("RAJ-GM-01")
+        advanceUntilIdle()
+
+        viewModel.updateDose("MAT-1", "150.0") // above collected
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
+        assertNotNull((sheet as BoardSheet.StartConfirm).validationError)
+        verify(mockUseCase, never()).startRajoo(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `a scan while a sheet is open is ignored`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingBoardViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        vm.openArea(MixingArea.Main)
+        advanceUntilIdle()
+        vm.machineChosen("MXR-02") // opens the cycle sheet
+
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.Barcode("MXR-01", "CODE128", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val sheet = (vm.uiState.value as MixingBoardUiState.Board).sheet
+        assertTrue("cycle sheet must survive a stray scan", sheet is BoardSheet.CycleSheet)
+    }
+
+    @Test
+    fun `a scan on the board dispatches machineChosen`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingBoardViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        vm.openArea(MixingArea.Main)
+        advanceUntilIdle()
+
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.Barcode("MXR-02", "CODE128", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        assertTrue((vm.uiState.value as MixingBoardUiState.Board).sheet is BoardSheet.CycleSheet)
+    }
+
+    @Test
+    fun `finishCycle sends the stored cycle id and messages alreadyFinished as success`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        whenever(mockUseCase.finish("MXR-02", "CYC_9")).thenReturn(
+            com.ppnam.station2aa.domain.model.MachineCycleOutcome.Accepted(
+                action = "Finished", machineCode = "MXR-02", cycleId = "CYC_9",
+                mixBatchId = "MIX_9", productionRunId = null,
+                affectedMixBatchIds = listOf("MIX_9"), alreadyFinished = true,
+                forceClosed = false, approverDisplayName = null, areaStatus = mainOverview))
+        viewModel.machineChosen("MXR-02")
+        viewModel.finishCycle()
+        advanceUntilIdle()
+
+        verify(mockUseCase).finish("MXR-02", "CYC_9")
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertTrue(board.sheet is BoardSheet.None)
+    }
+
+    @Test
+    fun `submitForceClose refuses blank credentials without touching the wire`() = runTest {
+        openMainBoard(); advanceUntilIdle()
+        viewModel.machineChosen("MXR-02")
+        viewModel.openForceClose()
+        viewModel.submitForceClose("", "", "")
+        advanceUntilIdle()
+
+        verify(mockUseCase, never()).forceClose(any(), any(), any(), any(), any())
+        val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
+        assertNotNull((sheet as BoardSheet.ForceCloseDialog).validationError)
+    }
 }

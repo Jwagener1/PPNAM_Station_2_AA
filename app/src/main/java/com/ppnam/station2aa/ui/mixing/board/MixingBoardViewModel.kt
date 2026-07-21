@@ -2,12 +2,15 @@ package com.ppnam.station2aa.ui.mixing.board
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.ActiveCycle
 import com.ppnam.station2aa.domain.model.AreaOverview
 import com.ppnam.station2aa.domain.model.Equipment
+import com.ppnam.station2aa.domain.model.LayerInput
+import com.ppnam.station2aa.domain.model.MachineCycleOutcome
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.domain.model.ReadyCollection
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -153,6 +156,20 @@ class MixingBoardViewModel @Inject constructor(
                 .filter { it == MqttConnectionState.CONNECTED }
                 .collect { refresh() }
         }
+
+        // Scan-first machine selection (user decision 2). Guarded exactly like the capture
+        // screen: a scan lands only on a quiet board — never over a sheet or an in-flight request.
+        viewModelScope.launch {
+            scanEventBus.events.collect { event ->
+                val board = _uiState.value as? MixingBoardUiState.Board ?: return@collect
+                if (board.sheet != BoardSheet.None || board.busy) return@collect
+                val code = when (event) {
+                    is ScanEvent.RfidTag -> event.tagId
+                    is ScanEvent.Barcode -> event.value
+                }
+                machineChosen(code)
+            }
+        }
     }
 
     fun logout() {
@@ -215,6 +232,247 @@ class MixingBoardViewModel @Inject constructor(
             is MixingBoardUiState.AreaPicker -> loadAreaPicker(pendingCollectionId)
             is MixingBoardUiState.Board -> if (!state.busy) openArea(state.area)
             else -> Unit
+        }
+    }
+
+    private fun board(): MixingBoardUiState.Board? = _uiState.value as? MixingBoardUiState.Board
+
+    private fun setBoard(board: MixingBoardUiState.Board) {
+        _uiState.value = board.copy(
+            highlightedMachineCodes = computeHighlightedMachines(board.overview, board.selection))
+    }
+
+    fun selectCollection(collectionId: String) {
+        val board = board() ?: return
+        if (board.busy || board.sheet != BoardSheet.None) return
+        val collection = board.readyCollections.firstOrNull { it.collectionId == collectionId } ?: return
+        setBoard(board.copy(selection = BoardSelection.Collection(collection.collectionId, collection.jobCardNumber)))
+    }
+
+    fun toggleMix(mixBatchId: String) {
+        val board = board() ?: return
+        if (board.busy || board.sheet != BoardSheet.None) return
+        val mix = board.overview.readyMixes.firstOrNull { it.mixBatchId == mixBatchId } ?: return
+        val current = board.selection as? BoardSelection.Mixes
+        // Same-JC rule (client mirror of job_card_mismatch): ignore taps on other-JC mixes.
+        if (current != null && current.jobCardNumber != mix.jobCardNumber) return
+        val ids = when {
+            current == null -> listOf(mixBatchId)
+            mixBatchId in current.mixBatchIds -> current.mixBatchIds - mixBatchId
+            else -> current.mixBatchIds + mixBatchId
+        }
+        val selection = if (ids.isEmpty()) BoardSelection.None
+        else BoardSelection.Mixes(ids, mix.jobCardNumber)
+        setBoard(board.copy(selection = selection))
+    }
+
+    fun clearSelection() {
+        val board = board() ?: return
+        if (board.busy) return
+        setBoard(board.copy(selection = BoardSelection.None))
+    }
+
+    /**
+     * A machine was scanned or a highlighted card tapped. With a selection this opens the
+     * start-confirm sheet; without one it opens the machine's active-cycle sheet, or just
+     * explains. An unknown scanned code still proceeds with a stub — trusted intent,
+     * server-authoritative rejection after confirm.
+     */
+    fun machineChosen(machineCode: String) {
+        val board = board() ?: return
+        if (board.busy || board.sheet != BoardSheet.None) return
+        val machine = board.overview.equipment.firstOrNull { it.machineCode == machineCode }
+            ?: Equipment(
+                machineCode = machineCode, displayName = machineCode, area = board.area,
+                role = "", isEnabled = true, isAvailable = false, status = "",
+                productLayer = null, currentCycleId = null, currentJobCardNumber = null,
+                currentMixBatchIds = emptyList(), validDestinationMachineCodes = emptyList(),
+                routeDescription = "",
+            )
+        when (val selection = board.selection) {
+            is BoardSelection.None -> {
+                val cycle = board.overview.activeCycles.firstOrNull { it.machineCode == machineCode }
+                if (cycle != null) {
+                    setBoard(board.copy(sheet = BoardSheet.CycleSheet(machine, cycle)))
+                } else {
+                    _messages.trySend("Select a collection or mix to start this machine.")
+                }
+            }
+            is BoardSelection.Collection -> {
+                if (machine.area == MixingArea.Rajoo && machine.role == "Mixer") {
+                    // Rajoo dose rows come from the collection's collected lines.
+                    viewModelScope.launch {
+                        setBoard(board.copy(busy = true))
+                        useCase.fetchCollectedMaterials(selection.jobCardNumber, selection.collectionId)
+                            .onSuccess { materials ->
+                                val rows = materials.map { DoseRow(it.materialCode, it.materialName, it.collectedQty) }
+                                setBoard(board.copy(busy = false,
+                                    sheet = BoardSheet.StartConfirm(machine, doseRows = rows)))
+                            }
+                            .onFailure {
+                                setBoard(board.copy(busy = false))
+                                _messages.trySend(it.message ?: "Could not load the collection's materials")
+                            }
+                    }
+                } else {
+                    setBoard(board.copy(sheet = BoardSheet.StartConfirm(machine, doseRows = null)))
+                }
+            }
+            is BoardSelection.Mixes ->
+                setBoard(board.copy(sheet = BoardSheet.StartConfirm(machine, doseRows = null)))
+        }
+    }
+
+    fun updateDose(materialCode: String, text: String) {
+        val board = board() ?: return
+        val sheet = board.sheet as? BoardSheet.StartConfirm ?: return
+        val rows = sheet.doseRows ?: return
+        setBoard(board.copy(sheet = sheet.copy(
+            doseRows = rows.map { if (it.materialCode == materialCode) it.copy(doseText = text) else it },
+            validationError = null)))
+    }
+
+    fun dismissSheet() {
+        val board = board() ?: return
+        if (board.busy) return
+        setBoard(board.copy(sheet = BoardSheet.None))
+    }
+
+    fun confirmStart() {
+        if (actionJob?.isActive == true) return
+        val board = board() ?: return
+        val sheet = board.sheet as? BoardSheet.StartConfirm ?: return
+        val machine = sheet.machine
+        actionJob = viewModelScope.launch {
+            val outcome: MachineCycleOutcome = when (val selection = board.selection) {
+                is BoardSelection.Collection -> {
+                    if (sheet.doseRows != null) {
+                        val doses = validateDoses(sheet.doseRows)
+                        if (doses == null) return@launch // validationError already set
+                        setBoard(board.copy(busy = true))
+                        useCase.startRajoo(machine.machineCode, selection.jobCardNumber,
+                            selection.collectionId, doses)
+                    } else {
+                        setBoard(board.copy(busy = true))
+                        useCase.startMixer(machine.machineCode, selection.jobCardNumber, selection.collectionId)
+                    }
+                }
+                is BoardSelection.Mixes -> {
+                    setBoard(board.copy(busy = true))
+                    useCase.startDownstream(machine.machineCode, selection.jobCardNumber, selection.mixBatchIds)
+                }
+                is BoardSelection.None -> return@launch
+            }
+            applyOutcome(outcome) { accepted ->
+                val id = accepted.productionRunId ?: accepted.cycleId ?: ""
+                "Started $id on ${accepted.machineCode}"
+            }
+        }
+    }
+
+    /** Returns null and surfaces a validation error when the rows are not sendable. */
+    private fun validateDoses(rows: List<DoseRow>): List<LayerInput>? {
+        val entered = rows.filter { it.doseText.isNotBlank() }
+        val error = when {
+            entered.isEmpty() -> "Enter at least one dose."
+            entered.size > 5 -> "A Rajoo start takes at most five dose lines."
+            entered.any { it.doseText.toDoubleOrNull()?.let { d -> d > 0.0 } != true } ->
+                "Every dose must be a positive number."
+            entered.any { it.doseText.toDouble() > it.collectedQty + 0.001 } ->
+                "A dose cannot exceed the collected quantity."
+            else -> null
+        }
+        if (error != null) {
+            val board = board() ?: return null
+            val sheet = board.sheet as? BoardSheet.StartConfirm ?: return null
+            setBoard(board.copy(sheet = sheet.copy(validationError = error)))
+            return null
+        }
+        return entered.map { LayerInput(it.materialCode, it.doseText.toDouble()) }
+    }
+
+    fun finishCycle() {
+        if (actionJob?.isActive == true) return
+        val board = board() ?: return
+        val sheet = board.sheet as? BoardSheet.CycleSheet ?: return
+        actionJob = viewModelScope.launch {
+            setBoard(board.copy(busy = true))
+            val outcome = useCase.finish(sheet.machine.machineCode, sheet.cycle.cycleId)
+            applyOutcome(outcome) { accepted ->
+                if (accepted.alreadyFinished) "Cycle ${sheet.cycle.cycleId} was already finished"
+                else "Cycle ${sheet.cycle.cycleId} finished"
+            }
+        }
+    }
+
+    fun openForceClose() {
+        val board = board() ?: return
+        val sheet = board.sheet as? BoardSheet.CycleSheet ?: return
+        setBoard(board.copy(sheet = BoardSheet.ForceCloseDialog(sheet.machine, sheet.cycle)))
+    }
+
+    fun submitForceClose(managerUsername: String, managerPassword: String, auditReason: String) {
+        if (actionJob?.isActive == true) return
+        val board = board() ?: return
+        val sheet = board.sheet as? BoardSheet.ForceCloseDialog ?: return
+        // Fail-closed: never put a blank credential or audit-trail entry on the wire.
+        val validation = when {
+            managerUsername.isBlank() || managerPassword.isBlank() ->
+                "Manager username and password are required."
+            auditReason.isBlank() -> "Audit reason is required."
+            else -> null
+        }
+        if (validation != null) {
+            setBoard(board.copy(sheet = sheet.copy(validationError = validation)))
+            return
+        }
+        actionJob = viewModelScope.launch {
+            setBoard(board.copy(busy = true))
+            val outcome = useCase.forceClose(
+                sheet.machine.machineCode, sheet.cycle.cycleId,
+                managerUsername, managerPassword, auditReason)
+            applyOutcome(outcome) { accepted ->
+                "Cycle ${sheet.cycle.cycleId} force-closed" +
+                    (accepted.approverDisplayName?.let { " (approved by $it)" } ?: "")
+            }
+        }
+    }
+
+    /**
+     * Applies a machine-cycle outcome. Both decided outcomes carry areaStatus (§8) — the
+     * board refreshes from the response itself. Accepted clears the selection and re-fetches
+     * ready collections (a mixer start consumes one); Rejected keeps the selection so the
+     * operator can retry another machine against the refreshed board.
+     */
+    private suspend fun applyOutcome(
+        outcome: MachineCycleOutcome,
+        successMessage: (MachineCycleOutcome.Accepted) -> String,
+    ) {
+        val board = board() ?: return
+        when (outcome) {
+            is MachineCycleOutcome.Accepted -> {
+                val collections = useCase.fetchReadyCollections().getOrElse { board.readyCollections }
+                setBoard(board.copy(
+                    overview = outcome.areaStatus,
+                    readyCollections = collections,
+                    selection = BoardSelection.None,
+                    sheet = BoardSheet.None,
+                    busy = false,
+                ))
+                _messages.trySend(successMessage(outcome))
+            }
+            is MachineCycleOutcome.Rejected -> {
+                setBoard(board.copy(
+                    overview = outcome.areaStatus,
+                    sheet = BoardSheet.None,
+                    busy = false,
+                ))
+                _messages.trySend(outcome.reason)
+            }
+            is MachineCycleOutcome.Failed -> {
+                setBoard(board.copy(sheet = BoardSheet.None, busy = false))
+                _messages.trySend(outcome.message)
+            }
         }
     }
 }
