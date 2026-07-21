@@ -1,4 +1,4 @@
-"""In-memory world state for the Station 2 backend simulator.
+"""In-memory world state for the Station 2 backend simulator (contract v4.0).
 
 Everything is plain dicts so the whole world can be JSON-snapshotted after
 each mutation. State lives only for the process lifetime — a restart is a
@@ -30,6 +30,10 @@ def parse_iso(s):
 
 
 class World:
+    # The five fixed v4.0 mixing areas (contract §6). Server-authoritative.
+    MIXING_AREAS = ("DolciBulkMixing", "MainMixingRoom", "JandiBulkMixing",
+                    "MackieBulkMixing", "RajooMachineMixing")
+
     def __init__(self, seed_dir, log):
         self.log = log
         with open(os.path.join(seed_dir, "seed.json"), encoding="utf-8") as f:
@@ -37,24 +41,34 @@ class World:
         self.config = seed["config"]
         self.operators = seed["operators"]
         self.materials = seed.get("materials", {})
-        self.machines = {}
-        for m in seed["machines"]:
-            self.machines[m["machineCode"]] = {
-                "displayName": m["displayName"],
-                "machineCode": m["machineCode"],
-                "family": m["family"],
-                "status": m.get("status", "Available"),
-                "inactiveReason": m.get("inactiveReason"),
-                "cycleId": None,
-                "collectionId": None,
-                "preMixId": None,
-                "runId": None,
-                "jobCardNumber": None,
-                "assignedAtUtc": None,
-                "assignedByOperatorId": None,
-                "assignedByDisplayName": None,
-                "assignedFromDevice": None,
+
+        self.equipment = {}
+        for e in seed["equipment"]:
+            self.equipment[e["machineCode"]] = {
+                "machineCode": e["machineCode"],
+                "displayName": e["displayName"],
+                "mixingArea": e["mixingArea"],
+                "equipmentRole": e["equipmentRole"],
+                "productLayer": e.get("productLayer"),
+                "validDestinationMachineCodes": list(e.get("validDestinationMachineCodes", [])),
+                "routeDescription": e.get("routeDescription", ""),
+                "isEnabled": e.get("isEnabled", True),
+                "status": e.get("status", "Available"),
+                "inactiveReason": e.get("inactiveReason"),
+                "currentCycleId": None,
+                "currentProductionOrderDocumentNumber": None,
+                "currentMixBatchIds": [],
             }
+        # Main-room rule ("any of exactly 25 production extruders"): a mixer that
+        # names no explicit destinations may feed every production machine in its
+        # own area. Fixed routes (DOLCI pairs, JANDI, Mackie, Rajoo) stay in seed.
+        for eq in self.equipment.values():
+            if eq["equipmentRole"] == "Mixer" and not eq["validDestinationMachineCodes"]:
+                eq["validDestinationMachineCodes"] = sorted(
+                    code for code, other in self.equipment.items()
+                    if other["mixingArea"] == eq["mixingArea"]
+                    and other["equipmentRole"] == "ProductionMachine")
+
         self.pallets = {p["palletRfidTag"]: p for p in seed["pallets"]}
 
         # SAP production orders from sample dumps
@@ -65,7 +79,8 @@ class World:
             for order in data.get("value", []):
                 if "DocumentNumber" in order:
                     self.sap_orders[str(order["DocumentNumber"])] = order
-        log.step(f"seed loaded: {len(self.operators)} operators, {len(self.machines)} machines, "
+        log.step(f"seed loaded: {len(self.operators)} operators, "
+                 f"{len(self.equipment)} equipment across {len(self.MIXING_AREAS)} areas, "
                  f"{len(self.pallets)} pallets, {len(self.sap_orders)} SAP orders "
                  f"({', '.join(self.sap_orders)})")
 
@@ -73,14 +88,12 @@ class World:
         self.sessions = {}          # deviceId -> session dict
         self.presence = {}          # deviceId -> "online"/"offline"
         self.collections = {}       # COL_ -> collection dict
-        self.premixes = {}          # PMX_ -> premix dict
-        self.cycles = {}            # CYC_ -> cycle dict
-        self.runs = {}              # RUN_ -> run dict
-        self.allocations = {}       # ALLOC_ -> allocation dict
-        self.local_jobs = {}        # poDocNum -> {"status": ...}
+        self.mix_batches = {}       # MIX_ -> mix batch dict
+        self.cycles = {}            # CYC_/RUN_ -> cycle dict (production cycles use their RUN_ id)
+        self.runs = {}              # RUN_ -> production run dict
         self.replay = {}            # (device, reqType, messageId) -> {"hash", "topic", "response"}
         self.known_devices = set()  # auto-registered handheld ids
-        self._counters = {"COL": 0, "PMX": 0, "CYC": 0, "ROUTE": 0, "RUN": 0, "ALLOC": 0, "RSP": 0}
+        self._counters = {"COL": 0, "MIX": 0, "CYC": 0, "RUN": 0, "RSP": 0}
 
     # ---- ids ------------------------------------------------------------
     def next_id(self, kind):
@@ -90,6 +103,10 @@ class World:
     def next_response_id(self):
         self._counters["RSP"] += 1
         return f"S2-{self._counters['RSP']:06d}"
+
+    # ---- mixing areas ----------------------------------------------------
+    def equipment_in_area(self, area):
+        return [e for e in self.equipment.values() if e["mixingArea"] == area]
 
     # ---- operators / sessions -------------------------------------------
     def find_operator(self, username=None, badge=None):
@@ -198,29 +215,6 @@ class World:
     def pallet_recoverable(p):
         return p["palletState"] in ("AtStation1", "Unknown")
 
-    # ---- hopper board -----------------------------------------------------------
-    def hopper_board(self):
-        board = []
-        for m in self.machines.values():
-            if m["family"] != "Hopper":
-                continue
-            board.append({
-                "displayName": m["displayName"],
-                "machineCode": m["machineCode"],
-                "status": m["status"],
-                "isAvailable": m["status"] == "Available",
-                "cycleId": m["cycleId"],
-                "collectionId": m["collectionId"],
-                "preMixId": m["preMixId"],
-                "jobCardNumber": m["jobCardNumber"],
-                "assignedAtUtc": m["assignedAtUtc"],
-                "assignedByOperatorId": m["assignedByOperatorId"],
-                "assignedByDisplayName": m["assignedByDisplayName"],
-                "assignedFromDevice": m["assignedFromDevice"],
-                "inactiveReason": m["inactiveReason"],
-            })
-        return board
-
     # ---- replay store --------------------------------------------------------
     @staticmethod
     def body_hash(payload_bytes):
@@ -239,14 +233,12 @@ class World:
         return {
             "sessions": self.sessions,
             "presence": self.presence,
-            "machines": self.machines,
+            "equipment": self.equipment,
             "pallets": self.pallets,
             "collections": self.collections,
-            "premixes": self.premixes,
+            "mixBatches": self.mix_batches,
             "cycles": self.cycles,
             "runs": self.runs,
-            "allocations": self.allocations,
-            "localJobs": self.local_jobs,
             "counters": self._counters,
             "knownDevices": sorted(self.known_devices),
         }
