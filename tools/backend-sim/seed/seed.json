@@ -26,8 +26,7 @@
       "allowedActions": [
         "scan_ingredient", "start_machine_cycle", "finish_machine_cycle",
         "ingredient_approve_override", "ingredient_approve_short_bag",
-        "ingredient_collection_cancel", "machine_force_close",
-        "allocation_return", "allocation_transfer"
+        "ingredient_collection_cancel", "machine_force_close"
       ],
       "allowedTabs": ["collect", "mixing", "admin"]
     }
