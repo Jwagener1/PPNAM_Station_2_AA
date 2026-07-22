@@ -55,7 +55,7 @@
     "semantic_hash": "7c5812fd14be8d04c7a754acfdc6dde7"
   },
   "app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttRepositoryImpl.kt": {
-    "mtime": 1784633817.111394,
+    "mtime": 1784635649.6090794,
     "ast_hash": "248da330c4122d1e4eebe6689108d8e5",
     "semantic_hash": ""
   },
@@ -70,7 +70,7 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/data/mqtt/dto/JobCardMessages.kt": {
-    "mtime": 1784618935.5483088,
+    "mtime": 1784635649.6120787,
     "ast_hash": "c2b75404681ce9f1e1aecaa5ada2051a",
     "semantic_hash": ""
   },
@@ -105,12 +105,12 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/domain/model/ProductionOrder.kt": {
-    "mtime": 1784618936.9157538,
+    "mtime": 1784635649.6130748,
     "ast_hash": "55f8c6bd7540751d89bbf0c3331202a2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/domain/repository/MqttRepository.kt": {
-    "mtime": 1784633801.7952943,
+    "mtime": 1784635649.6141436,
     "ast_hash": "c55e730f8a070bd97416af4400758ce1",
     "semantic_hash": ""
   },
@@ -125,18 +125,18 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingUseCase.kt": {
-    "mtime": 1784632286.4344442,
+    "mtime": 1784635649.6141436,
     "ast_hash": "0c711749fe9e96a750e49327ca1ccb15",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/navigation/AppNavGraph.kt": {
-    "mtime": 1784618961.2132783,
-    "ast_hash": "bc7de4f0c12c2d1e125d1000879cca35",
+    "mtime": 1784654148.4937038,
+    "ast_hash": "4a0aa82355b188107806fddae7679efb",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/navigation/NavRoutes.kt": {
-    "mtime": 1784219555.500482,
-    "ast_hash": "4204816aa0247f5890c3722a24652c82",
+    "mtime": 1784652874.7431438,
+    "ast_hash": "b4929a0d821670949822bf0eceb5bd3b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/components/AppScaffold.kt": {
@@ -154,16 +154,6 @@
     "ast_hash": "0af0c0e847769958d440468fc12bb782",
     "semantic_hash": "0af0c0e847769958d440468fc12bb782"
   },
-  "app/src/main/java/com/ppnam/station2aa/ui/home/HomeScreen.kt": {
-    "mtime": 1784223439.8278615,
-    "ast_hash": "2700d4c732863c76e105aaa02abe1441",
-    "semantic_hash": ""
-  },
-  "app/src/main/java/com/ppnam/station2aa/ui/home/HomeViewModel.kt": {
-    "mtime": 1784223439.8288612,
-    "ast_hash": "bac9b3348b87e985683a4793a7dca5fe",
-    "semantic_hash": ""
-  },
   "app/src/main/java/com/ppnam/station2aa/ui/login/LoginScreen.kt": {
     "mtime": 1784223439.8298626,
     "ast_hash": "e012872c6f0a897297f7fec7e127529e",
@@ -175,18 +165,18 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/mixing/IngredientScanScreen.kt": {
-    "mtime": 1784633869.082521,
-    "ast_hash": "4bba8e0b27ff6dabeb59b2ec5062d5d9",
+    "mtime": 1784654159.6953638,
+    "ast_hash": "b365107a6916644c529e1dbdf06e70fc",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/mixing/JobLookupScreen.kt": {
-    "mtime": 1784223439.8313196,
-    "ast_hash": "b352c02c2900fa94c3321b184787e7a6",
+    "mtime": 1784652957.0662713,
+    "ast_hash": "0276024b830b3699842a9e0e035c4b7e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/mixing/MixingViewModel.kt": {
-    "mtime": 1784633848.3785222,
-    "ast_hash": "be699b4b31cd559d9466d9ecd1b55b22",
+    "mtime": 1784654198.0920186,
+    "ast_hash": "837625f0de2e5fc13172080569fea26c",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/rfid/RfidRecoveryScreen.kt": {
@@ -240,7 +230,7 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/data/mqtt/MqttTopicsTest.kt": {
-    "mtime": 1784618786.3320823,
+    "mtime": 1784635649.618463,
     "ast_hash": "358c7fb9192601e0d6365045dbe77326",
     "semantic_hash": ""
   },
@@ -260,18 +250,13 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/domain/usecase/AuthUseCaseTest.kt": {
-    "mtime": 1784618995.714417,
+    "mtime": 1784635649.621463,
     "ast_hash": "840b79e9818d188fa4c1a48fe3734c7d",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingUseCaseTest.kt": {
-    "mtime": 1784632463.0957592,
+    "mtime": 1784635649.6224604,
     "ast_hash": "7894729259b47aba75baaca0b11e6127",
-    "semantic_hash": ""
-  },
-  "app/src/test/java/com/ppnam/station2aa/ui/home/HomeViewModelTest.kt": {
-    "mtime": 1784223439.8382208,
-    "ast_hash": "309667c92edec0e5dbfadeb6abe5128c",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/ui/login/LoginViewModelTest.kt": {
@@ -280,8 +265,8 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/ui/mixing/MixingViewModelTest.kt": {
-    "mtime": 1784633856.5636258,
-    "ast_hash": "5b9908c1bd77a2cfa867597f52019d5b",
+    "mtime": 1784654110.181751,
+    "ast_hash": "d9cd437b491e6e53ea2b2c8f1a361b26",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/ui/settings/SettingsViewModelTest.kt": {
@@ -565,12 +550,12 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/data/mqtt/dto/IngredientMessages.kt": {
-    "mtime": 1784631646.6694498,
+    "mtime": 1784635649.6110792,
     "ast_hash": "035a47044f430c3b947c175d617907d4",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/domain/model/IngredientScanOutcome.kt": {
-    "mtime": 1784632292.9427576,
+    "mtime": 1784635649.6120787,
     "ast_hash": "11854e0515359f736e758bea2a92500b",
     "semantic_hash": ""
   },
@@ -600,18 +585,18 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttOutcome.kt": {
-    "mtime": 1784618969.4833848,
-    "ast_hash": "e4309d8cd88e2473800e5ed51b747200",
+    "mtime": 1784635649.6080785,
+    "ast_hash": "c6abb95f8b2343a870baf7505fb5bc5a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttSchema.kt": {
-    "mtime": 1784618863.9605002,
+    "mtime": 1784635649.6100793,
     "ast_hash": "c281c0c4caa62c321292fe11e0f37812",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/data/mqtt/MqttVocabulary.kt": {
-    "mtime": 1784618904.3451266,
-    "ast_hash": "d5c5fc81d05ff1dd5e9fd61dc57a7462",
+    "mtime": 1784635649.6100793,
+    "ast_hash": "4871d0b400b402e712c374b71bda6201",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/data/mqtt/RequestEnvelope.kt": {
@@ -645,7 +630,7 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/data/mqtt/MqttRequestCorrelationTest.kt": {
-    "mtime": 1784633763.011278,
+    "mtime": 1784635649.617463,
     "ast_hash": "9400f7b9ebb1f77ec293a5f21fb8a9b9",
     "semantic_hash": ""
   },
@@ -660,17 +645,17 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/data/mqtt/MqttVocabularyTest.kt": {
-    "mtime": 1784618913.4503424,
+    "mtime": 1784635649.6194625,
     "ast_hash": "1e5390310005920a07213abea33f71d6",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/data/mqtt/RequestEnvelopeTest.kt": {
-    "mtime": 1784618784.8763864,
+    "mtime": 1784635649.6194625,
     "ast_hash": "8cbf23c687282a0778f7b8bed99cde16",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/data/mqtt/dto/ResponseEnvelopeTest.kt": {
-    "mtime": 1784633770.0404084,
+    "mtime": 1784635649.6204605,
     "ast_hash": "4dc2c82a71a1baa49cf0bda6c52c12e3",
     "semantic_hash": ""
   },
@@ -735,7 +720,7 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/data/mqtt/dto/IngredientScanResultTest.kt": {
-    "mtime": 1784618988.7938974,
+    "mtime": 1784635649.6204605,
     "ast_hash": "35f53961bd4f6298ff1e97fd7ccebb8d",
     "semantic_hash": ""
   },
@@ -795,13 +780,13 @@
     "semantic_hash": ""
   },
   "tools/backend-sim/envelope.py": {
-    "mtime": 1784615760.7073731,
-    "ast_hash": "fad00f65e439c369a8c264d36337a9e8",
+    "mtime": 1784635649.8983626,
+    "ast_hash": "0b4c487517026461d387553154a701ac",
     "semantic_hash": ""
   },
   "tools/backend-sim/handlers/__init__.py": {
-    "mtime": 1784616570.5244026,
-    "ast_hash": "fd563fdeb578ab6d60ac9ac2eb34b1c1",
+    "mtime": 1784635649.8983626,
+    "ast_hash": "32068312370871164d84cd99d728b939",
     "semantic_hash": ""
   },
   "tools/backend-sim/handlers/auth.py": {
@@ -815,13 +800,13 @@
     "semantic_hash": ""
   },
   "tools/backend-sim/handlers/ingredients.py": {
-    "mtime": 1784616517.983856,
-    "ast_hash": "bdad32e9211249001127f1b6b22557e9",
+    "mtime": 1784635649.8993628,
+    "ast_hash": "5b100be44cdcc266c03805719da81ab2",
     "semantic_hash": ""
   },
   "tools/backend-sim/handlers/jobcards.py": {
-    "mtime": 1784616548.046268,
-    "ast_hash": "61f5d4cb7c7f544de60b9ba0b98e73c4",
+    "mtime": 1784635649.9003625,
+    "ast_hash": "55b7006703cc04a4c20d70b22e7a3450",
     "semantic_hash": ""
   },
   "tools/backend-sim/handlers/pallets.py": {
@@ -1265,18 +1250,18 @@
     "semantic_hash": ""
   },
   "tools/backend-sim/seed/seed.json": {
-    "mtime": 1784634452.5824237,
-    "ast_hash": "4b8d8ae2fdc93e86ddb878e4eefd811d",
+    "mtime": 1784635649.901363,
+    "ast_hash": "1a240de30a7fa61d8760421341bafc9e",
     "semantic_hash": ""
   },
   "tools/backend-sim/selftest.py": {
-    "mtime": 1784618466.0140386,
-    "ast_hash": "eeafde5635106bb1faa66f0780dc07d0",
+    "mtime": 1784649771.5322964,
+    "ast_hash": "a191a1045e33e18067b520b4c3f7ef26",
     "semantic_hash": ""
   },
   "tools/backend-sim/sim.py": {
-    "mtime": 1784616601.9220738,
-    "ast_hash": "d8e36342fded63b058a828d830c4b205",
+    "mtime": 1784635649.9023626,
+    "ast_hash": "a4c45a018a4631aea24c37617f07e07a",
     "semantic_hash": ""
   },
   "tools/backend-sim/simlog.py": {
@@ -1285,8 +1270,8 @@
     "semantic_hash": ""
   },
   "tools/backend-sim/state.py": {
-    "mtime": 1784616071.4554558,
-    "ast_hash": "1652b96eb4c29a5e4493a3eb33c76f62",
+    "mtime": 1784635649.9033637,
+    "ast_hash": "f2d51370d02dd599a3bead29067ba9b8",
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-07-17-backend-simulator-design.md": {
@@ -1295,8 +1280,8 @@
     "semantic_hash": ""
   },
   "tools/backend-sim/README.md": {
-    "mtime": 1784617976.0505393,
-    "ast_hash": "1a6a4cee9d11741f6749adfdc4d667bf",
+    "mtime": 1784635649.897363,
+    "ast_hash": "ca8a9c81166e491cacfdb5ffd8d389b1",
     "semantic_hash": ""
   },
   "tools/backend-sim/requirements.txt": {
@@ -1305,8 +1290,8 @@
     "semantic_hash": ""
   },
   "tools/backend-sim/handlers/mixing.py": {
-    "mtime": 1784617586.9785006,
-    "ast_hash": "f76fe3cd2db609b6b08fbcf575121dcf",
+    "mtime": 1784649765.6408596,
+    "ast_hash": "e6d7bb64febf100b98590fb4ad0e09d2",
     "semantic_hash": ""
   },
   "tools/backend-sim/logs/20260721-063610/state-snapshots/0001-login_requested-login-8e27dcd9-0001.json": {
@@ -3492,6 +3477,1716 @@
   "tools/backend-sim/logs/20260721-115127/state-snapshots/0066-reader_logout_requested-reader-f048d882-0105.json": {
     "mtime": 1784634688.1713543,
     "ast_hash": "23b6c38dc08cedba0d57a11bd0d6eb21",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/ppnam/station2aa/data/mqtt/dto/MixingMessages.kt": {
+    "mtime": 1784650116.4972706,
+    "ast_hash": "f9d900c1f91a3bfff32e27632638a842",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt": {
+    "mtime": 1784650131.220838,
+    "ast_hash": "4c58d06d25c5dd09ace9d679ed4061fd",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt": {
+    "mtime": 1784650645.980214,
+    "ast_hash": "99b3ce04134104dc97a80f15bb11525e",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/ppnam/station2aa/data/mqtt/dto/MixingMessagesTest.kt": {
+    "mtime": 1784650075.972818,
+    "ast_hash": "0e964e99ce59a0a21fa6dd64e3da675c",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt": {
+    "mtime": 1784650598.7180192,
+    "ast_hash": "5656a5e1bfbfa4a07503bcbda03b8ae3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0001-login_requested-login-56687181-0003.json": {
+    "mtime": 1784635445.1192968,
+    "ast_hash": "7dc8c0a6579d47f4d7ea7c977e58319e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0002-holding_recovery_requested-holding-582b2600-0012.json": {
+    "mtime": 1784635445.1253676,
+    "ast_hash": "1a53d8325b3b40bc22e7ecd0cb602466",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0003-job_card_load_requested-job-2667fe4f-0015.json": {
+    "mtime": 1784635445.1283796,
+    "ast_hash": "0ec3c865b3762c8ed9a71b5db53ff7be",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0004-ingredient_scan_requested-ingredient-d9e8406b-0017.json": {
+    "mtime": 1784635445.1308541,
+    "ast_hash": "e1a5006b7ff745349891745e1d341863",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0005-ingredient_scan_requested-ingredient-1c2cb51e-0018.json": {
+    "mtime": 1784635445.1339972,
+    "ast_hash": "badef73ca3fbb6e5d0dc39462a363c87",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0006-ingredient_scan_requested-ingredient-a260f352-0019.json": {
+    "mtime": 1784635445.1360924,
+    "ast_hash": "331a273aeaf3ae63e939f955e70358b1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0007-ingredient_scan_requested-ingredient-e69b3273-0021.json": {
+    "mtime": 1784635445.1393628,
+    "ast_hash": "40c4997ad11f181a705ec11922a5c1e2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0008-ingredient_scan_requested-ingredient-e603eef6-0022.json": {
+    "mtime": 1784635445.1413636,
+    "ast_hash": "b72b8d754e8026d920806e769871a933",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0009-ingredient_scan_requested-ingredient-5ca2ce3a-0023.json": {
+    "mtime": 1784635445.1433628,
+    "ast_hash": "50c08748bffcc6223fa7757fdfdea9ec",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0010-ingredient_scan_requested-ingredient-78f422ae-0024.json": {
+    "mtime": 1784635445.1453633,
+    "ast_hash": "82c8bf1b16957173cf5752a66a90e60a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0011-ingredient_scan_requested-ingredient-9079a163-0025.json": {
+    "mtime": 1784635445.1487586,
+    "ast_hash": "26ed3c04a31a9602668067723aa2ffcc",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0012-machine_cycle_start_requested-machine-056d72b0-0034.json": {
+    "mtime": 1784635445.155762,
+    "ast_hash": "ae78b8083bb5a817fa57e2784866d2df",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0013-job_card_load_requested-job-ebd92fe9-0036.json": {
+    "mtime": 1784635445.1597655,
+    "ast_hash": "59ee7f627da66c8c390ad405eea0200b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0014-machine_cycle_finish_requested-machine-d00777f6-0040.json": {
+    "mtime": 1784635445.1644385,
+    "ast_hash": "daec82b9c3407f7a28bccaf52f51d45e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0015-machine_cycle_finish_requested-machine-193bb3c1-0041.json": {
+    "mtime": 1784635445.167437,
+    "ast_hash": "b8cb736210aa6195efd0cd8334b4c722",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0016-machine_cycle_start_requested-machine-f2eeed5b-0045.json": {
+    "mtime": 1784635445.171878,
+    "ast_hash": "d7677c43b94270749e628d88b7a1312e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0017-ingredient_scan_requested-ingredient-0f693ec4-0047.json": {
+    "mtime": 1784635445.174878,
+    "ast_hash": "51c6d4829ee883044f92ca9fd69e7545",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0018-ingredient_scan_requested-ingredient-f6510852-0048.json": {
+    "mtime": 1784635445.1779218,
+    "ast_hash": "2f9a6f460a4b4128ebcddae28683438e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0019-ingredient_scan_requested-ingredient-2ac737fe-0049.json": {
+    "mtime": 1784635445.1805563,
+    "ast_hash": "d15a5ee493d953d1fada479d3afb8816",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0020-ingredient_scan_requested-ingredient-e598b8a6-0051.json": {
+    "mtime": 1784635445.1840613,
+    "ast_hash": "e8f8b84e7d3249899f48ebff2d397caf",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0021-ingredient_scan_requested-ingredient-400ec6ac-0052.json": {
+    "mtime": 1784635445.186459,
+    "ast_hash": "c3e06abf523ea6ef9c7a653c19e22f87",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0022-ingredient_scan_requested-ingredient-a8742f9c-0053.json": {
+    "mtime": 1784635445.1894581,
+    "ast_hash": "7c9a8486d022e2ccc8bcdfc6f2af0367",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0023-ingredient_scan_requested-ingredient-dbd48718-0054.json": {
+    "mtime": 1784635445.1924586,
+    "ast_hash": "11fc1f61336ca557c988dc0e12acad23",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0024-ingredient_scan_requested-ingredient-0fab8785-0055.json": {
+    "mtime": 1784635445.1946287,
+    "ast_hash": "f5d0955c702d4a9b21a5e9f4930382e5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0025-machine_cycle_start_requested-machine-05e54e84-0056.json": {
+    "mtime": 1784635445.1975298,
+    "ast_hash": "dda6c8f9a070d6c76437ed8b985a2475",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0026-machine_cycle_finish_requested-machine-5f97589c-0057.json": {
+    "mtime": 1784635445.201527,
+    "ast_hash": "ceac87b47b44e054547dbd50e8bbcd90",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0027-machine_cycle_start_requested-machine-0ecf78be-0058.json": {
+    "mtime": 1784635445.2035315,
+    "ast_hash": "eaae93e39217e18aac9242cd33b270c2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0028-machine_cycle_finish_requested-machine-2842fd8c-0059.json": {
+    "mtime": 1784635445.2065296,
+    "ast_hash": "ecce71f21df119a98032ba12da60c14c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0029-job_card_load_requested-job-d619e6ef-0060.json": {
+    "mtime": 1784635445.209529,
+    "ast_hash": "6f9cbcb46e1757c664cdfeb74f2fde81",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0030-ingredient_scan_requested-ingredient-dcdf3c07-0061.json": {
+    "mtime": 1784635445.2125273,
+    "ast_hash": "5eb1412e83d01d61961f4d9f2c689174",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0031-ingredient_scan_requested-ingredient-3595f6ba-0062.json": {
+    "mtime": 1784635445.2155273,
+    "ast_hash": "40061ebc6973e34fd1cb720241b1ba3a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0032-ingredient_scan_requested-ingredient-1853436c-0063.json": {
+    "mtime": 1784635445.217535,
+    "ast_hash": "429a2f40ee28cf94cf8534243b416c7b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0033-ingredient_scan_requested-ingredient-83f18c33-0065.json": {
+    "mtime": 1784635445.2219908,
+    "ast_hash": "7fe1eaa386a432f9ca983e7a68f2d76d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0034-ingredient_scan_requested-ingredient-441dcce4-0066.json": {
+    "mtime": 1784635445.223991,
+    "ast_hash": "2d7ffd7afcffe163371f42cbcf172247",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0035-ingredient_scan_requested-ingredient-475216c6-0067.json": {
+    "mtime": 1784635445.2269933,
+    "ast_hash": "a6fc94dc7136aade8d731a1adeebe0d6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0036-ingredient_scan_requested-ingredient-369acb23-0068.json": {
+    "mtime": 1784635445.2299929,
+    "ast_hash": "7cb70b550292ae621012ea55debcb938",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0037-ingredient_scan_requested-ingredient-b486b2fd-0069.json": {
+    "mtime": 1784635445.232496,
+    "ast_hash": "ee21acbdf9a346df2ab0ba8dae4a95af",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0038-machine_cycle_start_requested-machine-720efb47-0070.json": {
+    "mtime": 1784635445.2355032,
+    "ast_hash": "a459eb78784cea7b7f11e34af1906702",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0039-machine_cycle_finish_requested-machine-95df1723-0071.json": {
+    "mtime": 1784635445.238502,
+    "ast_hash": "fc2dbc2222d5e12b874d68a0d46e42bb",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0040-machine_cycle_start_requested-machine-84a3a56a-0074.json": {
+    "mtime": 1784635445.2420504,
+    "ast_hash": "5171eb14be3ae9e4d80b6d9ef1c6624c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0041-machine_cycle_finish_requested-machine-1b2be191-0075.json": {
+    "mtime": 1784635445.2451856,
+    "ast_hash": "1ba4f89c0ba03cd1c34657367231b3c5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0042-machine_cycle_start_requested-machine-eb64baef-0076.json": {
+    "mtime": 1784635445.2471864,
+    "ast_hash": "321f0683254eb9b28b8cebf296057647",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0043-machine_cycle_finish_requested-machine-7f5441bc-0077.json": {
+    "mtime": 1784635445.2503684,
+    "ast_hash": "5565067b04b4f0dc743e09771af00130",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0044-job_card_load_requested-job-13f54927-0078.json": {
+    "mtime": 1784635445.2532933,
+    "ast_hash": "965daf1e7e6c5f61edfa4b257b9091d0",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0045-ingredient_scan_requested-ingredient-272de007-0079.json": {
+    "mtime": 1784635445.2562954,
+    "ast_hash": "1799fa254f1000daf4216d0c57899cd4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0046-ingredient_scan_requested-ingredient-95274538-0080.json": {
+    "mtime": 1784635445.2605145,
+    "ast_hash": "52974148800181687d747263295eac3a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0047-ingredient_scan_requested-ingredient-8f97d647-0081.json": {
+    "mtime": 1784635445.2635138,
+    "ast_hash": "b2ed505ed4006cb436c5bba5be270b09",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0048-ingredient_scan_requested-ingredient-a18505ee-0083.json": {
+    "mtime": 1784635445.2675135,
+    "ast_hash": "164490d953fd9cc48cee2d5a8e896efd",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0049-ingredient_scan_requested-ingredient-854b53c5-0084.json": {
+    "mtime": 1784635445.2705176,
+    "ast_hash": "40bf6b62ae24e1856c00a7c0d09c512b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0050-ingredient_scan_requested-ingredient-be43d5fb-0085.json": {
+    "mtime": 1784635445.2735176,
+    "ast_hash": "6e58e3f22dc71575934f4bb0acda8f5e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0051-ingredient_scan_requested-ingredient-ea9e1218-0086.json": {
+    "mtime": 1784635445.2765179,
+    "ast_hash": "76423d8bc82508c0116a6063168d4c3f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0052-ingredient_scan_requested-ingredient-3dfe1bfa-0087.json": {
+    "mtime": 1784635445.2805314,
+    "ast_hash": "4697738eb3b86d051c46a9b1d3d014ea",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0053-machine_cycle_start_requested-machine-4c5974c3-0088.json": {
+    "mtime": 1784635445.2840495,
+    "ast_hash": "e6114d22558c3f36490c3bfeac52810f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0054-machine_cycle_finish_requested-machine-5e5b612d-0089.json": {
+    "mtime": 1784635445.2874591,
+    "ast_hash": "c5afc91514fcb14cbead4191dfcada58",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0055-job_card_load_requested-job-2249b13b-0091.json": {
+    "mtime": 1784635445.2906444,
+    "ast_hash": "a7ae8ce25295195165aba6a75dc414ac",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0056-ingredient_scan_requested-ingredient-b4636283-0092.json": {
+    "mtime": 1784635445.2946475,
+    "ast_hash": "02d919f0923d2e42d80d13abe0713d24",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0057-ingredient_scan_requested-ingredient-c65849b7-0093.json": {
+    "mtime": 1784635445.2976515,
+    "ast_hash": "e91e52f9b0dc2257678d81cbfa43f876",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0058-ingredient_scan_requested-ingredient-7570412e-0094.json": {
+    "mtime": 1784635445.3006554,
+    "ast_hash": "cdd4a9a68752947990c578e89fa8c48e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0059-ingredient_scan_requested-ingredient-6fad0f4b-0096.json": {
+    "mtime": 1784635445.3046515,
+    "ast_hash": "2ca1b67198e6745b85556b6302d0b6d2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0060-ingredient_scan_requested-ingredient-cb599938-0097.json": {
+    "mtime": 1784635445.308299,
+    "ast_hash": "d71850dd13cb5cd69d5bdfb135dfbb8b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0061-ingredient_scan_requested-ingredient-bac6c1f1-0098.json": {
+    "mtime": 1784635445.3119555,
+    "ast_hash": "f2aae7b018abb385817afd4578038f34",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0062-ingredient_scan_requested-ingredient-58d0b30f-0099.json": {
+    "mtime": 1784635445.3151147,
+    "ast_hash": "5c0798b3fce1e25af62c0ff2e405038a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0063-ingredient_scan_requested-ingredient-b5ccb137-0100.json": {
+    "mtime": 1784635445.317736,
+    "ast_hash": "f6a47b29ed7991246d35fe0d2f26437b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0064-machine_cycle_start_requested-machine-5018f739-0102.json": {
+    "mtime": 1784635445.3221266,
+    "ast_hash": "cc52c3a72f8b2b45407a213259009f3f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0065-machine_cycle_force_close_requested-machine-dd3ff04f-0104.json": {
+    "mtime": 1784635445.3257892,
+    "ast_hash": "b31bff9af7747725f5bc6b291e8338cb",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120405/state-snapshots/0066-reader_logout_requested-reader-67ee9a37-0105.json": {
+    "mtime": 1784635445.3287854,
+    "ast_hash": "4534ddcd2be73523e8ab03248c5dc652",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0001-login_requested-login-5de8dc71-0003.json": {
+    "mtime": 1784635668.4299684,
+    "ast_hash": "da7a19225f6ca03ed37e24a8cb22adc0",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0002-holding_recovery_requested-holding-7a68ed89-0012.json": {
+    "mtime": 1784635668.4354255,
+    "ast_hash": "a0028b683befe00dbcef21db61be21c7",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0003-job_card_load_requested-job-84147b26-0015.json": {
+    "mtime": 1784635668.438125,
+    "ast_hash": "58f7f262491a590b806f276c72c6a3f3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0004-ingredient_scan_requested-ingredient-0dd24ae0-0017.json": {
+    "mtime": 1784635668.4407954,
+    "ast_hash": "251531d7df3f9296d241e5fa10fe97e0",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0005-ingredient_scan_requested-ingredient-f12a28e3-0018.json": {
+    "mtime": 1784635668.4427955,
+    "ast_hash": "5e5fdd37e0038adf4f39c05f22515a54",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0006-ingredient_scan_requested-ingredient-1f3aa44e-0019.json": {
+    "mtime": 1784635668.4457943,
+    "ast_hash": "bbf76a1160cc02d0052a743b28562bf3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0007-ingredient_scan_requested-ingredient-5cfea9b4-0021.json": {
+    "mtime": 1784635668.4477956,
+    "ast_hash": "9db2ee34f25696cfe5b8a23fd9d1f8ff",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0008-ingredient_scan_requested-ingredient-5853bc49-0022.json": {
+    "mtime": 1784635668.4510047,
+    "ast_hash": "6d317d089e73f42909fb3f730cb3f3d7",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0009-ingredient_scan_requested-ingredient-80b850c1-0023.json": {
+    "mtime": 1784635668.4533894,
+    "ast_hash": "d251132483bd7c47725685639b2808e9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0010-ingredient_scan_requested-ingredient-7017e5b4-0024.json": {
+    "mtime": 1784635668.4547787,
+    "ast_hash": "dcb1dbd8d1601bc566c4c91c30559740",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0011-ingredient_scan_requested-ingredient-c5cef312-0025.json": {
+    "mtime": 1784635668.45778,
+    "ast_hash": "497fbd7bb7a1d426d1650da1ea7ec40c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0012-machine_cycle_start_requested-machine-b900f900-0034.json": {
+    "mtime": 1784635668.464782,
+    "ast_hash": "add58dd4005e93eeaa7514bbfdaa61bb",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0013-job_card_load_requested-job-0329c8c2-0036.json": {
+    "mtime": 1784635668.468396,
+    "ast_hash": "9ad302d49eebbbdba57752e6e4c91b53",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0014-machine_cycle_finish_requested-machine-0d7fb581-0040.json": {
+    "mtime": 1784635668.4734466,
+    "ast_hash": "4d41992a0a7bfff29d0b4fc4edd32071",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0015-machine_cycle_finish_requested-machine-c41330fb-0041.json": {
+    "mtime": 1784635668.4757714,
+    "ast_hash": "1e94e1ce5cb78f11fdbf3ab65d7b7f23",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0016-machine_cycle_start_requested-machine-91ddbc6b-0045.json": {
+    "mtime": 1784635668.4804754,
+    "ast_hash": "a8e5cfda51548f21bb17623feeecc201",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0017-ingredient_scan_requested-ingredient-30e5bafe-0047.json": {
+    "mtime": 1784635668.4834864,
+    "ast_hash": "e8a62a21fc5362e51731023d2cac74a3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0018-ingredient_scan_requested-ingredient-6b8f1a49-0048.json": {
+    "mtime": 1784635668.4864845,
+    "ast_hash": "0ecf4162b7687e10ec94232e24a33936",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0019-ingredient_scan_requested-ingredient-0b92c19c-0049.json": {
+    "mtime": 1784635668.4894862,
+    "ast_hash": "1d48546bfee9dfafc21053cfe5a232f3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0020-ingredient_scan_requested-ingredient-dc9fc4ca-0051.json": {
+    "mtime": 1784635668.4924848,
+    "ast_hash": "6db64adb39c2089bdbdd3ae63cd191cf",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0021-ingredient_scan_requested-ingredient-90b23300-0052.json": {
+    "mtime": 1784635668.4944887,
+    "ast_hash": "db331e2a32c4a9a72044b441c3ad5686",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0022-ingredient_scan_requested-ingredient-408f1463-0053.json": {
+    "mtime": 1784635668.498001,
+    "ast_hash": "00ecee78ad1f999c6a0cc92085a4e2ae",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0023-ingredient_scan_requested-ingredient-af315200-0054.json": {
+    "mtime": 1784635668.5010035,
+    "ast_hash": "493ab9a00da8d1c722263fd6da36cda9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0024-ingredient_scan_requested-ingredient-f2c3a70b-0055.json": {
+    "mtime": 1784635668.5030012,
+    "ast_hash": "092fb3a7260914eaff23f47a1df5d82f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0025-machine_cycle_start_requested-machine-fa6fb27d-0056.json": {
+    "mtime": 1784635668.5060003,
+    "ast_hash": "e63c13c30ff7eba81a9f8c370f50397a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0026-machine_cycle_finish_requested-machine-b58d164f-0057.json": {
+    "mtime": 1784635668.509401,
+    "ast_hash": "9da47706429ad5576aa8fdb2c532597f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0027-machine_cycle_start_requested-machine-890ab9e4-0058.json": {
+    "mtime": 1784635668.5119457,
+    "ast_hash": "7bfc5e07a8dbd7c2f66b1585159f98f9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0028-machine_cycle_finish_requested-machine-c039112d-0059.json": {
+    "mtime": 1784635668.5149534,
+    "ast_hash": "777326d8e94a47f220134205661a27d5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0029-job_card_load_requested-job-39772201-0060.json": {
+    "mtime": 1784635668.517953,
+    "ast_hash": "ce36c5f49c60792759f64e8038a0a22b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0030-ingredient_scan_requested-ingredient-e92368d4-0061.json": {
+    "mtime": 1784635668.5210679,
+    "ast_hash": "82ac725d841aa02605bbb8e0696ec450",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0031-ingredient_scan_requested-ingredient-6c6a8138-0062.json": {
+    "mtime": 1784635668.5239124,
+    "ast_hash": "70ce6efbb16474aca6396a43eec42a85",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0032-ingredient_scan_requested-ingredient-a7113029-0063.json": {
+    "mtime": 1784635668.5275962,
+    "ast_hash": "8b2efba748cbb4f09bb44c8bf73c9c8c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0033-ingredient_scan_requested-ingredient-0c9617f0-0065.json": {
+    "mtime": 1784635668.5305994,
+    "ast_hash": "3d5e3f99ef0aaf2d8f2fc8243b9e9c0d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0034-ingredient_scan_requested-ingredient-661346af-0066.json": {
+    "mtime": 1784635668.5336287,
+    "ast_hash": "365ba454ea9129f9d383f7f937d21ccd",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0035-ingredient_scan_requested-ingredient-c4ead6f3-0067.json": {
+    "mtime": 1784635668.5364058,
+    "ast_hash": "3c2c8453b16fb9c5f0002b85e0cca63e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0036-ingredient_scan_requested-ingredient-5cd9409e-0068.json": {
+    "mtime": 1784635668.5394142,
+    "ast_hash": "69c039315321976bc0d60026346fbdd1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0037-ingredient_scan_requested-ingredient-7f0a4970-0069.json": {
+    "mtime": 1784635668.5418286,
+    "ast_hash": "d9d9e946c26f87528ae4be54b9347fd0",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0038-machine_cycle_start_requested-machine-973be42e-0070.json": {
+    "mtime": 1784635668.5449765,
+    "ast_hash": "34b84f00f1335961f79eecb556dd1e07",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0039-machine_cycle_finish_requested-machine-9f42a093-0071.json": {
+    "mtime": 1784635668.5483866,
+    "ast_hash": "0f495693ba21051c1d957a42d85b6ef6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0040-machine_cycle_start_requested-machine-e59528e4-0074.json": {
+    "mtime": 1784635668.5517063,
+    "ast_hash": "c1d875784c6327af8c877bdf7a8472b4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0041-machine_cycle_finish_requested-machine-f1e88a6d-0075.json": {
+    "mtime": 1784635668.5547063,
+    "ast_hash": "16eb14cc375c39ba08b9e60114b3b9e4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0042-machine_cycle_start_requested-machine-b0060823-0076.json": {
+    "mtime": 1784635668.5580177,
+    "ast_hash": "10e45df034ed8e20ebc5a8644d0444d3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0043-machine_cycle_finish_requested-machine-5aafe590-0077.json": {
+    "mtime": 1784635668.5603428,
+    "ast_hash": "3a36500be2083f8bed6568bff616e8a9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0044-job_card_load_requested-job-5773cbba-0078.json": {
+    "mtime": 1784635668.5633419,
+    "ast_hash": "42f16206c6c65856931f25dfd2a080b4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0045-ingredient_scan_requested-ingredient-a1e1e72e-0079.json": {
+    "mtime": 1784635668.5674195,
+    "ast_hash": "b8c03f398fb9fabda755cb2d18ab4964",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0046-ingredient_scan_requested-ingredient-caf82360-0080.json": {
+    "mtime": 1784635668.5696437,
+    "ast_hash": "f701bd5d4df4bd10a0223fca3e80b77a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0047-ingredient_scan_requested-ingredient-942d0418-0081.json": {
+    "mtime": 1784635668.5730088,
+    "ast_hash": "b3e237fa9c173124dc0ebba333bbefe5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0048-ingredient_scan_requested-ingredient-adf85a17-0083.json": {
+    "mtime": 1784635668.57633,
+    "ast_hash": "297962bb9e6d761449f899ace2334c2e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0049-ingredient_scan_requested-ingredient-5165d376-0084.json": {
+    "mtime": 1784635668.579825,
+    "ast_hash": "f4fb25e739c7836b42a062ace5b51fd1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0050-ingredient_scan_requested-ingredient-df028be6-0085.json": {
+    "mtime": 1784635668.582829,
+    "ast_hash": "765e04a45a9e7fa79018f4ca32b885cb",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0051-ingredient_scan_requested-ingredient-77a8208a-0086.json": {
+    "mtime": 1784635668.5863163,
+    "ast_hash": "4d372deeb59da99f16f40a268d62e8c6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0052-ingredient_scan_requested-ingredient-9da37e73-0087.json": {
+    "mtime": 1784635668.589643,
+    "ast_hash": "56f313323e6be72ebff1d8f0cf182248",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0053-machine_cycle_start_requested-machine-5499b756-0088.json": {
+    "mtime": 1784635668.5926428,
+    "ast_hash": "1729ed38376b6b710e656267e43031db",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0054-machine_cycle_finish_requested-machine-0525611e-0089.json": {
+    "mtime": 1784635668.5956454,
+    "ast_hash": "74e94f0f3cbcecea3d529affbeafad6b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0055-job_card_load_requested-job-791c6aef-0091.json": {
+    "mtime": 1784635668.599576,
+    "ast_hash": "525ec47d59142b03b8902086b53ac2f5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0056-ingredient_scan_requested-ingredient-7b7e5217-0092.json": {
+    "mtime": 1784635668.6031153,
+    "ast_hash": "590cb4c5e70321a0e863c8e01d821926",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0057-ingredient_scan_requested-ingredient-753320e4-0093.json": {
+    "mtime": 1784635668.6066353,
+    "ast_hash": "24895d5d0813fe72341bd41281df68c3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0058-ingredient_scan_requested-ingredient-3a411128-0094.json": {
+    "mtime": 1784635668.6096368,
+    "ast_hash": "93e56a644f0208f7493123147b1f6255",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0059-ingredient_scan_requested-ingredient-f110b1c9-0096.json": {
+    "mtime": 1784635668.6146686,
+    "ast_hash": "cd40cba2a508bbd90ac9dbd28d23d09e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0060-ingredient_scan_requested-ingredient-05d4d9e3-0097.json": {
+    "mtime": 1784635668.6176648,
+    "ast_hash": "9404f4fdab7fca97d362ff9128411ee8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0061-ingredient_scan_requested-ingredient-ad2c3ac5-0098.json": {
+    "mtime": 1784635668.621238,
+    "ast_hash": "f2167548fd760409fb37fb55420ddf1e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0062-ingredient_scan_requested-ingredient-bf9efab4-0099.json": {
+    "mtime": 1784635668.6252813,
+    "ast_hash": "830bfe8dde22a615d1a5926aed3db063",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0063-ingredient_scan_requested-ingredient-533ea77d-0100.json": {
+    "mtime": 1784635668.6286132,
+    "ast_hash": "5af3f0aae344eaff978a4f1c2b2b2aed",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0064-machine_cycle_start_requested-machine-a586c63d-0102.json": {
+    "mtime": 1784635668.6320443,
+    "ast_hash": "457153e13a22735aa96ef4b9e16a1733",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0065-machine_cycle_force_close_requested-machine-75f4c92c-0104.json": {
+    "mtime": 1784635668.6360438,
+    "ast_hash": "df7d9893f8f72b6fbae6a5ef61ce92cf",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-120748/state-snapshots/0066-reader_logout_requested-reader-81bd59a4-0105.json": {
+    "mtime": 1784635668.6390443,
+    "ast_hash": "bf46b2438cda30eeed74bc12bc66b545",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0001-login_requested-login-cd2b685a-0003.json": {
+    "mtime": 1784649779.3269143,
+    "ast_hash": "996c521a13fc5a8b2a9f51aea88b2cb4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0002-holding_recovery_requested-holding-e1c721fb-0012.json": {
+    "mtime": 1784649779.3269143,
+    "ast_hash": "3efa9bd0dd9d26904122c1fe4bac83a5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0003-job_card_load_requested-job-c639999e-0015.json": {
+    "mtime": 1784649779.3269143,
+    "ast_hash": "988bcc5748639564a7ff9327cbf82098",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0004-ingredient_scan_requested-ingredient-280b4004-0017.json": {
+    "mtime": 1784649779.3269143,
+    "ast_hash": "200fcc28f8c7fd89789d1ff22f0bb543",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0005-ingredient_scan_requested-ingredient-0d4df2dc-0018.json": {
+    "mtime": 1784649779.3428204,
+    "ast_hash": "54eda0b86f087b1d0a168590c055c7a5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0006-ingredient_scan_requested-ingredient-14b3eaa4-0019.json": {
+    "mtime": 1784649779.3428204,
+    "ast_hash": "ee85d6583bfcb03e52ee540380b89ec8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0007-ingredient_scan_requested-ingredient-58744574-0021.json": {
+    "mtime": 1784649779.3428204,
+    "ast_hash": "a4d1f1ee912bc2046ca1c7d4a4a71600",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0008-ingredient_scan_requested-ingredient-ad8c2558-0022.json": {
+    "mtime": 1784649779.3428204,
+    "ast_hash": "8637130e19e67489a7303a3ca4d7c26a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0009-ingredient_scan_requested-ingredient-a72f6f9c-0023.json": {
+    "mtime": 1784649779.3428204,
+    "ast_hash": "2e487aa341fb898d23d662c7a3567f74",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0010-ingredient_scan_requested-ingredient-1ae9f911-0024.json": {
+    "mtime": 1784649779.3428204,
+    "ast_hash": "2017d42304d8958aecdfbf20ded2656d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0011-ingredient_scan_requested-ingredient-c3871dbc-0025.json": {
+    "mtime": 1784649779.3428204,
+    "ast_hash": "8bb017cb0ce618acaabc17061113477e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0012-machine_cycle_start_requested-machine-4e95d5c1-0034.json": {
+    "mtime": 1784649779.3587599,
+    "ast_hash": "c91348ab6ea5e0f9b77f555771794572",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0013-job_card_load_requested-job-0782304b-0036.json": {
+    "mtime": 1784649779.3587599,
+    "ast_hash": "89903e2f43ec179bfceaf3517c498e58",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0014-machine_cycle_finish_requested-machine-0a51f20e-0040.json": {
+    "mtime": 1784649779.3587599,
+    "ast_hash": "3041b405b1bd9c8653638407701f7f9a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0015-machine_cycle_finish_requested-machine-f766a4ae-0041.json": {
+    "mtime": 1784649779.37445,
+    "ast_hash": "e48c9bb291a69ed7a61b4a5d4c3e7be6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0016-machine_cycle_start_requested-machine-df7bd578-0045.json": {
+    "mtime": 1784649779.37445,
+    "ast_hash": "7a187b4c34c719b8197a08ae13c9e518",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0017-ingredient_scan_requested-ingredient-f0c1f402-0047.json": {
+    "mtime": 1784649779.3841898,
+    "ast_hash": "aad97504c697f81ef37c0d681b07a998",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0018-ingredient_scan_requested-ingredient-9d39c862-0048.json": {
+    "mtime": 1784649779.3841898,
+    "ast_hash": "53753a103bdb8e3c3f9826d5085aaa19",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0019-ingredient_scan_requested-ingredient-5fc26449-0049.json": {
+    "mtime": 1784649779.3841898,
+    "ast_hash": "c84276ac35ac9d03a37adb7cd51e0170",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0020-ingredient_scan_requested-ingredient-3933f840-0051.json": {
+    "mtime": 1784649779.3901389,
+    "ast_hash": "2ec4f280aa0df07549cb4be0a1a9f764",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0021-ingredient_scan_requested-ingredient-2d2c0f93-0052.json": {
+    "mtime": 1784649779.3901389,
+    "ast_hash": "2e44b6ecb143bb3fb8afaa83a856087c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0022-ingredient_scan_requested-ingredient-a3b7ffcf-0053.json": {
+    "mtime": 1784649779.3901389,
+    "ast_hash": "29f814551e5cf47bcb150547529befb1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0023-ingredient_scan_requested-ingredient-7b4984f3-0054.json": {
+    "mtime": 1784649779.3901389,
+    "ast_hash": "42aa17b8f112da1569e73d2153a1b4e7",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0024-ingredient_scan_requested-ingredient-11278907-0055.json": {
+    "mtime": 1784649779.3901389,
+    "ast_hash": "49577054ec739463fb12913de4935b7c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0025-machine_cycle_start_requested-machine-2371d1d5-0056.json": {
+    "mtime": 1784649779.4059968,
+    "ast_hash": "326462c76a7079aa698fa6a186181647",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0026-machine_cycle_finish_requested-machine-479f904a-0057.json": {
+    "mtime": 1784649779.4085019,
+    "ast_hash": "fe43259fb062b234dbef75d9efc6a855",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0027-machine_cycle_start_requested-machine-1817829f-0058.json": {
+    "mtime": 1784649779.4085019,
+    "ast_hash": "898716ba6c614b9589e20fbb52ebc4b2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0028-machine_cycle_finish_requested-machine-8e3e38e1-0059.json": {
+    "mtime": 1784649779.4085019,
+    "ast_hash": "50a1a08c7fbdb8c5de5a6ceb4550405a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0029-job_card_load_requested-job-739cd536-0060.json": {
+    "mtime": 1784649779.4085019,
+    "ast_hash": "fe1424c3d5d1445d452cd3393bfd4a4b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0030-ingredient_scan_requested-ingredient-73d63561-0061.json": {
+    "mtime": 1784649779.4085019,
+    "ast_hash": "d46e7903d887c39255178c5eebf1a9a3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0031-ingredient_scan_requested-ingredient-a5d64209-0062.json": {
+    "mtime": 1784649779.421929,
+    "ast_hash": "441d05732282d33b4dea9aa36434ec62",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0032-ingredient_scan_requested-ingredient-991a2b6c-0063.json": {
+    "mtime": 1784649779.421929,
+    "ast_hash": "9229b1e190e3ceef5267023c5e691f31",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0033-ingredient_scan_requested-ingredient-0475915d-0065.json": {
+    "mtime": 1784649779.421929,
+    "ast_hash": "ba8e85e7fae41bf599aeb66c7ff46891",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0034-ingredient_scan_requested-ingredient-569fa929-0066.json": {
+    "mtime": 1784649779.421929,
+    "ast_hash": "7b680e16e25c8e53d7fd407af2b9a9b2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0035-ingredient_scan_requested-ingredient-c55c3aba-0067.json": {
+    "mtime": 1784649779.4328227,
+    "ast_hash": "a76f5a8bb914979d406ae36f223043c1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0036-ingredient_scan_requested-ingredient-befb5606-0068.json": {
+    "mtime": 1784649779.4376838,
+    "ast_hash": "24e04c2a01953b5fa94d8a18e528c32d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0037-ingredient_scan_requested-ingredient-42b2d983-0069.json": {
+    "mtime": 1784649779.4382384,
+    "ast_hash": "2a5288acb4a975c76fdc322339b0d0de",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0038-machine_cycle_start_requested-machine-94682419-0070.json": {
+    "mtime": 1784649779.4382384,
+    "ast_hash": "171cd7188a726407e0b0533e1d86a07c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0039-machine_cycle_finish_requested-machine-9e76d012-0071.json": {
+    "mtime": 1784649779.445024,
+    "ast_hash": "3755263a5879c50a10493de3f40f8583",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0040-machine_cycle_start_requested-machine-d9cb0bb9-0074.json": {
+    "mtime": 1784649779.4470303,
+    "ast_hash": "489edca06e37cade23c476068632a36a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0041-machine_cycle_finish_requested-machine-37d89d05-0075.json": {
+    "mtime": 1784649779.4470303,
+    "ast_hash": "2ab02f8281f310d2c3b0837979d04256",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0042-machine_cycle_start_requested-machine-80f3fa41-0076.json": {
+    "mtime": 1784649779.4535031,
+    "ast_hash": "fc5b985a532c59bfa64870a6bb36b351",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0043-machine_cycle_finish_requested-machine-918b029b-0077.json": {
+    "mtime": 1784649779.4570656,
+    "ast_hash": "8d8ca842c11aaef9f42602cf8d97fb90",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0044-job_card_load_requested-job-2560a349-0078.json": {
+    "mtime": 1784649779.4570656,
+    "ast_hash": "392faa40017d105d25517e11a2faebde",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0045-ingredient_scan_requested-ingredient-1adee937-0079.json": {
+    "mtime": 1784649779.4640217,
+    "ast_hash": "c387e9c4f83177651b2a2c1c45aab6f1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0046-ingredient_scan_requested-ingredient-7d090cc8-0080.json": {
+    "mtime": 1784649779.4640217,
+    "ast_hash": "bcb61fd9e06af3c7e7118b500b31e4ed",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0047-ingredient_scan_requested-ingredient-6fbb8e4c-0081.json": {
+    "mtime": 1784649779.4697564,
+    "ast_hash": "825276827f404886b5014459209ad1ac",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0048-ingredient_scan_requested-ingredient-cfa38cba-0083.json": {
+    "mtime": 1784649779.4731674,
+    "ast_hash": "fafbadedcc46b9f4fdea9f0dcc289623",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0049-ingredient_scan_requested-ingredient-22f3c2ce-0084.json": {
+    "mtime": 1784649779.4763544,
+    "ast_hash": "6a38a6b22ef88052546b0aedf047eed7",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0050-ingredient_scan_requested-ingredient-d1b12539-0085.json": {
+    "mtime": 1784649779.4763544,
+    "ast_hash": "48cd46db76226b671b05e6fbef8b8fca",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0051-ingredient_scan_requested-ingredient-8287c818-0086.json": {
+    "mtime": 1784649779.4763544,
+    "ast_hash": "5cf3cfb40aa1fcea95ead1aa7e662719",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0052-ingredient_scan_requested-ingredient-273f3924-0087.json": {
+    "mtime": 1784649779.4849513,
+    "ast_hash": "b0b91306383663dce4c98592fbb7c40f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0053-machine_cycle_start_requested-machine-30edfe1a-0088.json": {
+    "mtime": 1784649779.4849513,
+    "ast_hash": "ee7767ea5b92602f7fd23e22b342edba",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0054-machine_cycle_finish_requested-machine-d05aa626-0089.json": {
+    "mtime": 1784649779.4849513,
+    "ast_hash": "a8e00c98131a52451ff7f461d5fe396e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0055-job_card_load_requested-job-d94ae731-0091.json": {
+    "mtime": 1784649779.4849513,
+    "ast_hash": "8c85f8017dbd08144d23e473b8907192",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0056-ingredient_scan_requested-ingredient-6d6e9108-0092.json": {
+    "mtime": 1784649779.4849513,
+    "ast_hash": "736d40ecc959a5dfe764a33a3762a9a2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0057-ingredient_scan_requested-ingredient-39d9c971-0093.json": {
+    "mtime": 1784649779.500893,
+    "ast_hash": "5ab0b7bcafb341ed0c2d2f44c4b3bc4f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0058-ingredient_scan_requested-ingredient-dd0742ec-0094.json": {
+    "mtime": 1784649779.500893,
+    "ast_hash": "03b6a6df35b30d15afd731054425d7d6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0059-ingredient_scan_requested-ingredient-f8730712-0096.json": {
+    "mtime": 1784649779.5084858,
+    "ast_hash": "d01900086994dac82ec9e961fd6e03fc",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0060-ingredient_scan_requested-ingredient-17968fb8-0097.json": {
+    "mtime": 1784649779.5084858,
+    "ast_hash": "4c2bbc16856ce353ff9eb92849a6c8ce",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0061-ingredient_scan_requested-ingredient-735fd9d6-0098.json": {
+    "mtime": 1784649779.5166233,
+    "ast_hash": "785c482566b1c011d9acb48980623fc4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0062-ingredient_scan_requested-ingredient-6e4f8f1e-0099.json": {
+    "mtime": 1784649779.5166233,
+    "ast_hash": "4d76746780cc5aaf532f9bd133d0420d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0063-ingredient_scan_requested-ingredient-bb257325-0100.json": {
+    "mtime": 1784649779.5166233,
+    "ast_hash": "3ef47113a6c2428a4286a98474cfccd1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0064-machine_cycle_start_requested-machine-a9a507d3-0102.json": {
+    "mtime": 1784649779.5166233,
+    "ast_hash": "a018371ce2803cf9346b2932647a2c8e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0065-machine_cycle_force_close_requested-machine-3823117e-0104.json": {
+    "mtime": 1784649779.5327256,
+    "ast_hash": "df83a5d5d47a0ed329e4e2c9eeadaf4e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-160259/state-snapshots/0066-reader_logout_requested-reader-ca614ebf-0105.json": {
+    "mtime": 1784649779.5340028,
+    "ast_hash": "2b9784e8c2a3582d8a4151a61f224121",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-21-mqtt-schema-4-mixing-ui.md": {
+    "mtime": 1784642725.8484302,
+    "ast_hash": "06d0455496520feeaa8a1a42d0ba73e9",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-21-mqtt-schema-4-mixing-ui-design.md": {
+    "mtime": 1784641187.2233522,
+    "ast_hash": "a12595a1cbe1f1cc088926c4aeacb27a",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt": {
+    "mtime": 1784652015.4982605,
+    "ast_hash": "877f9247dc12c7ce64f93e516f048d2e",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt": {
+    "mtime": 1784652476.1384034,
+    "ast_hash": "1ea88f51d512b267966396b4bce7cfe6",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/ppnam/station2aa/ui/components/UpgradeGate.kt": {
+    "mtime": 1784654139.1789834,
+    "ast_hash": "6754677c92e8a0e0a21c798d56017f06",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingAreaPickerScreen.kt": {
+    "mtime": 1784653414.9915402,
+    "ast_hash": "8dfd7a595ab33c10fbbc4f54d35d1b24",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardScreen.kt": {
+    "mtime": 1784653929.5257893,
+    "ast_hash": "dae160601c51f42fb18ad3c15b5598ac",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0001-login_requested-login-af69fe29-0003.json": {
+    "mtime": 1784654565.4618056,
+    "ast_hash": "8cebd5c5f9b0ec0e402367428d5ff519",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0002-holding_recovery_requested-holding-fecf87d0-0012.json": {
+    "mtime": 1784654565.4668171,
+    "ast_hash": "3adccbba8875581e6e03f98b2ada8216",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0003-job_card_load_requested-job-1e4c6d83-0015.json": {
+    "mtime": 1784654565.4698703,
+    "ast_hash": "1cfc0995a7711b2b62e7b789e1e1f599",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0004-ingredient_scan_requested-ingredient-350f08bb-0017.json": {
+    "mtime": 1784654565.4725893,
+    "ast_hash": "2bf0e8becc94ed117a80f534f8b3bb27",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0005-ingredient_scan_requested-ingredient-716e24a8-0018.json": {
+    "mtime": 1784654565.475008,
+    "ast_hash": "2c051a498b5606d3e476dcd555f28009",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0006-ingredient_scan_requested-ingredient-bbe719d6-0019.json": {
+    "mtime": 1784654565.4774077,
+    "ast_hash": "471097548dc13d04029599180b7c0194",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0007-ingredient_scan_requested-ingredient-6e6dbc09-0021.json": {
+    "mtime": 1784654565.4806037,
+    "ast_hash": "fb2e9aa5a41f2412258d2d787adfa672",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0008-ingredient_scan_requested-ingredient-d798bb47-0022.json": {
+    "mtime": 1784654565.482893,
+    "ast_hash": "ba64eb2d8fe5c7e345af8dcee6090bd8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0009-ingredient_scan_requested-ingredient-4dc91d00-0023.json": {
+    "mtime": 1784654565.484951,
+    "ast_hash": "64779ecbbab441b5893bad9f56b71908",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0010-ingredient_scan_requested-ingredient-e87c0b15-0024.json": {
+    "mtime": 1784654565.487389,
+    "ast_hash": "7ef706118fa809728faa8f20d9c471b5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0011-ingredient_scan_requested-ingredient-c0736350-0025.json": {
+    "mtime": 1784654565.4894733,
+    "ast_hash": "4d71f95da5c6602d64f255df02969bc8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0012-machine_cycle_start_requested-machine-ff19f7f2-0034.json": {
+    "mtime": 1784654565.496972,
+    "ast_hash": "e31f46772e18910fe5b9eeea692bc4dd",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0013-job_card_load_requested-job-7b72f389-0036.json": {
+    "mtime": 1784654565.5000527,
+    "ast_hash": "c98f8fef00d2877b607cac437125814e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0014-machine_cycle_finish_requested-machine-8eeef45f-0040.json": {
+    "mtime": 1784654565.5050714,
+    "ast_hash": "183da74251760c3c2c23393e11491b21",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0015-machine_cycle_finish_requested-machine-ced0deed-0041.json": {
+    "mtime": 1784654565.5077448,
+    "ast_hash": "91833b7c0bae3c976ac4570c17bfe194",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0016-machine_cycle_start_requested-machine-f04eb8a4-0045.json": {
+    "mtime": 1784654565.5124805,
+    "ast_hash": "4552d7642b230dc5f2bcdca3b741350d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0017-ingredient_scan_requested-ingredient-d2b4a711-0047.json": {
+    "mtime": 1784654565.5150957,
+    "ast_hash": "ea58491bb8356342e58002d6191a1107",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0018-ingredient_scan_requested-ingredient-9c650a4c-0048.json": {
+    "mtime": 1784654565.5181081,
+    "ast_hash": "986236a8e76710974ca097ad1d816573",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0019-ingredient_scan_requested-ingredient-ff555d48-0049.json": {
+    "mtime": 1784654565.520619,
+    "ast_hash": "58efcfba99fa279a5f805146d11ffe0b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0020-ingredient_scan_requested-ingredient-7654315b-0051.json": {
+    "mtime": 1784654565.524088,
+    "ast_hash": "a7fabc688a4104592b2623b203f01f29",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0021-ingredient_scan_requested-ingredient-a2812644-0052.json": {
+    "mtime": 1784654565.527088,
+    "ast_hash": "09cb3209ad38faf060be91c3b14575a4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0022-ingredient_scan_requested-ingredient-1788b568-0053.json": {
+    "mtime": 1784654565.529088,
+    "ast_hash": "a22c5bdc25a844543511645d56975e0c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0023-ingredient_scan_requested-ingredient-e43ad149-0054.json": {
+    "mtime": 1784654565.532088,
+    "ast_hash": "8eeebceb88868715c06084a8e60b1bc9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0024-ingredient_scan_requested-ingredient-ba53723d-0055.json": {
+    "mtime": 1784654565.5343373,
+    "ast_hash": "c40d93319a84cd0d6220cb0b356b536a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0025-machine_cycle_start_requested-machine-dca66ec7-0056.json": {
+    "mtime": 1784654565.5368538,
+    "ast_hash": "73ec6cf92078b94b32e87b21693fd7fd",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0026-machine_cycle_finish_requested-machine-72668abf-0057.json": {
+    "mtime": 1784654565.5403981,
+    "ast_hash": "37fcca2b6db78ad7571f5aa8592f7e13",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0027-machine_cycle_start_requested-machine-4c1953b1-0058.json": {
+    "mtime": 1784654565.5427613,
+    "ast_hash": "9ad4d5eb5d9f13666f3d6c792b9163b2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0028-machine_cycle_finish_requested-machine-2345456b-0059.json": {
+    "mtime": 1784654565.5457683,
+    "ast_hash": "b91dba405cb2f67b05aece2fd7138cdf",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0029-job_card_load_requested-job-a5c3ebb6-0060.json": {
+    "mtime": 1784654565.5482166,
+    "ast_hash": "70095890746c5f44f723bb1f379dff25",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0030-ingredient_scan_requested-ingredient-cd31b9df-0061.json": {
+    "mtime": 1784654565.5515573,
+    "ast_hash": "371c02d6eb95fd56cab1f9ea6db6a424",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0031-ingredient_scan_requested-ingredient-b4c654d0-0062.json": {
+    "mtime": 1784654565.5539064,
+    "ast_hash": "e68bb6dfcf9a6dcd137de1bff0297917",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0032-ingredient_scan_requested-ingredient-9d634883-0063.json": {
+    "mtime": 1784654565.5565164,
+    "ast_hash": "2f349291ba6d42b9058b7e0f61a5f96a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0033-ingredient_scan_requested-ingredient-852defba-0065.json": {
+    "mtime": 1784654565.5605466,
+    "ast_hash": "32615d8018cc289623b8cff871eddd4b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0034-ingredient_scan_requested-ingredient-eb212ccf-0066.json": {
+    "mtime": 1784654565.562852,
+    "ast_hash": "b18eec057b050c0216e1f48280e1193c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0035-ingredient_scan_requested-ingredient-f44e624d-0067.json": {
+    "mtime": 1784654565.565852,
+    "ast_hash": "cb9032810ade65442e946713f9c3e829",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0036-ingredient_scan_requested-ingredient-340e21ed-0068.json": {
+    "mtime": 1784654565.568852,
+    "ast_hash": "fa625fb7fa9b66d38475f0fe1d76a070",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0037-ingredient_scan_requested-ingredient-0fff2466-0069.json": {
+    "mtime": 1784654565.5714314,
+    "ast_hash": "24b926ea1832ee5753595ccf8ed4d31d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0038-machine_cycle_start_requested-machine-c8542140-0070.json": {
+    "mtime": 1784654565.5739236,
+    "ast_hash": "625c8a12a12444f1244a00a05c914d0b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0039-machine_cycle_finish_requested-machine-f89d3067-0071.json": {
+    "mtime": 1784654565.5769944,
+    "ast_hash": "652e0e591c1073c9b1529946561aa593",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0040-machine_cycle_start_requested-machine-7bb2a40f-0074.json": {
+    "mtime": 1784654565.5810182,
+    "ast_hash": "c1e297bc2d0680a208e630d8209699b7",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0041-machine_cycle_finish_requested-machine-ed168efb-0075.json": {
+    "mtime": 1784654565.5840182,
+    "ast_hash": "7bd2ce4444a55c787a578501b2c31849",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0042-machine_cycle_start_requested-machine-4847d0b2-0076.json": {
+    "mtime": 1784654565.587086,
+    "ast_hash": "5db50d9823a9e2d7cc69dc1435362b3c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0043-machine_cycle_finish_requested-machine-35b8ea19-0077.json": {
+    "mtime": 1784654565.5892167,
+    "ast_hash": "94a48f615913b03037d1a3ba0def864b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0044-job_card_load_requested-job-6d325211-0078.json": {
+    "mtime": 1784654565.5922165,
+    "ast_hash": "c49047fcaccecb1bbd40c39a73f76fd8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0045-ingredient_scan_requested-ingredient-31414bfb-0079.json": {
+    "mtime": 1784654565.5952165,
+    "ast_hash": "557748d6048ddf9959f18a27c0fb24ab",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0046-ingredient_scan_requested-ingredient-47ac7a59-0080.json": {
+    "mtime": 1784654565.5994475,
+    "ast_hash": "3eb854b45bc1eae093d0ed3cf1175f98",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0047-ingredient_scan_requested-ingredient-06943d43-0081.json": {
+    "mtime": 1784654565.6015866,
+    "ast_hash": "77dad4b73ffcc62145e97e54c06b72c2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0048-ingredient_scan_requested-ingredient-c5bb0960-0083.json": {
+    "mtime": 1784654565.6057425,
+    "ast_hash": "29be8535a6660ba145c8af400d9d617c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0049-ingredient_scan_requested-ingredient-ea4284cb-0084.json": {
+    "mtime": 1784654565.6087751,
+    "ast_hash": "bf24d04f57fd12892cae4c558d92ce3c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0050-ingredient_scan_requested-ingredient-39209abe-0085.json": {
+    "mtime": 1784654565.6121383,
+    "ast_hash": "b404152ece461928a34c2541bc923150",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0051-ingredient_scan_requested-ingredient-754ab943-0086.json": {
+    "mtime": 1784654565.6151376,
+    "ast_hash": "58270e76ef568dc5ac55d405defa7eea",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0052-ingredient_scan_requested-ingredient-eb0686a9-0087.json": {
+    "mtime": 1784654565.6181376,
+    "ast_hash": "3d053009eee3fa1838b04cb3ff142de9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0053-machine_cycle_start_requested-machine-74151552-0088.json": {
+    "mtime": 1784654565.6220021,
+    "ast_hash": "b2b52f6de94b5bee273adb1ba4e3ec8d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0054-machine_cycle_finish_requested-machine-248c142c-0089.json": {
+    "mtime": 1784654565.6240056,
+    "ast_hash": "fd7c62fdac41256978b54162d4a17bce",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0055-job_card_load_requested-job-186149f4-0091.json": {
+    "mtime": 1784654565.6282747,
+    "ast_hash": "bcaa0429aa4c6afd0ca0561a080d7151",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0056-ingredient_scan_requested-ingredient-02508614-0092.json": {
+    "mtime": 1784654565.6317048,
+    "ast_hash": "948e78218c05b84c1996e39d5cde2269",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0057-ingredient_scan_requested-ingredient-eaea3a84-0093.json": {
+    "mtime": 1784654565.6346135,
+    "ast_hash": "8131c0aa424a5005fe7f167bfef06f24",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0058-ingredient_scan_requested-ingredient-b21b278a-0094.json": {
+    "mtime": 1784654565.6386232,
+    "ast_hash": "6d1e83382e5531190dfc5d43e660cb95",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0059-ingredient_scan_requested-ingredient-425aaf58-0096.json": {
+    "mtime": 1784654565.642447,
+    "ast_hash": "62f0d340fdd587ba86ac9aada18cedf8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0060-ingredient_scan_requested-ingredient-a0162d5d-0097.json": {
+    "mtime": 1784654565.6458714,
+    "ast_hash": "3c703a69dbaae8f371265834448278d4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0061-ingredient_scan_requested-ingredient-492f1cbc-0098.json": {
+    "mtime": 1784654565.648334,
+    "ast_hash": "72b08d52f55de4bde266fcc03c2fe2a9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0062-ingredient_scan_requested-ingredient-481e259f-0099.json": {
+    "mtime": 1784654565.6516812,
+    "ast_hash": "116da8ebef8fac4579091905a1770c7d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0063-ingredient_scan_requested-ingredient-f10c1b1c-0100.json": {
+    "mtime": 1784654565.654907,
+    "ast_hash": "bed0d92634170a2d97f4ff9a6fbd28e9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0064-machine_cycle_start_requested-machine-f6af8ff8-0102.json": {
+    "mtime": 1784654565.6589174,
+    "ast_hash": "49b8a51c31671ea515246abf87e1781d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0065-machine_cycle_force_close_requested-machine-bd403969-0104.json": {
+    "mtime": 1784654565.663238,
+    "ast_hash": "75903a0af866d8ae91682517d4421063",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172245/state-snapshots/0066-reader_logout_requested-reader-55bb8c74-0105.json": {
+    "mtime": 1784654565.6662376,
+    "ast_hash": "95d3c4fcac9eb8bd8be49439aa3eb921",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0001-login_requested-login-50f44dc5-0003.json": {
+    "mtime": 1784654578.5835607,
+    "ast_hash": "322018f76c407ebcce84a6195cda3489",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0002-holding_recovery_requested-holding-d8a0bb0f-0012.json": {
+    "mtime": 1784654578.589007,
+    "ast_hash": "d1af85d8e6f505ec956fed12036c5cd1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0003-job_card_load_requested-job-397d3393-0015.json": {
+    "mtime": 1784654578.5910068,
+    "ast_hash": "c303b2e2ec1c766c55ce83549acd9d0c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0004-ingredient_scan_requested-ingredient-988cf182-0017.json": {
+    "mtime": 1784654578.5943365,
+    "ast_hash": "c2f1b6f110b8cac2e9b781ca24f4e3eb",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0005-ingredient_scan_requested-ingredient-4ea2f505-0018.json": {
+    "mtime": 1784654578.5963373,
+    "ast_hash": "b22d6f39aacd4cb69a9d6b948591f7e4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0006-ingredient_scan_requested-ingredient-a4b9aa15-0019.json": {
+    "mtime": 1784654578.59934,
+    "ast_hash": "ab34786169408668a8e1e9cc52810794",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0007-ingredient_scan_requested-ingredient-f301aceb-0021.json": {
+    "mtime": 1784654578.602336,
+    "ast_hash": "4294e588ac827f8c0025dfd35d090b4f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0008-ingredient_scan_requested-ingredient-2072ce98-0022.json": {
+    "mtime": 1784654578.604336,
+    "ast_hash": "c96afad68f6705de2aed7f99c0cf5c6a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0009-ingredient_scan_requested-ingredient-dfa29941-0023.json": {
+    "mtime": 1784654578.6067443,
+    "ast_hash": "b655d1b5c5b36245ac9bd2f628727962",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0010-ingredient_scan_requested-ingredient-a1d3677a-0024.json": {
+    "mtime": 1784654578.609205,
+    "ast_hash": "e00e3e6009de7fbdeae03c12cdf7c67d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0011-ingredient_scan_requested-ingredient-3d49ea6e-0025.json": {
+    "mtime": 1784654578.611433,
+    "ast_hash": "fcd0a99e7315efb55c3a06485010fd22",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0012-machine_cycle_start_requested-machine-5be1fb7a-0034.json": {
+    "mtime": 1784654578.6187391,
+    "ast_hash": "95e0f48e6e4a28a52884eda695471e89",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0013-job_card_load_requested-job-17215eb0-0036.json": {
+    "mtime": 1784654578.6221776,
+    "ast_hash": "e367eec839ee60b8930fd75838989093",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0014-machine_cycle_finish_requested-machine-51cb30c4-0040.json": {
+    "mtime": 1784654578.62618,
+    "ast_hash": "a6bd3f65a689ddf218c43e5596257d16",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0015-machine_cycle_finish_requested-machine-d902212a-0041.json": {
+    "mtime": 1784654578.6291795,
+    "ast_hash": "371d2ab687b964a70f5321874db5b05f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0016-machine_cycle_start_requested-machine-db558198-0045.json": {
+    "mtime": 1784654578.6346688,
+    "ast_hash": "b57aa71293f806459d88eb0bc180518f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0017-ingredient_scan_requested-ingredient-78d814e8-0047.json": {
+    "mtime": 1784654578.6376667,
+    "ast_hash": "22b9d4faa5f931c9fefd07ed22ed2e39",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0018-ingredient_scan_requested-ingredient-4ff5a6a0-0048.json": {
+    "mtime": 1784654578.6406684,
+    "ast_hash": "1f16f6b295866983f46b5678bb23a817",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0019-ingredient_scan_requested-ingredient-bd259048-0049.json": {
+    "mtime": 1784654578.6426673,
+    "ast_hash": "449866ff440caf05aa6e9f7e5a89203a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0020-ingredient_scan_requested-ingredient-8c37b19c-0051.json": {
+    "mtime": 1784654578.6466646,
+    "ast_hash": "61f4b2b7c3bec3a7391f38cb440f9f47",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0021-ingredient_scan_requested-ingredient-348143b8-0052.json": {
+    "mtime": 1784654578.6486642,
+    "ast_hash": "3289c97d0c59b9eaecca3873f429e1a8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0022-ingredient_scan_requested-ingredient-aa7a727f-0053.json": {
+    "mtime": 1784654578.6516643,
+    "ast_hash": "0a45cd4899f4fd0856291b89f95440dc",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0023-ingredient_scan_requested-ingredient-6515c9e8-0054.json": {
+    "mtime": 1784654578.6536658,
+    "ast_hash": "57805be9c1e2f199e9cf83ca467c83b7",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0024-ingredient_scan_requested-ingredient-1334421e-0055.json": {
+    "mtime": 1784654578.6566644,
+    "ast_hash": "8400a7921df8165780bb47ba02059824",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0025-machine_cycle_start_requested-machine-2b10a7c9-0056.json": {
+    "mtime": 1784654578.6596644,
+    "ast_hash": "ea0784fe9953bb6572c4dda5c044fb54",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0026-machine_cycle_finish_requested-machine-6bbfb92f-0057.json": {
+    "mtime": 1784654578.6621566,
+    "ast_hash": "dea4a1b959e926ff8fdf8c6280b99423",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0027-machine_cycle_start_requested-machine-65ba597b-0058.json": {
+    "mtime": 1784654578.6651554,
+    "ast_hash": "001d333d3e71534fc3f29b50dec120ba",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0028-machine_cycle_finish_requested-machine-08952abb-0059.json": {
+    "mtime": 1784654578.6681552,
+    "ast_hash": "1c0175e36cd26cc637e92f67fd6e03ad",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0029-job_card_load_requested-job-4a2ea6d0-0060.json": {
+    "mtime": 1784654578.6701565,
+    "ast_hash": "d6c42d531c480ca5bc7a5e8628694eb5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0030-ingredient_scan_requested-ingredient-80e52d6f-0061.json": {
+    "mtime": 1784654578.6731553,
+    "ast_hash": "7357a1eccf8f6c9fdf7c5d20ca3cecbf",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0031-ingredient_scan_requested-ingredient-596bf3ef-0062.json": {
+    "mtime": 1784654578.676155,
+    "ast_hash": "1ff4c84ae3c514952e3184215dab5661",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0032-ingredient_scan_requested-ingredient-7f9347d9-0063.json": {
+    "mtime": 1784654578.679155,
+    "ast_hash": "99559b7cff99549b8967be14fd9014f8",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0033-ingredient_scan_requested-ingredient-35a2c576-0065.json": {
+    "mtime": 1784654578.6829593,
+    "ast_hash": "f64ababa05abc71fb099b7e5aa42ba63",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0034-ingredient_scan_requested-ingredient-9c3eaa5b-0066.json": {
+    "mtime": 1784654578.6859784,
+    "ast_hash": "fd049a8f2d0d5477edefcbd082115a2e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0035-ingredient_scan_requested-ingredient-f85c5877-0067.json": {
+    "mtime": 1784654578.688988,
+    "ast_hash": "ab8ceb884a7d4ee7a589f4caaa7bb3dc",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0036-ingredient_scan_requested-ingredient-500556c3-0068.json": {
+    "mtime": 1784654578.6914425,
+    "ast_hash": "b853290bcc2c720203750ccf496b1cb5",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0037-ingredient_scan_requested-ingredient-8c993bf9-0069.json": {
+    "mtime": 1784654578.694439,
+    "ast_hash": "22cb37a0859a6d9d9af6862481d683fd",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0038-machine_cycle_start_requested-machine-9590f760-0070.json": {
+    "mtime": 1784654578.6974475,
+    "ast_hash": "9761099163a349ab8026bfc6e7d526d6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0039-machine_cycle_finish_requested-machine-53caef0a-0071.json": {
+    "mtime": 1784654578.7004488,
+    "ast_hash": "9977474b6855f5fc856b4fd1e50f805c",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0040-machine_cycle_start_requested-machine-ae9b5358-0074.json": {
+    "mtime": 1784654578.7044492,
+    "ast_hash": "a5e96dd5a5d93d4a5efc4c69018b0a01",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0041-machine_cycle_finish_requested-machine-983d82b9-0075.json": {
+    "mtime": 1784654578.706449,
+    "ast_hash": "66d60d0a1cff217a9f79151b5f5da7a9",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0042-machine_cycle_start_requested-machine-effcb4f9-0076.json": {
+    "mtime": 1784654578.7094495,
+    "ast_hash": "ba066f4ada6d7039b8d845aba44e0a91",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0043-machine_cycle_finish_requested-machine-cd729ced-0077.json": {
+    "mtime": 1784654578.712449,
+    "ast_hash": "2386279d87e832ae0f568f67f606445a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0044-job_card_load_requested-job-d649541e-0078.json": {
+    "mtime": 1784654578.7154496,
+    "ast_hash": "4e187c4d1676013cc9f2edc978a4dbb1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0045-ingredient_scan_requested-ingredient-7f3fdb3a-0079.json": {
+    "mtime": 1784654578.718459,
+    "ast_hash": "1fa32bdc39fc526bda3b9daa9ab2117e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0046-ingredient_scan_requested-ingredient-c84722e2-0080.json": {
+    "mtime": 1784654578.7214565,
+    "ast_hash": "87f9c07e30b0772ea47fb473b49c796b",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0047-ingredient_scan_requested-ingredient-a5f3a705-0081.json": {
+    "mtime": 1784654578.7244563,
+    "ast_hash": "40d8068ee1c30e55485960e2f890d2d6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0048-ingredient_scan_requested-ingredient-00137ea8-0083.json": {
+    "mtime": 1784654578.7280593,
+    "ast_hash": "71b8288a5756acd9bc3c333f10408cb4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0049-ingredient_scan_requested-ingredient-0adfd32a-0084.json": {
+    "mtime": 1784654578.7312987,
+    "ast_hash": "694385c3376e556cdd24c8b02b2c887a",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0050-ingredient_scan_requested-ingredient-c36cb797-0085.json": {
+    "mtime": 1784654578.734576,
+    "ast_hash": "add5305341b52c17fa5176a12c060149",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0051-ingredient_scan_requested-ingredient-d5937c5c-0086.json": {
+    "mtime": 1784654578.737581,
+    "ast_hash": "611305fdb0f6007f8e7c0ae850210f6e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0052-ingredient_scan_requested-ingredient-c3c11bc0-0087.json": {
+    "mtime": 1784654578.7407553,
+    "ast_hash": "a7afd3a88936b03c7c768c491cc236e4",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0053-machine_cycle_start_requested-machine-28823bc8-0088.json": {
+    "mtime": 1784654578.7447577,
+    "ast_hash": "2cad6259aac3418b1db94636b823e0c6",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0054-machine_cycle_finish_requested-machine-f5fb3cfe-0089.json": {
+    "mtime": 1784654578.747756,
+    "ast_hash": "9657dab938b6d0af38f89e991b3f24d0",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0055-job_card_load_requested-job-8017396d-0091.json": {
+    "mtime": 1784654578.7507553,
+    "ast_hash": "fc3de74de570383246a3ccc3598d0b17",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0056-ingredient_scan_requested-ingredient-3370ee1a-0092.json": {
+    "mtime": 1784654578.7537553,
+    "ast_hash": "6987a116a54f9dd0700c0e862d90f891",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0057-ingredient_scan_requested-ingredient-5de80ffa-0093.json": {
+    "mtime": 1784654578.757272,
+    "ast_hash": "a96ffd23a5960de39e8f1168094d2400",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0058-ingredient_scan_requested-ingredient-a2a5fe99-0094.json": {
+    "mtime": 1784654578.7608483,
+    "ast_hash": "18a66028dc6b6fc0fe0b5ceb24cd0be3",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0059-ingredient_scan_requested-ingredient-cb799207-0096.json": {
+    "mtime": 1784654578.7648475,
+    "ast_hash": "a82771b03e817362a585948cfaa4d192",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0060-ingredient_scan_requested-ingredient-b5f2a6d5-0097.json": {
+    "mtime": 1784654578.7688477,
+    "ast_hash": "01264c15cd84c1f0829442e67639df7f",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0061-ingredient_scan_requested-ingredient-48d0fe99-0098.json": {
+    "mtime": 1784654578.7718472,
+    "ast_hash": "3f435f50b64922f155b80c846327954e",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0062-ingredient_scan_requested-ingredient-1fa4f828-0099.json": {
+    "mtime": 1784654578.7748482,
+    "ast_hash": "c0f2233b99eebef13c65b6b506e76fb1",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0063-ingredient_scan_requested-ingredient-10e2f0d2-0100.json": {
+    "mtime": 1784654578.7788475,
+    "ast_hash": "236c3d608743813c14c0dfe0ce8350e2",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0064-machine_cycle_start_requested-machine-7ded4936-0102.json": {
+    "mtime": 1784654578.781848,
+    "ast_hash": "18a9276c9ed709d4a4f3f382f5454eac",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0065-machine_cycle_force_close_requested-machine-eb8fb8b2-0104.json": {
+    "mtime": 1784654578.7861042,
+    "ast_hash": "b1844796a4d3a7cf6403dc4b32c0d60d",
+    "semantic_hash": ""
+  },
+  "tools/backend-sim/logs/20260721-172258/state-snapshots/0066-reader_logout_requested-reader-49c2e9fe-0105.json": {
+    "mtime": 1784654578.7891035,
+    "ast_hash": "bfaf1d29ddfc09444761563e21907e7f",
     "semantic_hash": ""
   }
 }

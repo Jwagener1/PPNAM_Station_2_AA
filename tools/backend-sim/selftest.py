@@ -339,7 +339,7 @@ def main():
           and r["productionRunId"] is None
           and r["sapIssueQueued"] is False and r["sapProductionOrderChanged"] is False
           and r["nextAction"] == "scan_same_machine_to_finish"
-          and r["areaStatus"]["accepted"] is True,
+          and "equipment" in r["areaStatus"],
           "mixer start: MIX_/CYC_ minted, SAP flags false, areaStatus embedded",
           json.dumps(r)[:300])
     mix1, cyc1 = r["mixBatchId"], r["cycleId"]

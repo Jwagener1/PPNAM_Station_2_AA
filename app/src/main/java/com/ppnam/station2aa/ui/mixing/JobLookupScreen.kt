@@ -28,6 +28,7 @@ fun JobLookupScreen(
     onSettings: () -> Unit = {},
     onLogout: () -> Unit = {},
     onRfidLookup: () -> Unit = {},
+    onOpenMixing: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -130,6 +131,15 @@ fun JobLookupScreen(
             ) {
                 if (isLoading) CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                 else Text("Look Up")
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onOpenMixing,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AmberPrimary),
+                border = BorderStroke(1.dp, AmberPrimary.copy(alpha = 0.5f)),
+            ) {
+                Text("Mixing")
             }
             errorMessage?.let { err ->
                 Spacer(Modifier.height(8.dp))
