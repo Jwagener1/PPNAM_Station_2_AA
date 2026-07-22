@@ -158,12 +158,5 @@
   "156": "MixingMessagesTest",
   "157": ".onCreate",
   "158": "SettingsRepository",
-  "159": ".request",
-  "160": "MqttSessionExpiryTest",
-  "161": "LoginViewModelTest",
-  "162": ".readyMix",
-  "163": "LoginViewModel.kt",
-  "164": "ConnectionStatus",
-  "165": "MqttClientFactoryTest",
-  "166": "MqttClientFactory"
+  "159": ".request"
 }

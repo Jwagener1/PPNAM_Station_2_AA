@@ -350,7 +350,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttclientfactory",
-      "community": 166,
+      "community": 11,
       "norm_label": "mqttclientfactory.kt"
     },
     {
@@ -360,7 +360,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttclientfactory_mqttclientfactory",
-      "community": 166,
+      "community": 11,
       "norm_label": "mqttclientfactory"
     },
     {
@@ -370,7 +370,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttclientfactory_mqttclientfactory_build",
-      "community": 166,
+      "community": 11,
       "norm_label": ".build()"
     },
     {
@@ -380,7 +380,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttclientfactory_kt_mqtt5asyncclient",
-      "community": 166,
+      "community": 11,
       "norm_label": "mqtt5asyncclient"
     },
     {
@@ -530,7 +530,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttrepositoryimpl_kt_string",
-      "community": 4,
+      "community": 150,
       "norm_label": "string"
     },
     {
@@ -610,7 +610,7 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttrepositoryimpl_mqttrepositoryimpl_handlestationpresence",
-      "community": 4,
+      "community": 148,
       "norm_label": ".handlestationpresence()"
     },
     {
@@ -720,7 +720,7 @@
       "source_location": "L398",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttrepositoryimpl_mqttrepositoryimpl_recordclockskew",
-      "community": 4,
+      "community": 150,
       "norm_label": ".recordclockskew()"
     },
     {
@@ -730,7 +730,7 @@
       "source_location": "L417",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_mqtt_mqttrepositoryimpl_mqttrepositoryimpl_handleincomingresponse",
-      "community": 4,
+      "community": 150,
       "norm_label": ".handleincomingresponse()"
     },
     {
@@ -1440,7 +1440,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder",
-      "community": 7,
+      "community": 2,
       "norm_label": "operatorsessionholder.kt"
     },
     {
@@ -1450,7 +1450,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder_operatorsession",
-      "community": 7,
+      "community": 2,
       "norm_label": "operatorsession"
     },
     {
@@ -1460,7 +1460,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder_operatorsessionholder",
-      "community": 7,
+      "community": 2,
       "norm_label": "operatorsessionholder"
     },
     {
@@ -1470,7 +1470,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder_kt_stateflow",
-      "community": 7,
+      "community": 2,
       "norm_label": "stateflow"
     },
     {
@@ -1480,7 +1480,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder_operatorsessionholder_set",
-      "community": 7,
+      "community": 2,
       "norm_label": ".set()"
     },
     {
@@ -1490,7 +1490,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder_operatorsessionholder_clear",
-      "community": 7,
+      "community": 2,
       "norm_label": ".clear()"
     },
     {
@@ -1500,7 +1500,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder_operatorsessionholder_currentsessionidorempty",
-      "community": 7,
+      "community": 2,
       "norm_label": ".currentsessionidorempty()"
     },
     {
@@ -1510,7 +1510,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_data_session_operatorsessionholder_kt_string",
-      "community": 7,
+      "community": 2,
       "norm_label": "string"
     },
     {
@@ -1760,7 +1760,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_readymix",
-      "community": 162,
+      "community": 149,
       "norm_label": "readymix"
     },
     {
@@ -1780,7 +1780,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_activerun",
-      "community": 162,
+      "community": 149,
       "norm_label": "activerun"
     },
     {
@@ -1827,7 +1827,7 @@
       "label": "MachineCycleOutcome",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L106",
+      "source_location": "L103",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_machinecycleoutcome",
       "community": 151,
@@ -1837,7 +1837,7 @@
       "label": "Accepted",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L107",
+      "source_location": "L104",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_accepted",
       "community": 151,
@@ -1847,7 +1847,7 @@
       "label": "Rejected",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L120",
+      "source_location": "L117",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_rejected",
       "community": 151,
@@ -1857,7 +1857,7 @@
       "label": "Failed",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L126",
+      "source_location": "L123",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_failed",
       "community": 151,
@@ -2090,7 +2090,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_repository_mqttrepository_mqttrepository_reconnectwith",
-      "community": 17,
+      "community": 137,
       "norm_label": ".reconnectwith()"
     },
     {
@@ -2100,7 +2100,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_repository_mqttrepository_kt_unit",
-      "community": 17,
+      "community": 137,
       "norm_label": "unit"
     },
     {
@@ -2377,7 +2377,7 @@
       "label": ".toAreaOverview()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L212",
+      "source_location": "L207",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toareaoverview",
       "community": 124,
@@ -2387,7 +2387,7 @@
       "label": ".toEquipment()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L219",
+      "source_location": "L214",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toequipment",
       "community": 124,
@@ -2397,7 +2397,7 @@
       "label": ".toReadyMix()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L235",
+      "source_location": "L230",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toreadymix",
       "community": 124,
@@ -2407,7 +2407,7 @@
       "label": ".toActiveCycle()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L247",
+      "source_location": "L242",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactivecycle",
       "community": 124,
@@ -2417,7 +2417,7 @@
       "label": ".toActiveRun()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L260",
+      "source_location": "L255",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactiverun",
       "community": 124,
@@ -2770,7 +2770,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_components_connectionstatus",
-      "community": 164,
+      "community": 136,
       "norm_label": "connectionstatus.kt"
     },
     {
@@ -2780,7 +2780,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_components_connectionstatus_connectionstatus",
-      "community": 164,
+      "community": 136,
       "norm_label": "connectionstatus"
     },
     {
@@ -2790,7 +2790,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_components_connectionstatus_resolveconnectionstatus",
-      "community": 164,
+      "community": 136,
       "norm_label": "resolveconnectionstatus()"
     },
     {
@@ -2800,7 +2800,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_components_connectionstatus_kt_boolean",
-      "community": 164,
+      "community": 136,
       "norm_label": "boolean"
     },
     {
@@ -2810,7 +2810,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_components_connectionstatus_kt_long",
-      "community": 164,
+      "community": 136,
       "norm_label": "long"
     },
     {
@@ -2970,7 +2970,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel",
-      "community": 163,
+      "community": 32,
       "norm_label": "loginviewmodel.kt"
     },
     {
@@ -2980,7 +2980,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loginuistate",
-      "community": 163,
+      "community": 32,
       "norm_label": "loginuistate"
     },
     {
@@ -2990,7 +2990,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_idle",
-      "community": 163,
+      "community": 32,
       "norm_label": "idle"
     },
     {
@@ -3000,7 +3000,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loggingin",
-      "community": 163,
+      "community": 32,
       "norm_label": "loggingin"
     },
     {
@@ -3010,7 +3010,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_error",
-      "community": 163,
+      "community": 32,
       "norm_label": "error"
     },
     {
@@ -3020,7 +3020,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loggedin",
-      "community": 163,
+      "community": 32,
       "norm_label": "loggedin"
     },
     {
@@ -3030,7 +3030,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loginviewmodel",
-      "community": 59,
+      "community": 32,
       "norm_label": "loginviewmodel"
     },
     {
@@ -3040,7 +3040,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_kt_stateflow",
-      "community": 59,
+      "community": 32,
       "norm_label": "stateflow"
     },
     {
@@ -3050,7 +3050,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_kt_flow",
-      "community": 59,
+      "community": 32,
       "norm_label": "flow"
     },
     {
@@ -3060,7 +3060,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_kt_string",
-      "community": 59,
+      "community": 32,
       "norm_label": "string"
     },
     {
@@ -3070,7 +3070,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_kt_job",
-      "community": 59,
+      "community": 32,
       "norm_label": "job"
     },
     {
@@ -3080,7 +3080,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loginviewmodel_startlisteningforbadgescans",
-      "community": 59,
+      "community": 32,
       "norm_label": ".startlisteningforbadgescans()"
     },
     {
@@ -3090,7 +3090,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loginviewmodel_submitcredentials",
-      "community": 59,
+      "community": 32,
       "norm_label": ".submitcredentials()"
     },
     {
@@ -3100,7 +3100,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loginviewmodel_attemptlogin",
-      "community": 59,
+      "community": 32,
       "norm_label": ".attemptlogin()"
     },
     {
@@ -3110,7 +3110,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loginviewmodel_retry",
-      "community": 59,
+      "community": 32,
       "norm_label": ".retry()"
     },
     {
@@ -3120,7 +3120,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_login_loginviewmodel_loginviewmodel_oncleared",
-      "community": 59,
+      "community": 32,
       "norm_label": ".oncleared()"
     },
     {
@@ -4057,7 +4057,7 @@
       "label": ".logout()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L178",
+      "source_location": "L175",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_logout",
       "community": 120,
@@ -4067,7 +4067,7 @@
       "label": ".loadAreaPicker()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L185",
+      "source_location": "L182",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_loadareapicker",
       "community": 120,
@@ -4077,7 +4077,7 @@
       "label": ".openArea()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L201",
+      "source_location": "L197",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openarea",
       "community": 120,
@@ -4087,7 +4087,7 @@
       "label": ".refresh()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L235",
+      "source_location": "L230",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_refresh",
       "community": 120,
@@ -4097,7 +4097,7 @@
       "label": ".board()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L243",
+      "source_location": "L238",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
       "community": 120,
@@ -4107,7 +4107,7 @@
       "label": ".setBoard()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L245",
+      "source_location": "L240",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
       "community": 120,
@@ -4117,7 +4117,7 @@
       "label": ".selectCollection()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L250",
+      "source_location": "L245",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_selectcollection",
       "community": 120,
@@ -4127,7 +4127,7 @@
       "label": ".toggleMix()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L257",
+      "source_location": "L252",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_togglemix",
       "community": 120,
@@ -4137,7 +4137,7 @@
       "label": ".clearSelection()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L274",
+      "source_location": "L269",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_clearselection",
       "community": 120,
@@ -4147,7 +4147,7 @@
       "label": ".machineChosen()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L286",
+      "source_location": "L281",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
       "community": 120,
@@ -4157,7 +4157,7 @@
       "label": ".updateDose()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L331",
+      "source_location": "L326",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_updatedose",
       "community": 120,
@@ -4167,7 +4167,7 @@
       "label": ".dismissSheet()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L340",
+      "source_location": "L335",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_dismisssheet",
       "community": 120,
@@ -4177,7 +4177,7 @@
       "label": ".confirmStart()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L346",
+      "source_location": "L341",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
       "community": 120,
@@ -4187,7 +4187,7 @@
       "label": ".validateDoses()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L379",
+      "source_location": "L374",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
       "community": 120,
@@ -4207,7 +4207,7 @@
       "label": ".finishCycle()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L399",
+      "source_location": "L394",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_finishcycle",
       "community": 120,
@@ -4217,7 +4217,7 @@
       "label": ".openForceClose()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L413",
+      "source_location": "L408",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openforceclose",
       "community": 120,
@@ -4227,7 +4227,7 @@
       "label": ".submitForceClose()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L419",
+      "source_location": "L414",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_submitforceclose",
       "community": 120,
@@ -4237,7 +4237,7 @@
       "label": ".applyOutcome()",
       "file_type": "code",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L454",
+      "source_location": "L447",
       "_origin": "ast",
       "id": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
       "community": 120,
@@ -4810,7 +4810,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttclientfactorytest",
-      "community": 165,
+      "community": 17,
       "norm_label": "mqttclientfactorytest.kt"
     },
     {
@@ -4820,7 +4820,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttclientfactorytest_mqttclientfactorytest",
-      "community": 165,
+      "community": 17,
       "norm_label": "mqttclientfactorytest"
     },
     {
@@ -4830,7 +4830,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttclientfactorytest_mqttclientfactorytest_build_returns_non_null_client_with_default_wss_settings",
-      "community": 165,
+      "community": 17,
       "norm_label": ".`build returns non-null client with default wss settings`()"
     },
     {
@@ -4840,7 +4840,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttclientfactorytest_mqttclientfactorytest_build_returns_non_null_client_with_tcp_plain_settings",
-      "community": 165,
+      "community": 17,
       "norm_label": ".`build returns non-null client with tcp plain settings`()"
     },
     {
@@ -4850,7 +4850,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttclientfactorytest_mqttclientfactorytest_build_returns_non_null_client_with_tls_only_settings",
-      "community": 165,
+      "community": 17,
       "norm_label": ".`build returns non-null client with tls only settings`()"
     },
     {
@@ -4880,7 +4880,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttclockskewtest_mqttclockskewtest_setup",
-      "community": 144,
+      "community": 4,
       "norm_label": ".setup()"
     },
     {
@@ -5470,7 +5470,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest",
-      "community": 160,
+      "community": 2,
       "norm_label": "mqttsessionexpirytest.kt"
     },
     {
@@ -5480,7 +5480,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest",
-      "community": 160,
+      "community": 2,
       "norm_label": "mqttsessionexpirytest"
     },
     {
@@ -5490,7 +5490,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest_setup",
-      "community": 7,
+      "community": 2,
       "norm_label": ".setup()"
     },
     {
@@ -5500,7 +5500,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest_messageidof",
-      "community": 160,
+      "community": 2,
       "norm_label": ".messageidof()"
     },
     {
@@ -5510,7 +5510,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_kt_int",
-      "community": 160,
+      "community": 2,
       "norm_label": "int"
     },
     {
@@ -5520,7 +5520,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_kt_string",
-      "community": 160,
+      "community": 2,
       "norm_label": "string"
     },
     {
@@ -5530,7 +5530,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest_requestandrespond",
-      "community": 160,
+      "community": 2,
       "norm_label": ".requestandrespond()"
     },
     {
@@ -5540,7 +5540,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest_a_session_required_rejection_clears_the_local_session",
-      "community": 160,
+      "community": 2,
       "norm_label": ".`a session_required rejection clears the local session`()"
     },
     {
@@ -5550,7 +5550,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest_an_unrelated_rejection_leaves_the_session_intact",
-      "community": 160,
+      "community": 2,
       "norm_label": ".`an unrelated rejection leaves the session intact`()"
     },
     {
@@ -5560,7 +5560,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest_a_rejection_with_no_error_code_leaves_the_session_intact",
-      "community": 160,
+      "community": 2,
       "norm_label": ".`a rejection with no error code leaves the session intact`()"
     },
     {
@@ -5570,7 +5570,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_mqtt_mqttsessionexpirytest_mqttsessionexpirytest_an_accepted_response_leaves_the_session_intact",
-      "community": 160,
+      "community": 2,
       "norm_label": ".`an accepted response leaves the session intact`()"
     },
     {
@@ -6230,7 +6230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_session_operatorsessionholdertest",
-      "community": 7,
+      "community": 2,
       "norm_label": "operatorsessionholdertest.kt"
     },
     {
@@ -6240,7 +6240,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_session_operatorsessionholdertest_operatorsessionholdertest",
-      "community": 7,
+      "community": 2,
       "norm_label": "operatorsessionholdertest"
     },
     {
@@ -6250,7 +6250,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_session_operatorsessionholdertest_operatorsessionholdertest_initial_session_is_null",
-      "community": 7,
+      "community": 2,
       "norm_label": ".`initial session is null`()"
     },
     {
@@ -6260,7 +6260,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_session_operatorsessionholdertest_operatorsessionholdertest_set_stores_the_session",
-      "community": 7,
+      "community": 2,
       "norm_label": ".`set stores the session`()"
     },
     {
@@ -6270,7 +6270,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_session_operatorsessionholdertest_operatorsessionholdertest_clear_removes_the_session",
-      "community": 7,
+      "community": 2,
       "norm_label": ".`clear removes the session`()"
     },
     {
@@ -6280,7 +6280,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_session_operatorsessionholdertest_operatorsessionholdertest_currentsessionidorempty_returns_empty_string_when_no_session",
-      "community": 7,
+      "community": 2,
       "norm_label": ".`currentsessionidorempty returns empty string when no session`()"
     },
     {
@@ -6290,7 +6290,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_data_session_operatorsessionholdertest_operatorsessionholdertest_currentsessionidorempty_returns_session_id_when_set",
-      "community": 7,
+      "community": 2,
       "norm_label": ".`currentsessionidorempty returns session id when set`()"
     },
     {
@@ -6794,20 +6794,10 @@
       "norm_label": ".`a rejected start still carries the embedded areastatus`()"
     },
     {
-      "label": ".`an envelope-level rejection with no areaStatus maps to null`()",
-      "file_type": "code",
-      "source_file": "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt",
-      "source_location": "L176",
-      "_origin": "ast",
-      "id": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest_an_envelope_level_rejection_with_no_areastatus_maps_to_null",
-      "community": 18,
-      "norm_label": ".`an envelope-level rejection with no areastatus maps to null`()"
-    },
-    {
       "label": ".`no response maps to Failed`()",
       "file_type": "code",
       "source_file": "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt",
-      "source_location": "L188",
+      "source_location": "L176",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest_no_response_maps_to_failed",
       "community": 18,
@@ -7610,7 +7600,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest",
-      "community": 161,
+      "community": 32,
       "norm_label": "loginviewmodeltest.kt"
     },
     {
@@ -7620,7 +7610,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest",
-      "community": 161,
+      "community": 32,
       "norm_label": "loginviewmodeltest"
     },
     {
@@ -7630,7 +7620,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "mutablesharedflow",
-      "community": 3,
+      "community": 59,
       "norm_label": "mutablesharedflow"
     },
     {
@@ -7640,7 +7630,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest_setup",
-      "community": 136,
+      "community": 59,
       "norm_label": ".setup()"
     },
     {
@@ -7650,7 +7640,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest_teardown",
-      "community": 161,
+      "community": 32,
       "norm_label": ".teardown()"
     },
     {
@@ -7660,7 +7650,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest_initial_state_is_idle",
-      "community": 161,
+      "community": 32,
       "norm_label": ".`initial state is idle`()"
     },
     {
@@ -7670,7 +7660,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest_submitcredentials_success_sets_loggedin_and_fires_navigation_event",
-      "community": 161,
+      "community": 32,
       "norm_label": ".`submitcredentials success sets loggedin and fires navigation event`()"
     },
     {
@@ -7680,7 +7670,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest_submitcredentials_failure_sets_error_state",
-      "community": 161,
+      "community": 32,
       "norm_label": ".`submitcredentials failure sets error state`()"
     },
     {
@@ -7690,7 +7680,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest_retry_after_error_resets_state_to_idle",
-      "community": 161,
+      "community": 32,
       "norm_label": ".`retry after error resets state to idle`()"
     },
     {
@@ -7700,7 +7690,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_login_loginviewmodeltest_loginviewmodeltest_badge_scan_while_showing_an_error_still_attempts_login",
-      "community": 161,
+      "community": 32,
       "norm_label": ".`badge scan while showing an error still attempts login`()"
     },
     {
@@ -7730,7 +7720,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_sessionwithactions",
-      "community": 3,
+      "community": 2,
       "norm_label": ".sessionwithactions()"
     },
     {
@@ -7740,7 +7730,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_kt_string",
-      "community": 3,
+      "community": 2,
       "norm_label": "string"
     },
     {
@@ -7750,7 +7740,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_setup",
-      "community": 3,
+      "community": 59,
       "norm_label": ".setup()"
     },
     {
@@ -7800,7 +7790,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_startlisteningforpalletscans_opens_enteringbagdetails_on_a_pallet_scan",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`startlisteningforpalletscans opens enteringbagdetails on a pallet scan`()"
     },
     {
@@ -7810,7 +7800,7 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_startlisteningforpalletscans_opens_enteringbagdetails_on_a_barcode_scan_too",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`startlisteningforpalletscans opens enteringbagdetails on a barcode scan too`()"
     },
     {
@@ -7820,7 +7810,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_cancelbagentry_returns_to_orderloaded",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`cancelbagentry returns to orderloaded`()"
     },
     {
@@ -8040,7 +8030,7 @@
       "source_location": "L793",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_a_stray_scan_while_the_waiver_approval_dialog_is_open_is_ignored_and_the_dialog_survives",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`a stray scan while the waiver-approval dialog is open is ignored and the dialog survives`()"
     },
     {
@@ -8230,7 +8220,7 @@
       "source_location": "L1174",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_a_stray_scan_while_the_manager_approval_dialog_is_open_is_ignored_and_the_dialog_survives",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`a stray scan while the manager-approval dialog is open is ignored and the dialog survives`()"
     },
     {
@@ -8240,7 +8230,7 @@
       "source_location": "L1219",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_a_scan_in_the_normal_orderloaded_state_is_still_processed_despite_the_guard",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`a scan in the normal orderloaded state is still processed despite the guard`()"
     },
     {
@@ -8250,7 +8240,7 @@
       "source_location": "L1241",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_a_scan_arriving_while_error_is_showing_still_reaches_the_scan_flow",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`a scan arriving while error is showing still reaches the scan flow`()"
     },
     {
@@ -8260,7 +8250,7 @@
       "source_location": "L1276",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_pausescanning_cancels_the_active_scan_job_so_further_scans_are_ignored",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`pausescanning cancels the active scan job so further scans are ignored`()"
     },
     {
@@ -8270,7 +8260,7 @@
       "source_location": "L1295",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_mixingviewmodeltest_mixingviewmodeltest_a_scan_with_a_bulk_line_armed_opens_quantity_entry_not_the_bag_picker",
-      "community": 3,
+      "community": 59,
       "norm_label": ".`a scan with a bulk line armed opens quantity entry, not the bag picker`()"
     },
     {
@@ -8360,7 +8350,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "mutablestateflow",
-      "community": 136,
+      "community": 59,
       "norm_label": "mutablestateflow"
     },
     {
@@ -8380,7 +8370,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_kt_string",
-      "community": 162,
+      "community": 149,
       "norm_label": "string"
     },
     {
@@ -8400,7 +8390,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_readymix",
-      "community": 162,
+      "community": 149,
       "norm_label": ".readymix()"
     },
     {
@@ -8410,7 +8400,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_kt_list",
-      "community": 162,
+      "community": 149,
       "norm_label": "list"
     },
     {
@@ -8420,7 +8410,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_setup",
-      "community": 136,
+      "community": 59,
       "norm_label": ".setup()"
     },
     {
@@ -8480,7 +8470,7 @@
       "source_location": "L155",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_computehighlightedmachines_for_mixes_uses_the_validnext_intersection_and_same_jc_accumulation",
-      "community": 162,
+      "community": 149,
       "norm_label": ".`computehighlightedmachines for mixes uses the validnext intersection and same-jc accumulation`()"
     },
     {
@@ -8584,30 +8574,10 @@
       "norm_label": ".`a rejected start applies the embedded areastatus and keeps the selection`()"
     },
     {
-      "label": ".`a rejection without areaStatus keeps the current board picture`()",
-      "file_type": "code",
-      "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L335",
-      "_origin": "ast",
-      "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_rejection_without_areastatus_keeps_the_current_board_picture",
-      "community": 149,
-      "norm_label": ".`a rejection without areastatus keeps the current board picture`()"
-    },
-    {
-      "label": ".`a late area load cannot overwrite a newer one`()",
-      "file_type": "code",
-      "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L355",
-      "_origin": "ast",
-      "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_late_area_load_cannot_overwrite_a_newer_one",
-      "community": 149,
-      "norm_label": ".`a late area load cannot overwrite a newer one`()"
-    },
-    {
       "label": ".`rajoo confirm validates doses fail-closed`()",
       "file_type": "code",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L375",
+      "source_location": "L335",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_rajoo_confirm_validates_doses_fail_closed",
       "community": 149,
@@ -8617,7 +8587,7 @@
       "label": ".`a scan while a sheet is open is ignored`()",
       "file_type": "code",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L399",
+      "source_location": "L359",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_while_a_sheet_is_open_is_ignored",
       "community": 149,
@@ -8627,7 +8597,7 @@
       "label": ".`a scan on the board dispatches machineChosen`()",
       "file_type": "code",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L417",
+      "source_location": "L377",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_on_the_board_dispatches_machinechosen",
       "community": 149,
@@ -8637,7 +8607,7 @@
       "label": ".`finishCycle sends the stored cycle id and messages alreadyFinished as success`()",
       "file_type": "code",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L433",
+      "source_location": "L393",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_finishcycle_sends_the_stored_cycle_id_and_messages_alreadyfinished_as_success",
       "community": 149,
@@ -8647,7 +8617,7 @@
       "label": ".`submitForceClose refuses blank credentials without touching the wire`()",
       "file_type": "code",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L451",
+      "source_location": "L411",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_submitforceclose_refuses_blank_credentials_without_touching_the_wire",
       "community": 149,
@@ -8657,10 +8627,10 @@
       "label": ".`toggleMix ignores a mix from another job card once one is selected`()",
       "file_type": "code",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L464",
+      "source_location": "L424",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_togglemix_ignores_a_mix_from_another_job_card_once_one_is_selected",
-      "community": 162,
+      "community": 149,
       "norm_label": ".`togglemix ignores a mix from another job card once one is selected`()"
     },
     {
@@ -8860,7 +8830,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "app_src_test_java_com_ppnam_station2aa_ui_settings_settingsviewmodeltest_settingsviewmodeltest_setup",
-      "community": 136,
+      "community": 59,
       "norm_label": ".setup()"
     },
     {
@@ -10166,7 +10136,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tools_backend_sim_sim",
-      "community": 132,
+      "community": 7,
       "norm_label": "sim.py"
     },
     {
@@ -10176,7 +10146,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_redacted",
-      "community": 132,
+      "community": 7,
       "norm_label": "_redacted()"
     },
     {
@@ -10186,7 +10156,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator",
-      "community": 132,
+      "community": 7,
       "norm_label": "simulator"
     },
     {
@@ -10196,7 +10166,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_init",
-      "community": 132,
+      "community": 7,
       "norm_label": ".__init__()"
     },
     {
@@ -10206,7 +10176,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_on_connect",
-      "community": 132,
+      "community": 7,
       "norm_label": ".on_connect()"
     },
     {
@@ -10216,7 +10186,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_announce",
-      "community": 132,
+      "community": 7,
       "norm_label": ".announce()"
     },
     {
@@ -10226,7 +10196,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_on_disconnect",
-      "community": 132,
+      "community": 7,
       "norm_label": ".on_disconnect()"
     },
     {
@@ -10236,7 +10206,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_on_message",
-      "community": 132,
+      "community": 7,
       "norm_label": ".on_message()"
     },
     {
@@ -10246,7 +10216,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_publish_response",
-      "community": 132,
+      "community": 7,
       "norm_label": ".publish_response()"
     },
     {
@@ -10256,7 +10226,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_worker",
-      "community": 132,
+      "community": 7,
       "norm_label": ".worker()"
     },
     {
@@ -10266,7 +10236,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_handle_request",
-      "community": 132,
+      "community": 7,
       "norm_label": ".handle_request()"
     },
     {
@@ -10276,7 +10246,7 @@
       "source_location": "L212",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_simulator_run",
-      "community": 132,
+      "community": 7,
       "norm_label": ".run()"
     },
     {
@@ -10286,7 +10256,7 @@
       "source_location": "L254",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_main",
-      "community": 132,
+      "community": 7,
       "norm_label": "main()"
     },
     {
@@ -10296,7 +10266,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_rationale_1",
-      "community": 132,
+      "community": 7,
       "norm_label": "station 2 backend simulator \u2014 answers the android handheld's mqtt v3 contract t"
     },
     {
@@ -10306,7 +10276,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "tools_backend_sim_sim_rationale_40",
-      "community": 132,
+      "community": 7,
       "norm_label": "wire-log payloads with credentials masked. the workflow still receives the"
     },
     {
@@ -19832,17 +19802,6 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt",
-      "source_location": "L178",
-      "weight": 1.0,
-      "source": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest_an_envelope_level_rejection_with_no_areastatus_maps_to_null",
-      "target": "app_src_main_java_com_ppnam_station2aa_data_mqtt_dto_mixingmessages_machinecycleresultresponse"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt",
       "source_location": "L149",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest_startdownstream_sends_mixbatchids_and_no_collectionid",
@@ -21089,7 +21048,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L107",
+      "source_location": "L104",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_accepted",
@@ -21149,7 +21108,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L126",
+      "source_location": "L123",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_failed",
@@ -21169,7 +21128,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L106",
+      "source_location": "L103",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_machinecycleoutcome",
@@ -21209,7 +21168,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L120",
+      "source_location": "L117",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_rejected",
@@ -21241,7 +21200,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L201",
+      "source_location": "L197",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openarea",
@@ -21265,7 +21224,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L219",
+      "source_location": "L214",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toequipment",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_equipment"
@@ -21287,7 +21246,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L290",
+      "source_location": "L285",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_equipment"
@@ -21309,7 +21268,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L235",
+      "source_location": "L230",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toreadymix",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_readymix"
@@ -21331,7 +21290,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L247",
+      "source_location": "L242",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactivecycle",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_activecycle"
@@ -21342,7 +21301,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L260",
+      "source_location": "L255",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactiverun",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_activerun"
@@ -21374,7 +21333,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L212",
+      "source_location": "L207",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toareaoverview",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_areaoverview",
@@ -21429,7 +21388,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L379",
+      "source_location": "L374",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_layerinput",
@@ -21450,7 +21409,7 @@
       "relation": "inherits",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L107",
+      "source_location": "L104",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_accepted",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_machinecycleoutcome",
@@ -21460,7 +21419,7 @@
       "relation": "inherits",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L126",
+      "source_location": "L123",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_failed",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_machinecycleoutcome",
@@ -21470,7 +21429,7 @@
       "relation": "inherits",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/model/MixingBoard.kt",
-      "source_location": "L120",
+      "source_location": "L117",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_rejected",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_model_mixingboard_machinecycleoutcome",
@@ -21546,7 +21505,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L454",
+      "source_location": "L447",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
@@ -22637,7 +22596,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L247",
+      "source_location": "L242",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactivecycle",
@@ -22647,7 +22606,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L260",
+      "source_location": "L255",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactiverun",
@@ -22657,7 +22616,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L212",
+      "source_location": "L207",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toareaoverview",
@@ -22667,7 +22626,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L219",
+      "source_location": "L214",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toequipment",
@@ -22677,7 +22636,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L235",
+      "source_location": "L230",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toreadymix",
@@ -23007,7 +22966,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L214",
+      "source_location": "L209",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toareaoverview",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactivecycle",
@@ -23018,7 +22977,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L216",
+      "source_location": "L211",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toareaoverview",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toactiverun",
@@ -23029,7 +22988,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L213",
+      "source_location": "L208",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toareaoverview",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toequipment",
@@ -23040,7 +22999,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt",
-      "source_location": "L215",
+      "source_location": "L210",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toareaoverview",
       "target": "app_src_main_java_com_ppnam_station2aa_domain_usecase_mixingboardusecase_mixingboardusecase_toreadymix",
@@ -26536,7 +26495,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L216",
+      "source_location": "L211",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openarea",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_collection",
@@ -26547,7 +26506,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L254",
+      "source_location": "L249",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_selectcollection",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_collection",
@@ -26558,7 +26517,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L270",
+      "source_location": "L265",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_togglemix",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixes",
@@ -26569,7 +26528,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L313",
+      "source_location": "L308",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_doserow",
@@ -26579,7 +26538,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L379",
+      "source_location": "L374",
       "weight": 1.0,
       "context": "generic_arg",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
@@ -26621,7 +26580,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L315",
+      "source_location": "L310",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_startconfirm",
@@ -26632,7 +26591,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L301",
+      "source_location": "L296",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_cyclesheet",
@@ -26643,7 +26602,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L416",
+      "source_location": "L411",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openforceclose",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_forceclosedialog",
@@ -26704,7 +26663,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L243",
+      "source_location": "L238",
       "weight": 1.0,
       "context": "return_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
@@ -26715,7 +26674,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L245",
+      "source_location": "L240",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -26727,7 +26686,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L192",
+      "source_location": "L188",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_loadareapicker",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_areapicker",
@@ -26738,7 +26697,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L221",
+      "source_location": "L216",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openarea",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_board",
@@ -26771,7 +26730,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L226",
+      "source_location": "L221",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openarea",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_computehighlightedmachines",
@@ -26782,7 +26741,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L247",
+      "source_location": "L242",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_computehighlightedmachines",
@@ -26825,7 +26784,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L185",
+      "source_location": "L182",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_loadareapicker",
@@ -26836,7 +26795,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L286",
+      "source_location": "L281",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
@@ -26847,7 +26806,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L250",
+      "source_location": "L245",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_selectcollection",
@@ -26858,7 +26817,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L419",
+      "source_location": "L414",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_submitforceclose",
@@ -26869,7 +26828,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L257",
+      "source_location": "L252",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_togglemix",
@@ -26880,7 +26839,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L331",
+      "source_location": "L326",
       "weight": 1.0,
       "context": "parameter_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_updatedose",
@@ -26902,7 +26861,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L152",
+      "source_location": "L149",
       "weight": 1.0,
       "context": "field",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
@@ -26935,7 +26894,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L454",
+      "source_location": "L447",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
@@ -26945,7 +26904,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L243",
+      "source_location": "L238",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
@@ -26955,7 +26914,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L274",
+      "source_location": "L269",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_clearselection",
@@ -26965,7 +26924,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L346",
+      "source_location": "L341",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
@@ -26975,7 +26934,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L340",
+      "source_location": "L335",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_dismisssheet",
@@ -26985,7 +26944,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L399",
+      "source_location": "L394",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_finishcycle",
@@ -26995,7 +26954,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L185",
+      "source_location": "L182",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_loadareapicker",
@@ -27005,7 +26964,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L178",
+      "source_location": "L175",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_logout",
@@ -27015,7 +26974,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L286",
+      "source_location": "L281",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
@@ -27025,7 +26984,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L201",
+      "source_location": "L197",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openarea",
@@ -27035,7 +26994,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L413",
+      "source_location": "L408",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openforceclose",
@@ -27045,7 +27004,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L235",
+      "source_location": "L230",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_refresh",
@@ -27055,7 +27014,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L250",
+      "source_location": "L245",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_selectcollection",
@@ -27065,7 +27024,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L245",
+      "source_location": "L240",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27075,7 +27034,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L419",
+      "source_location": "L414",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_submitforceclose",
@@ -27085,7 +27044,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L257",
+      "source_location": "L252",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_togglemix",
@@ -27095,7 +27054,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L331",
+      "source_location": "L326",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_updatedose",
@@ -27105,7 +27064,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L379",
+      "source_location": "L374",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
@@ -27127,7 +27086,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L421",
+      "source_location": "L381",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_on_the_board_dispatches_machinechosen",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
@@ -27138,7 +27097,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L403",
+      "source_location": "L363",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_while_a_sheet_is_open_is_ignored",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel",
@@ -27160,7 +27119,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L237",
+      "source_location": "L232",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_refresh",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_loadareapicker",
@@ -27171,7 +27130,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L238",
+      "source_location": "L233",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_refresh",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openarea",
@@ -27182,7 +27141,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L458",
+      "source_location": "L451",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
@@ -27193,153 +27152,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L275",
+      "source_location": "L270",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_clearselection",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L348",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L341",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_dismisssheet",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L401",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_finishcycle",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L287",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L414",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openforceclose",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L251",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_selectcollection",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L421",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_submitforceclose",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L258",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_togglemix",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L332",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_updatedose",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L391",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L462",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L277",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_clearselection",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L357",
-      "weight": 1.0,
-      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
-      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
       "confidence_score": 1.0
     },
     {
@@ -27349,6 +27165,149 @@
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
       "source_location": "L343",
       "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L336",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_dismisssheet",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L396",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_finishcycle",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L282",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L409",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openforceclose",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L246",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_selectcollection",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L416",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_submitforceclose",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L253",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_togglemix",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L327",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_updatedose",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L386",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_board",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L455",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L272",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_clearselection",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L352",
+      "weight": 1.0,
+      "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
+      "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
+      "source_location": "L338",
+      "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_dismisssheet",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
       "confidence_score": 1.0
@@ -27358,7 +27317,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L404",
+      "source_location": "L399",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_finishcycle",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27369,7 +27328,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L301",
+      "source_location": "L296",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_machinechosen",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27380,7 +27339,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L416",
+      "source_location": "L411",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_openforceclose",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27391,7 +27350,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L254",
+      "source_location": "L249",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_selectcollection",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27402,7 +27361,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L431",
+      "source_location": "L426",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_submitforceclose",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27413,7 +27372,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L271",
+      "source_location": "L266",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_togglemix",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27424,7 +27383,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L335",
+      "source_location": "L330",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_updatedose",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27435,7 +27394,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L393",
+      "source_location": "L388",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_setboard",
@@ -27446,7 +27405,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L371",
+      "source_location": "L366",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
@@ -27457,7 +27416,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L355",
+      "source_location": "L350",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_confirmstart",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
@@ -27467,7 +27426,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L379",
+      "source_location": "L374",
       "weight": 1.0,
       "context": "return_type",
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_validatedoses",
@@ -27479,7 +27438,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L406",
+      "source_location": "L401",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_finishcycle",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
@@ -27490,7 +27449,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt",
-      "source_location": "L439",
+      "source_location": "L434",
       "weight": 1.0,
       "source": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_submitforceclose",
       "target": "app_src_main_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodel_mixingboardviewmodel_applyoutcome",
@@ -30746,16 +30705,6 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt",
-      "source_location": "L176",
-      "weight": 1.0,
-      "source": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest",
-      "target": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest_an_envelope_level_rejection_with_no_areastatus_maps_to_null",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt",
       "source_location": "L84",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest",
@@ -30786,7 +30735,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt",
-      "source_location": "L188",
+      "source_location": "L176",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest",
       "target": "app_src_test_java_com_ppnam_station2aa_domain_usecase_mixingboardusecasetest_mixingboardusecasetest_no_response_maps_to_failed",
@@ -31988,7 +31937,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L419",
+      "source_location": "L379",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_on_the_board_dispatches_machinechosen",
       "target": "mutablesharedflow"
@@ -31999,7 +31948,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L401",
+      "source_location": "L361",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_while_a_sheet_is_open_is_ignored",
       "target": "mutablesharedflow"
@@ -32914,16 +32863,6 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L355",
-      "weight": 1.0,
-      "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
-      "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_late_area_load_cannot_overwrite_a_newer_one",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
       "source_location": "L314",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
@@ -32934,17 +32873,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L335",
-      "weight": 1.0,
-      "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
-      "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_rejection_without_areastatus_keeps_the_current_board_picture",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L417",
+      "source_location": "L377",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_on_the_board_dispatches_machinechosen",
@@ -32954,7 +32883,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L399",
+      "source_location": "L359",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_scan_while_a_sheet_is_open_is_ignored",
@@ -33014,7 +32943,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L433",
+      "source_location": "L393",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_finishcycle_sends_the_stored_cycle_id_and_messages_alreadyfinished_as_success",
@@ -33094,7 +33023,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L375",
+      "source_location": "L335",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_rajoo_confirm_validates_doses_fail_closed",
@@ -33144,7 +33073,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L451",
+      "source_location": "L411",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_submitforceclose_refuses_blank_credentials_without_touching_the_wire",
@@ -33174,7 +33103,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L464",
+      "source_location": "L424",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_togglemix_ignores_a_mix_from_another_job_card_once_one_is_selected",
@@ -33284,7 +33213,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L378",
+      "source_location": "L338",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_rajoo_confirm_validates_doses_fail_closed",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_equipment",
@@ -33328,7 +33257,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L467",
+      "source_location": "L427",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_togglemix_ignores_a_mix_from_another_job_card_once_one_is_selected",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_readymix",
@@ -33361,17 +33290,6 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L337",
-      "weight": 1.0,
-      "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_a_rejection_without_areastatus_keeps_the_current_board_picture",
-      "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_openmainboard",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
       "source_location": "L278",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_confirmstart_for_a_collection_on_a_plain_mixer_calls_startmixer",
@@ -33394,7 +33312,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L435",
+      "source_location": "L395",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_finishcycle_sends_the_stored_cycle_id_and_messages_alreadyfinished_as_success",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_openmainboard",
@@ -33438,7 +33356,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt",
-      "source_location": "L453",
+      "source_location": "L413",
       "weight": 1.0,
       "source": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_submitforceclose_refuses_blank_credentials_without_touching_the_wire",
       "target": "app_src_test_java_com_ppnam_station2aa_ui_mixing_board_mixingboardviewmodeltest_mixingboardviewmodeltest_openmainboard",
@@ -42618,5 +42536,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "97501fcedb5ced506198d5c46a571d0d261cf348"
+  "built_at_commit": "d39cb1b6615c8448bab8084b58a42af50d64b260"
 }

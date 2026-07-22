@@ -1,16 +1,16 @@
-# Graph Report - PPNAM_Station_2_AA  (2026-07-22)
+# Graph Report - PPNAM_Station_2_AA  (2026-07-21)
 
 ## Corpus Check
-- 993 files · ~2,704,667 words
+- 993 files · ~2,704,380 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1665 nodes · 2472 edges · 167 communities (89 shown, 78 thin omitted)
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 276 edges (avg confidence: 0.79)
+- 1662 nodes · 2467 edges · 160 communities (86 shown, 74 thin omitted)
+- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 275 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `97501fce`
+- Built from commit: `d39cb1b6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -170,13 +170,6 @@
 - .onCreate
 - SettingsRepository
 - .request
-- MqttSessionExpiryTest
-- LoginViewModelTest
-- .readyMix
-- LoginViewModel.kt
-- ConnectionStatus
-- MqttClientFactoryTest
-- MqttClientFactory
 
 ## God Nodes (most connected - your core abstractions)
 1. `MixingViewModelTest` - 67 edges
@@ -184,7 +177,7 @@
 3. `MixingUseCaseTest` - 47 edges
 4. `MixingBoardViewModel` - 38 edges
 5. `MqttRepositoryImpl` - 36 edges
-6. `MixingBoardViewModelTest` - 36 edges
+6. `MixingBoardViewModelTest` - 34 edges
 7. `OperatorSessionHolder` - 23 edges
 8. `World` - 23 edges
 9. `MqttRequestCorrelationTest` - 22 edges
@@ -205,7 +198,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (167 total, 78 thin omitted)
+## Communities (160 total, 74 thin omitted)
 
 ### Community 0 - "Room DAO Tests"
 Cohesion: 0.10
@@ -216,16 +209,16 @@ Cohesion: 0.08
 Nodes (9): ErrorCode, NextAction, Boolean, Int, String, MqttRequestCorrelationTest, TestBody, MqttVocabularyTest (+1 more)
 
 ### Community 2 - "Operator Session & App Entry"
-Cohesion: 0.11
-Nodes (11): BadgeLoginPayload, CredentialsLoginPayload, OperatorContextResponse, AuthUseCase, Badge, Credentials, String, Unit (+3 more)
+Cohesion: 0.06
+Nodes (20): BadgeLoginPayload, CredentialsLoginPayload, OperatorContextResponse, StateFlow, String, OperatorSession, OperatorSessionHolder, AuthUseCase (+12 more)
 
 ### Community 3 - "Pre-Mix Hopper Domain Models"
 Cohesion: 0.05
-Nodes (5): BomLine, Boolean, String, MixingViewModelTest, MutableSharedFlow
+Nodes (3): BomLine, Boolean, MixingViewModelTest
 
 ### Community 4 - "MQTT Message Envelope & Repository Impl"
-Cohesion: 0.19
-Nodes (9): Boolean, Int, Job, Long, Mqtt5AsyncClient, StateFlow, String, Unit (+1 more)
+Cohesion: 0.20
+Nodes (8): Boolean, Int, Job, Long, Mqtt5AsyncClient, StateFlow, Unit, MqttRepositoryImpl
 
 ### Community 5 - "Mixing ViewModel State Machine"
 Cohesion: 0.13
@@ -236,8 +229,8 @@ Cohesion: 0.13
 Nodes (9): PalletLookupResultResponse, Accepted, FailureKind, T, MqttOutcome, NoResponse, Rejected, PalletUseCaseTest (+1 more)
 
 ### Community 7 - "Operator Login & Auth Use Case"
-Cohesion: 0.21
-Nodes (5): StateFlow, String, OperatorSession, OperatorSessionHolder, OperatorSessionHolderTest
+Cohesion: 0.19
+Nodes (5): main(), Station 2 backend simulator — answers the Android handheld's MQTT v3 contract t, Wire-log payloads with credentials masked. The workflow still receives the, _redacted(), Simulator
 
 ### Community 8 - "Job Resume & Lookup Flow"
 Cohesion: 0.11
@@ -250,6 +243,10 @@ Nodes (19): HoldingRecoveryPayload, PalletLookupPayload, PalletInfo, PalletState
 ### Community 10 - "Job Cancel & Exception Approval Tests"
 Cohesion: 0.08
 Nodes (24): Definition of Done, Global Constraints, Handoff to sub-project 2, MQTT Schema 3.0 Protocol Foundation Implementation Plan, Open questions for the Station 2 developer, QoS must be verified by inspection, not by unit test, Sequencing Rationale, Task 10: Pallet lookup and holding recovery (+16 more)
+
+### Community 11 - "MQTT Client Factory & Reconnection Tests"
+Cohesion: 0.14
+Nodes (3): Mqtt5AsyncClient, MqttClientFactory, MqttRepositoryImplTest
 
 ### Community 12 - "Mixing Screen Flow & Navigation"
 Cohesion: 0.14
@@ -268,8 +265,8 @@ Cohesion: 0.27
 Nodes (4): Any, String, LoginPayload, RequestEnvelopeTest
 
 ### Community 17 - "App Settings Defaults & Tests"
-Cohesion: 0.23
-Nodes (3): AppSettings, Unit, AppSettingsTest
+Cohesion: 0.19
+Nodes (3): AppSettings, MqttClientFactoryTest, AppSettingsTest
 
 ### Community 18 - "Final MQTT Bugfix Round"
 Cohesion: 0.13
@@ -316,8 +313,8 @@ Cohesion: 0.07
 Nodes (29): 1.1 Updated and new action strings, 1.2 New broadcast subscription — `station2/hopper/status`, 1.3 MqttRepository interface + MqttRepositoryImpl changes, 1. MQTT Layer, 2.1 Updated `BomLine`, 2.2 New `IngredientValidationResult`, 2.3 New `HopperStatus`, 2.4 Updated `ScannedIngredient` (+21 more)
 
 ### Community 32 - "MqttRepository"
-Cohesion: 0.29
-Nodes (7): Barcode, SharedFlow, RfidTag, ScanEvent, ScanEventBus, SharedFlow, ScanRepository
+Cohesion: 0.08
+Nodes (18): Barcode, SharedFlow, RfidTag, ScanEvent, ScanEventBus, SharedFlow, ScanRepository, Error (+10 more)
 
 ### Community 33 - "MixingViewModel.kt"
 Cohesion: 0.09
@@ -391,10 +388,6 @@ Nodes (8): Global Constraints, Job Card Lifecycle — Android Implementation Pla
 Cohesion: 0.22
 Nodes (8): Global Constraints, Manual Verification (required before this ships, per the spec's Verification Caveat), MQTT Reconnection Reliability Fix Implementation Plan, Task 1: Transport-connected flag guards `connect()` against a live client, Task 2: Generic bounded-retry helper, Task 3: Extract `handleTransportDisconnected`, set `RECONNECTING` not `DISCONNECTED`, Task 4: Bounded subscribe-retry replaces the buggy re-`connect()` path, Task 5: Timeout guard on `connect()`'s connect attempt
 
-### Community 59 - "HomeTile"
-Cohesion: 0.27
-Nodes (5): Flow, Job, StateFlow, String, LoginViewModel
-
 ### Community 119 - "Global Constraints"
 Cohesion: 0.18
 Nodes (10): Global Constraints, Job Card Lookup as Landing Screen — Implementation Plan, Task 1: `MixingViewModel` gains `pauseScanning()`, `session`, and `logout()`, Task 2: `AppScaffold` gains an RFID Pallet Lookup top-bar action, Task 3: `JobLookupScreen` becomes the landing screen (session, logout, settings, RFID button, saveable input), Task 4: `IngredientScanScreen` gets the RFID button and saveable local state, Task 5: `HopperScanScreen` gets the RFID button, Task 6: `PreMixCompleteScreen` gets the RFID button and saveable confirmation state (+2 more)
@@ -448,8 +441,8 @@ Cohesion: 0.22
 Nodes (19): collection_is_complete(), collection_progress(), collection_summary(), handheld_lines(), ingredients_payload(), line_payload(), r3(), Shared helpers for message-family handlers. (+11 more)
 
 ### Community 132 - "SimLogger"
-Cohesion: 0.09
-Nodes (11): main(), Station 2 backend simulator — answers the Android handheld's MQTT v3 contract t, Wire-log payloads with credentials masked. The workflow still receives the, _redacted(), Simulator, Logging subsystem for the Station 2 backend simulator.  Four channels per run, a, Deep-copy obj with credential values replaced but their presence preserved., payload: dict, str, or bytes. Logged in full (redacted). (+3 more)
+Cohesion: 0.18
+Nodes (6): Logging subsystem for the Station 2 backend simulator.  Four channels per run, a, Deep-copy obj with credential values replaced but their presence preserved., payload: dict, str, or bytes. Logged in full (redacted)., redact(), SimLogger, utc_now_iso()
 
 ### Community 134 - "Rejection"
 Cohesion: 0.15
@@ -461,11 +454,11 @@ Nodes (3): ConnectionStatusTest, Boolean, Long
 
 ### Community 136 - "AuthUseCase"
 Cohesion: 0.20
-Nodes (4): StateFlow, String, SettingsViewModel, MutableStateFlow
+Nodes (7): ConnectionStatus, Boolean, Long, resolveConnectionStatus(), StateFlow, String, SettingsViewModel
 
 ### Community 137 - "Simulator"
-Cohesion: 0.29
-Nodes (5): Boolean, Long, StateFlow, MqttConnectionState, MqttRepository
+Cohesion: 0.22
+Nodes (6): Boolean, Long, StateFlow, Unit, MqttConnectionState, MqttRepository
 
 ### Community 138 - "HomeViewModel"
 Cohesion: 0.22
@@ -499,9 +492,13 @@ Nodes (9): ConfigSection(), Boolean, String, SectionLabel(), SettingsScreen(), S
 Cohesion: 0.25
 Nodes (7): Logs (per run: `logs/<UTC-timestamp>/`), Options, Seed world, Self-test, Setup, Station 2 Backend Simulator, What it deliberately does not do
 
+### Community 149 - "MqttVocabularyTest"
+Cohesion: 0.10
+Nodes (6): ActiveRun, ReadyMix, Boolean, List, String, MixingBoardViewModelTest
+
 ### Community 150 - ".request"
-Cohesion: 0.60
-Nodes (3): Any, Class, T
+Cohesion: 0.39
+Nodes (4): Any, Class, String, T
 
 ### Community 151 - "MixingBoardUseCase"
 Cohesion: 0.19
@@ -527,36 +524,20 @@ Nodes (3): Keys, Flow, SettingsRepository
 Cohesion: 0.40
 Nodes (4): Any, Class, String, T
 
-### Community 160 - "MqttSessionExpiryTest"
-Cohesion: 0.33
-Nodes (3): Int, String, MqttSessionExpiryTest
-
-### Community 162 - ".readyMix"
-Cohesion: 0.29
-Nodes (4): ActiveRun, ReadyMix, List, String
-
-### Community 163 - "LoginViewModel.kt"
-Cohesion: 0.60
-Nodes (5): Error, Idle, LoggedIn, LoggingIn, LoginUiState
-
-### Community 164 - "ConnectionStatus"
-Cohesion: 0.50
-Nodes (4): ConnectionStatus, Boolean, Long, resolveConnectionStatus()
-
 ## Knowledge Gaps
 - **470 isolated node(s):** `FailureKind`, `MqttSchema`, `EmptyPayload`, `ReadyMixDto`, `ActiveCycleDto` (+465 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **78 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **74 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `MqttRepository` connect `Simulator` to `Room DAO Tests`, `LoginViewModelTest`, `Operator Session & App Entry`, `Pre-Mix Hopper Domain Models`, `MQTT Message Envelope & Repository Impl`, `BOM Line Response & Lookup Tests`, `Typed MQTT Result & Repository Contract`, `Dashboard & RFID Recovery ViewModels`, `App Settings Defaults & Tests`, `Final MQTT Bugfix Round`, `MqttVocabularyTest`, `PalletUseCase`, `.request`?**
-  _High betweenness centrality (0.081) - this node is a cross-community bridge._
-- **Why does `MqttRepositoryImpl` connect `MQTT Message Envelope & Repository Impl` to `Room DAO Tests`, `Offline Queue Repository & RFID Scan Bus`, `MqttSessionExpiryTest`, `Operator Login & Auth Use Case`, `Simulator`, `MQTT Client Factory & Reconnection Tests`, `MqttClockSkewTest`, `MqttRepository`, `LoginViewModel.kt`, `.request`?**
-  _High betweenness centrality (0.062) - this node is a cross-community bridge._
-- **Why does `Rejection` connect `Rejection` to `MixingViewModel.kt`, `common.py`, `SimLogger`, `state.py`, `jobcards.py`, `Dashboard Use Case & Tests`, `BomLine`?**
-  _High betweenness centrality (0.060) - this node is a cross-community bridge._
+- **Why does `MqttRepository` connect `Simulator` to `Room DAO Tests`, `MqttRepository`, `Operator Session & App Entry`, `Pre-Mix Hopper Domain Models`, `MQTT Message Envelope & Repository Impl`, `BOM Line Response & Lookup Tests`, `Typed MQTT Result & Repository Contract`, `Dashboard & RFID Recovery ViewModels`, `Final MQTT Bugfix Round`, `MqttVocabularyTest`, `PalletUseCase`, `.request`?**
+  _High betweenness centrality (0.083) - this node is a cross-community bridge._
+- **Why does `MqttRepositoryImpl` connect `MQTT Message Envelope & Repository Impl` to `Room DAO Tests`, `Offline Queue Repository & RFID Scan Bus`, `Operator Session & App Entry`, `Simulator`, `MQTT Client Factory & Reconnection Tests`, `MqttClockSkewTest`, `MqttRepository`, `LoginViewModel.kt`, `.request`?**
+  _High betweenness centrality (0.063) - this node is a cross-community bridge._
+- **Why does `Rejection` connect `Rejection` to `MixingViewModel.kt`, `common.py`, `Operator Login & Auth Use Case`, `state.py`, `jobcards.py`, `Dashboard Use Case & Tests`, `BomLine`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **What connects `FailureKind`, `MqttSchema`, `EmptyPayload` to the rest of the system?**
   _510 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Room DAO Tests` be split into smaller, more focused modules?**
@@ -564,4 +545,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Offline Queue Repository & RFID Scan Bus` be split into smaller, more focused modules?**
   _Cohesion score 0.08408408408408409 - nodes in this community are weakly interconnected._
 - **Should `Operator Session & App Entry` be split into smaller, more focused modules?**
-  _Cohesion score 0.11494252873563218 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05868118572292801 - nodes in this community are weakly interconnected._
