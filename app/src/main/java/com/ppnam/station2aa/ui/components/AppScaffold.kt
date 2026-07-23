@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ppnam.station2aa.ui.theme.*
 
@@ -61,29 +62,50 @@ fun AppScaffold(
         )
     }
 
+    val statusPill: @Composable () -> Unit = {
+        Box(
+            modifier = Modifier
+                .padding(end = 12.dp)
+                .clip(RoundedCornerShape(50))
+                .background(dotColor.copy(alpha = 0.12f))
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Canvas(modifier = Modifier.size(6.dp)) {
+                    drawCircle(color = dotColor)
+                }
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    text = statusLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = dotColor
+                )
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary
-                    )
-                },
-                navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = AmberPrimary
-                            )
+            Column(modifier = Modifier.background(GraphiteSurface)) {
+                if (operatorName != null) {
+                    // Operator info anchors the left edge of this row (after an optional back
+                    // arrow) so it lines up with the title row directly beneath it.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = AmberPrimary
+                                )
+                            }
                         }
-                    }
-                },
-                actions = {
-                    if (operatorName != null) {
                         TextButton(onClick = { showLogoutDialog = true }) {
                             Text(
                                 text = if (!operatorRole.isNullOrBlank()) "$operatorName · $operatorRole" else operatorName,
@@ -91,49 +113,88 @@ fun AppScaffold(
                                 style = MaterialTheme.typography.labelMedium
                             )
                         }
-                    }
-                    if (onRfidLookup != null) {
-                        IconButton(onClick = onRfidLookup) {
-                            Icon(
-                                imageVector = Icons.Filled.WifiTethering,
-                                contentDescription = "RFID Pallet Lookup",
-                                tint = TextMuted
-                            )
-                        }
-                    }
-                    if (onSettings != null) {
-                        IconButton(onClick = onSettings) {
-                            Icon(
-                                imageVector = Icons.Filled.Settings,
-                                contentDescription = "Settings",
-                                tint = TextMuted
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 12.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(dotColor.copy(alpha = 0.12f))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Canvas(modifier = Modifier.size(6.dp)) {
-                                drawCircle(color = dotColor)
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (onRfidLookup != null) {
+                            IconButton(onClick = onRfidLookup) {
+                                Icon(
+                                    imageVector = Icons.Filled.WifiTethering,
+                                    contentDescription = "RFID Pallet Lookup",
+                                    tint = TextMuted
+                                )
                             }
-                            Spacer(Modifier.width(5.dp))
-                            Text(
-                                text = statusLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = dotColor
-                            )
                         }
+                        if (onSettings != null) {
+                            IconButton(onClick = onSettings) {
+                                Icon(
+                                    imageVector = Icons.Filled.Settings,
+                                    contentDescription = "Settings",
+                                    tint = TextMuted
+                                )
+                            }
+                        }
+                        statusPill()
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = GraphiteSurface
-                )
-            )
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+                    )
+                } else {
+                    // No operator to anchor a second row on - a single standard bar with the
+                    // title in its usual slot has plenty of room and needs no extra row.
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        navigationIcon = {
+                            if (onBack != null) {
+                                IconButton(onClick = onBack) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = AmberPrimary
+                                    )
+                                }
+                            }
+                        },
+                        actions = {
+                            if (onRfidLookup != null) {
+                                IconButton(onClick = onRfidLookup) {
+                                    Icon(
+                                        imageVector = Icons.Filled.WifiTethering,
+                                        contentDescription = "RFID Pallet Lookup",
+                                        tint = TextMuted
+                                    )
+                                }
+                            }
+                            if (onSettings != null) {
+                                IconButton(onClick = onSettings) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Settings,
+                                        contentDescription = "Settings",
+                                        tint = TextMuted
+                                    )
+                                }
+                            }
+                            statusPill()
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = GraphiteSurface
+                        )
+                    )
+                }
+            }
         },
         containerColor = GraphiteBackground,
         content = content
