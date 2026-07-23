@@ -9,7 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.theme.AmberPrimary
@@ -32,7 +35,20 @@ fun MixingAreaPickerScreen(
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val session by viewModel.session.collectAsState()
 
-    LaunchedEffect(Unit) { viewModel.loadAreaPicker(pendingCollectionId) }
+    // Re-fetches on first entry AND every time this screen becomes visible again -
+    // including the app being backgrounded (interrupted, screen-locked) and resumed later,
+    // which a plain LaunchedEffect(Unit) would miss since the composable never leaves
+    // composition in that case.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, pendingCollectionId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadAreaPicker(pendingCollectionId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     LaunchedEffect(Unit) { viewModel.logoutEvent.collect { onLogout() } }
 
     AppScaffold(
