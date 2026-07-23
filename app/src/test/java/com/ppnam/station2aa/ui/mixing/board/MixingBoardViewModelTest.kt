@@ -192,6 +192,39 @@ class MixingBoardViewModelTest {
     }
 
     @Test
+    fun `machineTabOf puts mixers under Collections and everything else under Mixing`() {
+        val equipment = listOf(
+            equipment("MXR-01"),
+            equipment("EXT-03", role = "ProductionMachine"),
+            equipment("TRF-01", role = "Transfer"),
+            equipment("UNK-01", role = ""), // unmodelled role — still reachable, not dropped
+        )
+        assertEquals(
+            listOf("MXR-01"),
+            equipment.filter { machineTabOf(it) == MachineTab.Collections }.map { it.machineCode })
+        assertEquals(
+            listOf("EXT-03", "TRF-01", "UNK-01"),
+            equipment.filter { machineTabOf(it) == MachineTab.Mixing }.map { it.machineCode })
+    }
+
+    @Test
+    fun `every highlighted machine is visible on some tab`() {
+        val overview = mainOverview.copy(activeRuns = emptyList())
+        val collectionHighlights =
+            computeHighlightedMachines(overview, BoardSelection.Collection("COL_1", "510019068"))
+        val mixHighlights =
+            computeHighlightedMachines(overview, BoardSelection.Mixes(listOf("MIX_1"), "510019068"))
+        val collectionsTab = overview.equipment
+            .filter { machineTabOf(it) == MachineTab.Collections }.map { it.machineCode }.toSet()
+        val mixingTab = overview.equipment
+            .filter { machineTabOf(it) == MachineTab.Mixing }.map { it.machineCode }.toSet()
+        // A collection's highlights all sit on the Collections tab, a mix's on the Mixing tab —
+        // the tab the selection auto-switches to.
+        assertTrue(collectionsTab.containsAll(collectionHighlights))
+        assertTrue(mixingTab.containsAll(mixHighlights))
+    }
+
+    @Test
     fun `the auto-nav pre-selection is one-shot — a refresh does not re-assert it`() = runTest {
         whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))

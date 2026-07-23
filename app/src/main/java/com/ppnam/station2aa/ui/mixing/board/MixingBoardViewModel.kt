@@ -84,6 +84,23 @@ sealed class MixingBoardUiState {
 }
 
 /**
+ * The machine grid splits by what a machine can be started FROM: a collection starts on a
+ * mixer, a finished mix moves downstream. An area carries more machines than fit one screen,
+ * so the grid shows one side at a time.
+ */
+enum class MachineTab(val label: String) {
+    Collections("Collections"),
+    Mixing("Mixing"),
+}
+
+/**
+ * Every machine lands in exactly one tab, so none is unreachable. Downstream is the default:
+ * an unknown or blank role (§13.7 tolerates roles we don't model) still shows up somewhere.
+ */
+internal fun machineTabOf(machine: Equipment): MachineTab =
+    if (machine.role == "Mixer") MachineTab.Collections else MachineTab.Mixing
+
+/**
  * The pure highlight rule, unit-testable without the ViewModel. Highlights guide TAPS only —
  * a SCAN of any machine is trusted intent and goes to the server regardless (§13.7/§13.8:
  * availability and destinations render from server data; the server stays authoritative).
@@ -91,8 +108,10 @@ sealed class MixingBoardUiState {
 internal fun computeHighlightedMachines(overview: AreaOverview, selection: BoardSelection): Set<String> =
     when (selection) {
         is BoardSelection.None -> emptySet()
+        // Same predicate as the Collections tab, deliberately — a collection must never
+        // highlight a machine the tab it lands on doesn't show.
         is BoardSelection.Collection -> overview.equipment
-            .filter { it.role == "Mixer" && it.isEnabled && it.status == "Available" }
+            .filter { machineTabOf(it) == MachineTab.Collections && it.isEnabled && it.status == "Available" }
             .map { it.machineCode }
             .toSet()
         is BoardSelection.Mixes -> {

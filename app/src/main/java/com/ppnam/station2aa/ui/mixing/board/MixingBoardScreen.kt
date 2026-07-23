@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -88,6 +89,20 @@ fun MixingBoardScreen(
 
 @Composable
 private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoardViewModel) {
+    // An area carries far more machines than fit one screen, so the grid shows one side at a
+    // time: what a collection can start on, or what a finished mix moves to.
+    var machineTab by rememberSaveable { mutableStateOf(MachineTab.Collections) }
+    // Picking a source jumps to the tab holding its highlighted machines — otherwise the
+    // operator selects a mix and stares at a grid of mixers that will never light up.
+    LaunchedEffect(board.selection) {
+        when (board.selection) {
+            is BoardSelection.Collection -> machineTab = MachineTab.Collections
+            is BoardSelection.Mixes -> machineTab = MachineTab.Mixing
+            is BoardSelection.None -> Unit
+        }
+    }
+    val tabMachines = board.overview.equipment.filter { machineTabOf(it) == machineTab }
+
     Column(Modifier.fillMaxSize()) {
         if (board.busy) {
             LinearProgressIndicator(
@@ -173,8 +188,26 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
             }
 
             item { SectionHeader("Machines") }
+            item {
+                MachineTabs(
+                    selected = machineTab,
+                    equipment = board.overview.equipment,
+                    highlighted = board.highlightedMachineCodes,
+                    onSelect = { machineTab = it },
+                )
+            }
+            if (tabMachines.isEmpty()) {
+                item {
+                    Text(
+                        "No machines in this area take a " +
+                            if (machineTab == MachineTab.Collections) "collection." else "mix.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                    )
+                }
+            }
             items(
-                board.overview.equipment.chunked(2),
+                tabMachines.chunked(2),
                 key = { pair -> pair.joinToString("|") { it.machineCode } },
             ) { pair ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -211,6 +244,45 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                                 style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MachineTabs(
+    selected: MachineTab,
+    equipment: List<Equipment>,
+    highlighted: Set<String>,
+    onSelect: (MachineTab) -> Unit,
+) {
+    TabRow(
+        selectedTabIndex = selected.ordinal,
+        containerColor = GraphiteSurface,
+        contentColor = AmberPrimary,
+    ) {
+        MachineTab.entries.forEach { tab ->
+            val machines = equipment.filter { machineTabOf(it) == tab }
+            val ready = machines.count { it.machineCode in highlighted }
+            Tab(
+                selected = tab == selected,
+                onClick = { onSelect(tab) },
+                selectedContentColor = AmberPrimary,
+                unselectedContentColor = TextMuted,
+            ) {
+                Column(
+                    Modifier.padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(tab.label, style = MaterialTheme.typography.labelLarge)
+                    // The ready count keeps highlighted machines findable behind the other
+                    // tab — a hidden highlight the operator can't see is a dead end.
+                    Text(
+                        if (ready > 0) "$ready ready" else "${machines.size} machine(s)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (ready > 0) SuccessGreen else TextMuted,
+                    )
                 }
             }
         }
