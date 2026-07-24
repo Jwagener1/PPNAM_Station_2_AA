@@ -4,6 +4,7 @@ import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
+import com.ppnam.station2aa.data.session.canShow
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
@@ -564,9 +565,11 @@ class MixingViewModelTest {
             // second tap lands — this is what an unconfined dispatcher can't reproduce.
             vm.submitManagerApproval("manager1", "secret", "Approved after verified spillage.")
             runCurrent()
+            // Inline-busy, not a whole-screen Loading: the line list stays rendered while the
+            // request is out (see MixingUiState.OrderLoaded.pendingLabel).
             assertTrue(
                 "sanity check: the first submission should be in flight before the double-tap",
-                vm.uiState.value is MixingUiState.Loading
+                (vm.uiState.value as? MixingUiState.OrderLoaded)?.isBusy == true
             )
             vm.submitManagerApproval("manager1", "secret", "Approved after verified spillage.")
             runCurrent()
@@ -629,7 +632,7 @@ class MixingViewModelTest {
             runCurrent()
             assertTrue(
                 "sanity check: the resubmit should be in flight before it's cancelled",
-                vm.uiState.value is MixingUiState.Loading
+                (vm.uiState.value as? MixingUiState.OrderLoaded)?.isBusy == true
             )
 
             vm.cancelManagerApproval()
@@ -710,9 +713,11 @@ class MixingViewModelTest {
 
             vm.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
             runCurrent()
+            // Inline-busy, not a whole-screen Loading: the line list stays rendered while the
+            // request is out (see MixingUiState.OrderLoaded.pendingLabel).
             assertTrue(
                 "sanity check: the first submission should be in flight before the double-tap",
-                vm.uiState.value is MixingUiState.Loading
+                (vm.uiState.value as? MixingUiState.OrderLoaded)?.isBusy == true
             )
             vm.submitShortBagWaiver("MAT-001", 2.0, "manager1", "secret", "Short by 2 bags")
             runCurrent()
@@ -844,7 +849,7 @@ class MixingViewModelTest {
             runCurrent()
             assertTrue(
                 "sanity check: the waiver should be in flight before it's cancelled",
-                vm.uiState.value is MixingUiState.Loading
+                (vm.uiState.value as? MixingUiState.OrderLoaded)?.isBusy == true
             )
 
             vm.cancelShortBagWaiver()
@@ -1397,5 +1402,209 @@ class MixingViewModelTest {
         // Nothing loaded: Idle state, no cached order.
         viewModel.openShortBagWaiver("MAT-001")
         assertTrue(viewModel.uiState.value is MixingUiState.Idle)
+    }
+
+    // --- A2: the bag dialog must never open without a line to attribute the scan to ---
+
+    private val twoOpenLinesOrder = ProductionOrder(
+        docNo = "510019068",
+        collectionId = "COL_000001",
+        lines = listOf(
+            BomLine(lineNumber = 0, itemCode = "MAT-001", itemName = "Resin", requiredQty = 10.0,
+                remainingQty = 10.0, remainingBags = 4.0, bagSize = "25.000 kg"),
+            BomLine(lineNumber = 1, itemCode = "MAT-002", itemName = "Filler", requiredQty = 5.0,
+                remainingQty = 5.0, remainingBags = 2.0, bagSize = "25.000 kg"),
+        )
+    )
+
+    @Test
+    fun `a scan with no line armed and several open lines refuses up front instead of opening the dialog`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(twoOpenLinesOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+        vm.startListeningForPalletScans("510019068")
+
+        val errors = mutableListOf<String>()
+        val job = launch(testDispatcher) { vm.supervisorError.collect { errors.add(it) } }
+
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        // The old behaviour opened the bag dialog anyway, let the operator pick a bag size and
+        // type a count, then discarded the whole entry on Confirm with an auto-dismissing
+        // snackbar and published nothing. Refusing here is the whole point.
+        assertTrue(
+            "the dialog must not open when the app cannot tell which line the pallet is for",
+            vm.uiState.value is MixingUiState.OrderLoaded
+        )
+        assertTrue(errors.isNotEmpty())
+        job.cancel()
+    }
+
+    @Test
+    fun `a scan with no line armed auto-arms when exactly one line is still open`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        val oneOpenLine = twoOpenLinesOrder.copy(
+            lines = listOf(
+                twoOpenLinesOrder.lines[0].copy(remainingQty = 0.0, remainingBags = 0.0),
+                twoOpenLinesOrder.lines[1],
+            )
+        )
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(oneOpenLine))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+        vm.startListeningForPalletScans("510019068")
+
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(state is MixingUiState.EnteringBagDetails)
+        state as MixingUiState.EnteringBagDetails
+        assertEquals(1, state.lineNumber)
+        assertEquals("MAT-002", state.materialCode)
+        // The dialog can now show what's still required instead of the operator having to
+        // remember it from the card behind the dialog.
+        assertEquals(2.0, state.remainingBags!!, 0.0)
+    }
+
+    @Test
+    fun `the bag dialog carries the armed line's material and remaining bags`() = runTest {
+        val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+        whenever(mockScanEventBus.events).thenReturn(events)
+        val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+        whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(twoOpenLinesOrder))
+        vm.lookupJob("510019068")
+        advanceUntilIdle()
+        vm.selectLine(0)
+        vm.startListeningForPalletScans("510019068")
+
+        events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:300833", java.time.Instant.now()))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as MixingUiState.EnteringBagDetails
+        assertEquals(0, state.lineNumber)
+        assertEquals("MAT-001", state.materialCode)
+        assertEquals("Resin", state.materialName)
+        assertEquals(4.0, state.remainingBags!!, 0.0)
+        assertEquals("25.000 kg", state.bagSize)
+    }
+
+    // --- A5: a scan marks its own line pending instead of blanking the screen ---
+
+    @Test
+    fun `an in-flight scan keeps the order on screen and marks only its own line pending`() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        runTest(dispatcher) {
+            val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+            whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(twoOpenLinesOrder))
+            vm.lookupJob("510019068")
+            advanceUntilIdle()
+            vm.selectLine(1)
+
+            val gate = CompletableDeferred<Result<IngredientScanOutcome>>()
+            mockUseCase.stub {
+                onBlocking {
+                    scanIngredient(eq("COL_000001"), eq("EPC:1"), eq("MAT-002"),
+                        eq("full"), eq(2.0), isNull(), isNull(), isNull(), isNull())
+                } doSuspendableAnswer { gate.await() }
+            }
+
+            vm.confirmIngredientScan("EPC:1", "full", 2.0)
+            runCurrent()
+
+            val state = vm.uiState.value
+            assertTrue(
+                "the operator must still be able to see what they have already collected",
+                state is MixingUiState.OrderLoaded
+            )
+            state as MixingUiState.OrderLoaded
+            assertEquals(twoOpenLinesOrder.lines, state.order.lines)
+            assertTrue(state.isBusy)
+            assertEquals(1, state.pendingLineNumber)
+
+            gate.complete(Result.success(IngredientScanOutcome.Accepted(
+                twoOpenLinesOrder.lines,
+                collectionSummary = "",
+                collectionStatus = "Collecting",
+                overCollectionToleranceBags = 1.0,
+                nextAction = NextAction.SCAN_INGREDIENT,
+            )))
+            advanceUntilIdle()
+
+            val settled = vm.uiState.value as MixingUiState.OrderLoaded
+            assertFalse("pending must clear once the response lands", settled.isBusy)
+            assertNull(settled.pendingLineNumber)
+            // The tolerance the dialog quotes comes from the server, not a hardcoded constant.
+            assertEquals(1.0, vm.overCollectionToleranceBags.value!!, 0.0)
+        }
+    }
+
+    @Test
+    fun `a scan arriving while a request is in flight is ignored`() = runTest {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        runTest(dispatcher) {
+            val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
+            whenever(mockScanEventBus.events).thenReturn(events)
+            val vm = MixingViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
+            whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(twoOpenLinesOrder))
+            vm.lookupJob("510019068")
+            advanceUntilIdle()
+            vm.selectLine(0)
+            vm.startListeningForPalletScans("510019068")
+
+            val gate = CompletableDeferred<Result<IngredientScanOutcome>>()
+            mockUseCase.stub {
+                onBlocking {
+                    scanIngredient(any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull(),
+                        anyOrNull(), anyOrNull(), anyOrNull())
+                } doSuspendableAnswer { gate.await() }
+            }
+            vm.confirmIngredientScan("EPC:1", "full", 2.0)
+            runCurrent()
+
+            // Inline-busy replaced the whole-screen Loading state, so the scan guard has to key
+            // off isBusy now — otherwise a stray read mid-request would race the response.
+            events.emit(com.ppnam.station2aa.data.rfid.ScanEvent.RfidTag("EPC:STRAY", java.time.Instant.now()))
+            runCurrent()
+
+            assertTrue(vm.uiState.value is MixingUiState.OrderLoaded)
+            assertEquals(0, (vm.uiState.value as MixingUiState.OrderLoaded).pendingLineNumber)
+
+            gate.complete(Result.success(IngredientScanOutcome.Rejected("nope")))
+            advanceUntilIdle()
+        }
+    }
+
+    // --- A3: allowedActions gates what the UI OFFERS, never what it authorises ---
+
+    @Test
+    fun `canShow hides an action the session does not carry and shows one it does`() {
+        val operator = sessionWithActions("scan_ingredient", "recover_holding")
+        assertFalse(operator.canShow("machine_force_close"))
+        assertTrue(operator.canShow("scan_ingredient"))
+    }
+
+    @Test
+    fun `canShow fails open on an empty allowedActions list`() {
+        // A session that arrived without the hint (older Station 2, trimmed payload) must render
+        // the full UI and let the server reject — hiding controls the operator is entitled to
+        // would be the worse failure.
+        val noHint = sessionWithActions()
+        assertTrue(noHint.canShow("machine_force_close"))
+        assertTrue(noHint.canShow("anything_at_all"))
+    }
+
+    @Test
+    fun `canShow on a null session offers nothing`() {
+        val none: com.ppnam.station2aa.data.session.OperatorSession? = null
+        assertFalse(none.canShow("machine_force_close"))
     }
 }

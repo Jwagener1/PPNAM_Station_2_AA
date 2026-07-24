@@ -23,8 +23,18 @@ enum class PalletState {
     Consumed;
 
     companion object {
-        /** Degrades an unrecognised value to [Unknown] rather than failing the whole lookup. */
-        fun fromWire(raw: String): PalletState =
+        /**
+         * Degrades an unrecognised — or absent — value to [Unknown] rather than failing the lookup.
+         *
+         * The parameter is nullable because the wire genuinely sends null: a `pallet_lookup_result`
+         * for an unknown tag answers `found: false` and omits every descriptive field, `palletState`
+         * included. Gson does not honour Kotlin nullability (it writes JSON null straight into the
+         * field by reflection, and a data-class default only applies when the key is *absent*), so
+         * a non-null parameter here threw `NullPointerException` on the intrinsic check and took
+         * the whole app down on every scan of an unrecognised pallet. Matches the already-nullable
+         * [MixingArea.fromWire] and [SessionState.fromWire].
+         */
+        fun fromWire(raw: String?): PalletState =
             entries.firstOrNull { it.name == raw } ?: Unknown
     }
 }

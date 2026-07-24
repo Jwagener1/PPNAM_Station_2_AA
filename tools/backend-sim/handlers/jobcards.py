@@ -6,7 +6,7 @@ ingredient_collection_cancel_requested -> ingredient_collection_cancel_result"""
 
 from envelope import Rejection, approve, build_response
 from handlers.common import (collection_progress, collection_summary,
-                             ingredients_payload, unit_for_uom)
+                             ingredients_payload, r3, unit_for_uom)
 from state import iso, utc_now
 
 SAP_STATUS_NAMES = {"boposPlanned": "Planned", "boposReleased": "Released"}
@@ -138,6 +138,44 @@ def load(world, log, req, session):
                    f"{manual} manual for handheld, status Collecting "
                    f"(new collection — loading never silently resumes)")
     return bom_loaded_response(world, req, col, resumed=False, next_action="scan_ingredient")
+
+
+def seed_demo_collections(world, log):
+    """Pre-load a few collections at startup (bypassing job_card_load_requested
+    and every ingredient scan) so the handheld sees active job cards the
+    moment it logs in. One collection per seeded SAP order plus a second
+    against 510019068 that starts already ReadyForMixing, for exercising the
+    mixing board without manually driving a full collection first."""
+    plans = [("510019068", False), ("510019068", True), ("510018531", False)]
+    for job, complete in plans:
+        order = world.sap_orders.get(job)
+        if not order:
+            continue
+        col_id = world.next_id("COL")
+        col = {
+            "collectionId": col_id,
+            "jobCardNumber": job,
+            "productionOrderDocumentNumber": job,
+            "productName": order.get("ProductDescription"),
+            "status": "Collecting",
+            "bomSnapshotCapturedAtUtc": iso(utc_now()),
+            "lines": _snapshot_lines(world, order),
+            "claimedByMixBatchId": None,
+            "createdByOperatorId": "SEEDED",
+            "createdFromDevice": "seed",
+        }
+        world.collections[col_id] = col
+        if complete:
+            for line in col["lines"]:
+                if not line["requiresIngredientCollection"]:
+                    continue
+                line["collectedQuantity"] = line["requiredQuantity"]
+                line["weightReceived"] = line["requiredQuantity"]
+                if line["fullBagWeight"]:
+                    line["scannedBagsEq"] = r3(line["requiredQuantity"] / line["fullBagWeight"])
+            col["status"] = "ReadyForMixing"
+        log.transition(f"seed: collection {col_id} for job {job} pre-loaded "
+                       f"({'ReadyForMixing, all ingredients collected' if complete else 'Collecting, fresh'})")
 
 
 def resume(world, log, req, session):

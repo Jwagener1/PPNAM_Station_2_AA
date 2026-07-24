@@ -18,10 +18,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ppnam.station2aa.data.session.StationAction
+import com.ppnam.station2aa.data.session.canShow
 import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.components.DialogFormColumn
 import com.ppnam.station2aa.ui.theme.*
+import kotlin.math.ceil
 
 @Composable
 fun IngredientScanScreen(
@@ -33,9 +39,14 @@ fun IngredientScanScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
+    val session by viewModel.session.collectAsState()
+    val toleranceBags by viewModel.overCollectionToleranceBags.collectAsState()
+    // Display hints, never authorisation — Station 2 re-checks every request regardless. See
+    // OperatorSession.canShow. An Operator carries neither of these; an Admin carries both.
+    val mayCancelCollection = session.canShow(StationAction.INGREDIENT_COLLECTION_CANCEL)
+    val mayWaiveShortBags = session.canShow(StationAction.INGREDIENT_APPROVE_SHORT_BAG)
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
-    var showApprovalDialog by rememberSaveable { mutableStateOf(false) }
     var managerUsername by remember { mutableStateOf("") }
     var managerPassword by remember { mutableStateOf("") }
     var selectedBagFraction by rememberSaveable { mutableStateOf(0.0) }
@@ -69,6 +80,9 @@ fun IngredientScanScreen(
             when (outcome) {
                 is CancelOutcome.Confirmed -> onBack()
                 is CancelOutcome.Failed -> {
+                    // Close the dialog before surfacing why: leaving it open over a snackbar it
+                    // renders on top of means the operator never sees the reason.
+                    showCancelDialog = false
                     managerUsername = ""
                     managerPassword = ""
                     snackbarHostState.showSnackbar(outcome.reason)
@@ -77,7 +91,15 @@ fun IngredientScanScreen(
         }
     }
 
-    LaunchedEffect(orderNo) { viewModel.startListeningForPalletScans(orderNo) }
+    // DisposableEffect, not LaunchedEffect: this screen's ViewModel outlives it (shared across the
+    // whole Mixing nav graph), so leaving via ordinary back-navigation — not just the explicit RFID
+    // Lookup detour — must also stop the listener. Otherwise it keeps running for the rest of the
+    // operator's session and every later scan (e.g. at the Mixing Board) is silently double-delivered
+    // to this screen's now-stale ViewModel state too.
+    DisposableEffect(orderNo) {
+        viewModel.startListeningForPalletScans(orderNo)
+        onDispose { viewModel.pauseScanning() }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { destination ->
@@ -90,33 +112,6 @@ fun IngredientScanScreen(
     }
 
     val isCancelling = uiState is MixingUiState.Cancelling
-
-    if (showCancelDialog) {
-        AlertDialog(
-            onDismissRequest = { if (!isCancelling) showCancelDialog = false },
-            title = { Text("Cancel this job card?", color = TextPrimary) },
-            text = {
-                Text(
-                    "This closes the job card if it hasn't had any activity yet (ingredients scanned, mixing started, etc). You'll be notified if it can't be cancelled.",
-                    color = TextMuted
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = !isCancelling,
-                    onClick = {
-                        // Every cancel needs manager credentials in v3 — there is no direct path.
-                        showCancelDialog = false
-                        showApprovalDialog = true
-                    }
-                ) { Text("Cancel Job", color = DangerRed) }
-            },
-            dismissButton = {
-                TextButton(enabled = !isCancelling, onClick = { showCancelDialog = false }) { Text("Keep Scanning") }
-            },
-            containerColor = GraphiteSurface
-        )
-    }
 
     if (showBackConfirmDialog) {
         AlertDialog(
@@ -136,21 +131,32 @@ fun IngredientScanScreen(
         )
     }
 
-    if (showApprovalDialog) {
+    // ONE dialog, not two. It used to open a confirmation reading "closes the job card if it
+    // hasn't had any activity yet… you'll be notified if it can't be cancelled" and then, on
+    // confirm, a second one reading "cancelling a job card ALWAYS needs a manager's approval".
+    // The first implied it might just succeed; the second said approval was unconditional. The
+    // app already knew it was unconditional — it prompted locally without sending anything. State
+    // it once, up front, and collect the credentials in the same step.
+    if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = {
                 if (!isCancelling) {
-                    showApprovalDialog = false
+                    showCancelDialog = false
                     managerUsername = ""
                     managerPassword = ""
                 }
             },
-            title = { Text("Manager or admin approval required", color = TextPrimary) },
+            title = { Text("Cancel this job card?", color = TextPrimary) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogFormColumn {
                     Text(
-                        "Cancelling a job card always needs a manager's approval. Ask a manager to enter their credentials — this is recorded against their name in the audit trail.",
+                        "Cancelling a job card always needs a manager's or admin's approval. Ask one to enter their credentials — this is recorded against their name in the audit trail.",
                         color = TextMuted
+                    )
+                    Text(
+                        "Station 2 refuses the cancel if the collection has already been routed to a mixer.",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.labelMedium
                     )
                     OutlinedTextField(
                         value = managerUsername,
@@ -194,11 +200,11 @@ fun IngredientScanScreen(
                 TextButton(
                     enabled = !isCancelling,
                     onClick = {
-                        showApprovalDialog = false
+                        showCancelDialog = false
                         managerUsername = ""
                         managerPassword = ""
                     }
-                ) { Text("Back") }
+                ) { Text("Keep Scanning") }
             },
             containerColor = GraphiteSurface
         )
@@ -206,13 +212,54 @@ fun IngredientScanScreen(
 
     val bagFractionOptions = listOf("0" to 0.0, "1/4" to 0.25, "1/2" to 0.5, "3/4" to 0.75)
 
-    if (uiState is MixingUiState.EnteringBagDetails) {
-        val palletTag = (uiState as MixingUiState.EnteringBagDetails).palletTag
+    (uiState as? MixingUiState.EnteringBagDetails)?.let { bagState ->
+        val palletTag = bagState.palletTag
+        val remainingBags = bagState.remainingBags
+        // Pre-fill the rounded-UP whole-bag count. BOM lines require fractional bags (89.03,
+        // 10.99, 2.97, 0.74) and the picker only offers 0 / ¼ / ½ / ¾, so most requirements are
+        // simply not expressible. Under-collection has NO tolerance — 89.00 against 89.03 comes
+        // back isRequirementSatisfied: false — while over-collection has a whole-bag one and
+        // auto-passes. That makes "always round up" the only workable rule at the pallet, and
+        // nothing in the UI said so. Now it is the default the operator has to actively override.
+        val suggestedBags = remainingBags
+            ?.takeIf { it > 0.0 }
+            ?.let { ceil(it).toInt().coerceAtLeast(1) }
+        // Re-prime per dialog opening (keyed on the pallet), not per recomposition, so the
+        // operator's own edits survive while they are typing.
+        LaunchedEffect(palletTag, bagState.lineNumber) {
+            bagCountText = (suggestedBags ?: 1).toString()
+            selectedBagFraction = 0.0
+        }
         AlertDialog(
             onDismissRequest = { viewModel.cancelBagEntry() },
             title = { Text("Bag size & count", color = TextPrimary) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogFormColumn {
+                    Text(
+                        "Line ${bagState.lineNumber} · ${bagState.materialName}",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (remainingBags != null) {
+                        Text(
+                            "Still required: %.2f bags".format(remainingBags) +
+                                (bagState.bagSize?.let { " of $it" } ?: ""),
+                            color = AmberPrimary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    Text(
+                        buildString {
+                            append("Round UP — a short line is rejected outright")
+                            val tolerance = toleranceBags
+                            if (tolerance != null && tolerance > 0.0) {
+                                append(", while up to %.0f bag over is accepted automatically".format(tolerance))
+                            }
+                            append(".")
+                        },
+                        color = TextMuted,
+                        style = MaterialTheme.typography.labelMedium
+                    )
                     Text("Pallet: $palletTag", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         bagFractionOptions.forEach { (label, value) ->
@@ -227,14 +274,14 @@ fun IngredientScanScreen(
                                     .background(if (selected) AmberPrimary else GraphiteSurfaceVariant)
                                     .clickable { selectedBagFraction = value }
                                     .padding(vertical = 10.dp),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
                     OutlinedTextField(
                         value = bagCountText,
                         onValueChange = { bagCountText = it },
-                        label = { Text("Bag count") },
+                        label = { Text("Full bags") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -244,16 +291,22 @@ fun IngredientScanScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    val entered = (bagCountText.toDoubleOrNull() ?: 0.0) + selectedBagFraction
+                    if (remainingBags != null && entered > 0.0 && entered < remainingBags) {
+                        Text(
+                            "%.2f bags is short of the %.2f required — Station 2 will reject this.".format(entered, remainingBags),
+                            color = DangerRed,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
-                    enabled = bagCountText.toDoubleOrNull()?.let { it > 0.0 } == true,
+                    enabled = bagCountText.toDoubleOrNull()?.let { it + selectedBagFraction > 0.0 } == true,
                     onClick = {
                         val count = bagCountText.toDoubleOrNull() ?: return@TextButton
                         viewModel.confirmIngredientScan(palletTag, "full", count + selectedBagFraction)
-                        bagCountText = "1"
-                        selectedBagFraction = 0.0
                     }
                 ) { Text("Confirm Scan", color = AmberPrimary) }
             },
@@ -264,13 +317,23 @@ fun IngredientScanScreen(
         )
     }
 
-    if (uiState is MixingUiState.EnteringQuantityDetails) {
-        val palletTag = (uiState as MixingUiState.EnteringQuantityDetails).palletTag
+    (uiState as? MixingUiState.EnteringQuantityDetails)?.let { qtyState ->
+        val palletTag = qtyState.palletTag
         AlertDialog(
             onDismissRequest = { viewModel.cancelQuantityEntry() },
             title = { Text("Weight received", color = TextPrimary) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogFormColumn {
+                    Text(
+                        "Line ${qtyState.lineNumber} · ${qtyState.materialName}",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "Still required: %.2f %s".format(qtyState.remainingQty, qtyState.uom),
+                        color = AmberPrimary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                     Text("Pallet: $palletTag", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                     Text("Bulk material — enter the exact weight received.", color = TextMuted,
                         style = MaterialTheme.typography.bodySmall)
@@ -317,7 +380,7 @@ fun IngredientScanScreen(
             },
             title = { Text("Manager or admin approval required", color = TextPrimary) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogFormColumn {
                     Text(exceptionState.reason, color = TextMuted)
                     exceptionState.validationError?.let { validationError ->
                         Text(validationError, color = DangerRed, style = MaterialTheme.typography.labelMedium)
@@ -416,7 +479,7 @@ fun IngredientScanScreen(
             },
             title = { Text("Waive short bags", color = TextPrimary) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogFormColumn {
                     Text("Material: $waiverMaterialCode", color = TextMuted)
                     OutlinedTextField(
                         value = waiverShortBagCountText,
@@ -510,7 +573,7 @@ fun IngredientScanScreen(
             },
             title = { Text("Manager or admin approval required", color = TextPrimary) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogFormColumn {
                     Text("Material: ${waiverState.requestedMaterialCode}", color = TextMuted)
                     Text("Short by %.2f bags".format(waiverState.shortBagCount), color = TextMuted)
                     Text(waiverState.reason, color = TextMuted)
@@ -672,15 +735,35 @@ fun IngredientScanScreen(
                                 }
                             }
                         }
+
+                        // The whole-screen spinner this replaces cost the operator ~30 s per
+                        // six-line BOM with nothing to look at. A thin bar keeps the list readable
+                        // and scrollable while a request is out; the pending line marks itself.
+                        if (state.isBusy) {
+                            Spacer(Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth().height(3.dp),
+                                color = AmberPrimary,
+                                trackColor = GraphiteBorder
+                            )
+                            state.pendingLabel?.let { label ->
+                                Spacer(Modifier.height(4.dp))
+                                Text(label, style = MaterialTheme.typography.labelSmall, color = AmberPrimary)
+                            }
+                        }
                         Spacer(Modifier.height(12.dp))
 
                         LazyColumn(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            // Without this the last card's "Short bags" action rendered half-cut
+                            // behind the fixed Cancel / Start Mixing bar below.
+                            contentPadding = PaddingValues(bottom = 12.dp)
                         ) {
                             items(order.lines, key = { it.lineNumber }) { bomLine ->
                                 val satisfied = bomLine.isSatisfied
                                 val armed = state.selectedLineNumber == bomLine.lineNumber
+                                val pending = state.pendingLineNumber == bomLine.lineNumber
                                 val fraction = if (bomLine.requiredQty > 0.0) {
                                     (bomLine.collectedQty / bomLine.requiredQty).toFloat().coerceIn(0f, 1f)
                                 } else {
@@ -691,7 +774,9 @@ fun IngredientScanScreen(
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { viewModel.selectLine(bomLine.lineNumber) },
+                                        // Arming during an in-flight request would leave the
+                                        // operator unsure which line the response applies to.
+                                        .clickable(enabled = !state.isBusy) { viewModel.selectLine(bomLine.lineNumber) },
                                     colors = CardDefaults.cardColors(
                                         containerColor = when {
                                             satisfied -> SuccessGreen.copy(alpha = 0.10f)
@@ -700,8 +785,9 @@ fun IngredientScanScreen(
                                         }
                                     ),
                                     border = BorderStroke(
-                                        if (armed) 2.dp else 1.dp,
+                                        if (armed || pending) 2.dp else 1.dp,
                                         when {
+                                            pending -> AmberPrimary
                                             satisfied -> SuccessGreen.copy(alpha = 0.30f)
                                             armed -> AmberPrimary
                                             else -> GraphiteBorder
@@ -729,13 +815,26 @@ fun IngredientScanScreen(
                                                         )
                                                     }
                                                 }
+                                                // maxLines + ellipsis: an unconstrained name
+                                                // ("MASTERBATCH BLACK ME 9200 ME") wrapped under
+                                                // the right-aligned kg value and the two overlapped.
                                                 Text(
                                                     text = displayName,
                                                     style = MaterialTheme.typography.bodyLarge,
-                                                    color = TextPrimary
+                                                    color = TextPrimary,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
-                                            if (satisfied) {
+                                            Spacer(Modifier.width(8.dp))
+                                            if (pending) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(16.dp),
+                                                    color = AmberPrimary,
+                                                    strokeWidth = 2.dp
+                                                )
+                                                Spacer(Modifier.width(6.dp))
+                                            } else if (satisfied) {
                                                 Icon(
                                                     imageVector = Icons.Filled.CheckCircle,
                                                     contentDescription = "Satisfied",
@@ -744,6 +843,8 @@ fun IngredientScanScreen(
                                                 )
                                                 Spacer(Modifier.width(6.dp))
                                             }
+                                            // The value column gets its own floor so the name can
+                                            // never squeeze it to nothing, and stays right-aligned.
                                             Text(
                                                 text = if (bomLine.isSatisfied) {
                                                     "Fully Allocated"
@@ -751,7 +852,10 @@ fun IngredientScanScreen(
                                                     "%.2f %s".format(bomLine.remainingQty, bomLine.uom)
                                                 },
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = if (satisfied) SuccessGreen else TextMuted
+                                                color = if (satisfied) SuccessGreen else TextMuted,
+                                                textAlign = TextAlign.End,
+                                                maxLines = 2,
+                                                modifier = Modifier.widthIn(min = 72.dp)
                                             )
                                         }
                                         Spacer(Modifier.height(6.dp))
@@ -767,6 +871,17 @@ fun IngredientScanScreen(
                                         )
                                         if (!bomLine.isSatisfied) {
                                             Spacer(Modifier.height(8.dp))
+                                            // Captioned: a bagged line renders two visually
+                                            // identical bars (weight, then bags) and neither said
+                                            // which was which.
+                                            Text(
+                                                text = "Weight  %.2f / %.2f %s".format(
+                                                    bomLine.collectedQty, bomLine.requiredQty, bomLine.uom
+                                                ),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextMuted
+                                            )
+                                            Spacer(Modifier.height(4.dp))
                                             LinearProgressIndicator(
                                                 progress = { fraction },
                                                 modifier = Modifier
@@ -790,7 +905,7 @@ fun IngredientScanScreen(
                                             }
                                             Spacer(Modifier.height(6.dp))
                                             Text(
-                                                text = "%.2f / %.2f full bags".format(scannedBags, expectedBags),
+                                                text = "Bags  %.2f / %.2f full bags".format(scannedBags, expectedBags),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = TextMuted
                                             )
@@ -804,13 +919,18 @@ fun IngredientScanScreen(
                                                 color = if (satisfied) SuccessGreen else AmberPrimary,
                                                 trackColor = GraphiteBorder
                                             )
-                                            if (!satisfied) {
+                                            // Waiving short bags is an Admin privilege the
+                                            // Operator's allowedActions does not carry. Offering it
+                                            // regardless meant discovering that only after a
+                                            // multi-second round trip and a generic rejection.
+                                            if (!satisfied && mayWaiveShortBags) {
                                                 Spacer(Modifier.height(4.dp))
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.End
                                                 ) {
                                                     TextButton(
+                                                        enabled = !state.isBusy,
                                                         onClick = { viewModel.openShortBagWaiver(bomLine.itemCode) }
                                                     ) { Text("Short bags", color = AmberPrimary) }
                                                 }
@@ -840,13 +960,19 @@ fun IngredientScanScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = { showCancelDialog = true },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
-                        border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f)),
-                        modifier = Modifier.weight(1f).height(56.dp)
-                    ) {
-                        Text("Cancel")
+                    // Cancelling a collection is an Admin privilege — an Operator's
+                    // allowedActions does not include ingredient_collection_cancel, so the
+                    // button is simply absent rather than a dead end they discover after a
+                    // credential prompt and a round trip.
+                    if (mayCancelCollection) {
+                        OutlinedButton(
+                            onClick = { showCancelDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                            border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f)),
+                            modifier = Modifier.weight(1f).height(56.dp)
+                        ) {
+                            Text("Cancel")
+                        }
                     }
                     Button(
                         onClick = {
@@ -865,7 +991,17 @@ fun IngredientScanScreen(
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.align(Alignment.BottomCenter)
-            )
+            ) { data ->
+                // The default Material snackbar is light-on-dark — a bright grey panel in an
+                // otherwise dark UI, harsh in a dim plant and the one surface that breaks the
+                // theme. Rendered on the app's own surface colours instead.
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = GraphiteSurfaceVariant,
+                    contentColor = TextPrimary,
+                    actionColor = AmberPrimary,
+                )
+            }
         }
     }
 }

@@ -1,0 +1,320 @@
+[2026-07-23T10:08:24.150826+00:00] sniffer writing to C:\Users\Jonathan\AppData\Local\Temp\claude\C--Dev-PPNAM-Station-2-AA\f5af4f29-5ae6-49ae-a0ea-cbc09ef80b09\scratchpad\capture\wire.jsonl
+[2026-07-23T10:08:24.157962+00:00] SNIFFER CONNECTED rc=Success
+[2026-07-23T10:08:24.164649+00:00] *** PPNAM/handheld_3/status action=None
+        offline
+[2026-07-23T10:08:24.165161+00:00] *** PPNAM/station_2/status action=None
+        online
+[2026-07-23T10:08:24.165444+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T10:09:53.617234+00:00] *** PPNAM/handheld_1/status action=None
+        offline
+[2026-07-23T10:10:04.238845+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T10:12:06.120225+00:00] --> PPNAM/handheld_1/req/login_requested action=login_requested
+        {"password":"9999","username":"Jono","messageId":"57ebffd9-96d3-4bd7-9447-b3081464db77","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"","timestampUtc":"2026-07-23T10:12:03.450922Z"}
+[2026-07-23T10:12:08.805802+00:00] <-- PPNAM/handheld_1/res/operator_context action=operator_context err=validation_failed:None (2686ms)
+        {"accepted":false,"reason":"Invalid user name or password.","operatorId":"","displayName":"","username":"","role":"","roleLabel":"","allowedActions":[],"allowedTabs":[],"sessionState":"Closed","sessionExpiresAtUtc":null,...(+316B)
+[2026-07-23T10:14:42.158973+00:00] *** PPNAM/handheld_1/status action=None
+        offline
+[2026-07-23T10:14:52.891542+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T10:14:55.919608+00:00] --> PPNAM/handheld_1/req/login_requested action=login_requested
+        {"password":"1234","username":"Jono","messageId":"9c5a0421-3fbe-4782-b3a9-7341d9e827fb","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"","timestampUtc":"2026-07-23T10:14:53.222556Z"}
+[2026-07-23T10:14:58.780718+00:00] <-- PPNAM/handheld_1/res/operator_context action=operator_context (2861ms)
+        {"accepted":true,"reason":null,"operatorId":"571a2c9606754ad2826270bd895eea6b","displayName":"Jono","username":"Jono","role":"Operator","roleLabel":"Operator","allowedActions":["submit_job_card","cancel_premix","recover_...(+746B)
+[2026-07-23T10:14:59.488469+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"a89f6b33-d1fe-4348-823e-2562ab524087","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:14:56.836898Z"}
+[2026-07-23T10:15:00.515285+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1027ms)
+        {"accepted":true,"reason":null,"jobs":[],"hoppers":[{"displayName":"Mixer Hopper 1","machineCode":"MXR-01","status":"Available","isAvailable":true,"preMixId":null,"cycleId":null,"collectionId":null,"jobCardNumber":null,"...(+1627B)
+[2026-07-23T10:16:04.047623+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019337","messageId":"b1d2ebc6-29a0-4ac6-98bc-e98acdaebb7b","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:16:01.375...(+35B)
+[2026-07-23T10:16:08.992882+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (4945ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019337","productionOrderDocumentNumber":"510019337","collectionId":"COL_000008","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+6654B)
+[2026-07-23T10:16:09.255110+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000008","jobCardNumber":"510019337","productionOrderDocumentNumber":"510019337","preMixId":"","linkedPreMixId":null,"productName":"BAG REFUSE AUTO BIN LINER 20X...(+2035B)
+[2026-07-23T10:19:37.528772+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":3.0,"bagSizeOption":"full","collectionId":"COL_000008","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1500000301","requestedMaterialCode":"1500000301","messageId":"c706ca3c-1d20-4e4f-8dd8-4b1f82c8db0c","schemaVer...(+166B)
+[2026-07-23T10:19:41.030503+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (3502ms)
+        {"collectionSummary":{"waitingProductCount":5,"collectedProductCount":1,"waitingQuantity":4098.918,"collectedQuantity":74.189000,"summary":"5 product(s) waiting for collection, 1 product(s) collected.","waitingProducts":...(+9708B)
+[2026-07-23T10:19:41.246180+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000008","jobCardNumber":"510019337","productionOrderDocumentNumber":"510019337","preMixId":"","linkedPreMixId":null,"productName":"BAG REFUSE AUTO BIN LINER 20X...(+2046B)
+[2026-07-23T10:24:05.785047+00:00] SNIFFER DISCONNECTED rc=Unspecified error
+[2026-07-23T10:24:07.010331+00:00] SNIFFER CONNECTED rc=Success
+[2026-07-23T10:24:07.017663+00:00] *** PPNAM/handheld_3/status action=None
+        offline
+[2026-07-23T10:24:07.017947+00:00] *** PPNAM/station_2/status action=None
+        online
+[2026-07-23T10:24:07.018159+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T10:25:40.520845+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":89.0,"bagSizeOption":"full","collectionId":"COL_000008","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000204","requestedMaterialCode":"1600000204","messageId":"8c263a22-8be4-44f5-9de3-a91b6b3e98e8","schemaVe...(+167B)
+[2026-07-23T10:25:43.073690+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (2553ms)
+        {"collectionSummary":{"waitingProductCount":5,"collectedProductCount":1,"waitingQuantity":1873.918000,"collectedQuantity":74.189000,"summary":"5 product(s) waiting for collection, 1 product(s) collected.","waitingProduct...(+9805B)
+[2026-07-23T10:25:43.288686+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000008","jobCardNumber":"510019337","productionOrderDocumentNumber":"510019337","preMixId":"","linkedPreMixId":null,"productName":"BAG REFUSE AUTO BIN LINER 20X...(+2051B)
+[2026-07-23T10:26:53.134618+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":1.0,"bagSizeOption":"full","collectionId":"COL_000008","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000204","requestedMaterialCode":"1600000204","messageId":"ece99a65-e8c3-4633-b7b9-c40964915605","schemaVer...(+166B)
+[2026-07-23T10:27:00.719294+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (7585ms)
+        {"collectionSummary":{"waitingProductCount":4,"collectedProductCount":2,"waitingQuantity":1873.261,"collectedQuantity":2299.846000,"summary":"4 product(s) waiting for collection, 2 product(s) collected.","waitingProducts...(+9746B)
+[2026-07-23T10:27:00.961257+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000008","jobCardNumber":"510019337","productionOrderDocumentNumber":"510019337","preMixId":"","linkedPreMixId":null,"productName":"BAG REFUSE AUTO BIN LINER 20X...(+2048B)
+[2026-07-23T10:28:28.646563+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"2271c0dc-f59a-4e64-94e2-fc0afbecac4b","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:28:25.960232Z"}
+[2026-07-23T10:28:31.057739+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (2411ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000008","jobCardNumber":"510019337","productionOrderDocumentNumber":"510019337","preMixId":"","linkedPreMixId":null,"productName":"BAG REFUSE AUTO BIN LINER 20X...(+2098B)
+[2026-07-23T10:29:12.923668+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019338","messageId":"6f4ffb77-e1e7-44cf-9fae-854af4e3c023","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:29:10.248...(+35B)
+[2026-07-23T10:29:20.383936+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (7460ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019338","productionOrderDocumentNumber":"510019338","collectionId":"COL_000009","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5886B)
+[2026-07-23T10:29:20.607863+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000009","jobCardNumber":"510019338","productionOrderDocumentNumber":"510019338","preMixId":"","linkedPreMixId":null,"productName":"VALUPAK BOR REFUSE [10X20\u00...(+2493B)
+[2026-07-23T10:29:27.260738+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"787804a5-cc24-4bab-affd-a9c191d0c2b4","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:29:24.596721Z"}
+[2026-07-23T10:29:27.966768+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (706ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000009","jobCardNumber":"510019338","productionOrderDocumentNumber":"510019338","preMixId":"","linkedPreMixId":null,"productName":"VALUPAK BOR REFUSE [10X20\u00...(+2543B)
+[2026-07-23T10:29:31.163181+00:00] --> PPNAM/handheld_1/req/collection_resume_requested action=collection_resume_requested
+        {"collectionId":"COL_000008","jobCardNumber":"510019337","messageId":"3febef15-7ef4-40ec-a9e9-46df0da02cd5","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampU...(+64B)
+[2026-07-23T10:29:31.716037+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (553ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019337","productionOrderDocumentNumber":"510019337","collectionId":"COL_000008","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":true,"r...(+6700B)
+[2026-07-23T10:29:31.931661+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000009","jobCardNumber":"510019338","productionOrderDocumentNumber":"510019338","preMixId":"","linkedPreMixId":null,"productName":"VALUPAK BOR REFUSE [10X20\u00...(+2493B)
+[2026-07-23T10:33:43.472936+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"23f53266-5c2c-4d42-9f5a-29dd71ffe4d1","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:33:40.801568Z"}
+[2026-07-23T10:33:46.051161+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (2578ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000009","jobCardNumber":"510019338","productionOrderDocumentNumber":"510019338","preMixId":"","linkedPreMixId":null,"productName":"VALUPAK BOR REFUSE [10X20\u00...(+2543B)
+[2026-07-23T10:33:56.729735+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019339","messageId":"ef522763-2611-44fa-ab9c-13bfdd5dbfc2","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:33:54.036...(+35B)
+[2026-07-23T10:33:59.799997+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (3070ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","collectionId":"COL_000010","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+4543B)
+[2026-07-23T10:34:00.021579+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000010","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+2918B)
+[2026-07-23T10:34:39.074404+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"0daeb786-b295-4b9f-9118-8eb1e05d3681","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:34:36.383380Z"}
+[2026-07-23T10:34:42.493053+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (3419ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000010","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+2968B)
+[2026-07-23T10:34:52.185164+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019340","messageId":"3a6c54de-ea97-459f-8498-e575bc91d616","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:34:49.523...(+35B)
+[2026-07-23T10:34:55.002003+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (2817ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","collectionId":"COL_000011","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5248B)
+[2026-07-23T10:34:55.211201+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000011","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+3384B)
+[2026-07-23T10:35:14.352298+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"232a383d-f20d-4f82-945b-53c8bd472b35","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:35:11.689953Z"}
+[2026-07-23T10:35:14.667226+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (315ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000011","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+3434B)
+[2026-07-23T10:35:27.506079+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019341","messageId":"28d42a57-1f55-4c39-ae03-fe1b67fa69d9","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:35:24.813...(+35B)
+[2026-07-23T10:35:29.485308+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (1979ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","collectionId":"COL_000012","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3819B)
+[2026-07-23T10:35:29.687326+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000012","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+3809B)
+[2026-07-23T10:35:49.634088+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"df418a08-ecd2-4067-b79f-80a816750e6e","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:35:46.961822Z"}
+[2026-07-23T10:35:52.256811+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (2623ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000012","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+3859B)
+[2026-07-23T10:36:02.843637+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019342","messageId":"b3483da6-a075-4bec-9b43-985ed0ad0cf4","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:36:00.173...(+35B)
+[2026-07-23T10:36:04.650346+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (1807ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019342","productionOrderDocumentNumber":"510019342","collectionId":"COL_000013","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5964B)
+[2026-07-23T10:36:04.913517+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000013","jobCardNumber":"510019342","productionOrderDocumentNumber":"510019342","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR L [RSA] 510X1200X70MI...(+4232B)
+[2026-07-23T10:36:25.153593+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"111e5b4d-5f67-4105-bee1-23e60f4becf8","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:36:22.483694Z"}
+[2026-07-23T10:36:25.688946+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (535ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000013","jobCardNumber":"510019342","productionOrderDocumentNumber":"510019342","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR L [RSA] 510X1200X70MI...(+4282B)
+[2026-07-23T10:36:38.410840+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019343","messageId":"472dba30-57ee-4bc9-8ba0-853ddad80abf","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:36:35.718...(+35B)
+[2026-07-23T10:36:48.182222+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (9771ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019343","productionOrderDocumentNumber":"510019343","collectionId":"COL_000014","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5962B)
+[2026-07-23T10:36:48.560823+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000014","jobCardNumber":"510019343","productionOrderDocumentNumber":"510019343","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR L [RSA] 750X1300X70MI...(+4655B)
+[2026-07-23T10:37:00.578173+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"aa62da36-32d9-4696-a432-69fea7dec59b","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:36:57.882741Z"}
+[2026-07-23T10:37:03.188728+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (2611ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000014","jobCardNumber":"510019343","productionOrderDocumentNumber":"510019343","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR L [RSA] 750X1300X70MI...(+4705B)
+[2026-07-23T10:37:14.063054+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019344","messageId":"2bce69f4-16d0-4d42-a73f-ba73aea26a3f","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:37:11.385...(+35B)
+[2026-07-23T10:37:17.660517+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (3597ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019344","productionOrderDocumentNumber":"510019344","collectionId":"COL_000015","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+6021B)
+[2026-07-23T10:37:17.890880+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000015","jobCardNumber":"510019344","productionOrderDocumentNumber":"510019344","preMixId":"","linkedPreMixId":null,"productName":"BAG BREAD CLR 240X420X15MIC L...(+5077B)
+[2026-07-23T10:37:36.321090+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"5bf494bd-4edb-4861-a2b3-9e41db6fb071","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:37:33.627837Z"}
+[2026-07-23T10:37:36.674369+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (353ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000015","jobCardNumber":"510019344","productionOrderDocumentNumber":"510019344","preMixId":"","linkedPreMixId":null,"productName":"BAG BREAD CLR 240X420X15MIC L...(+5127B)
+[2026-07-23T10:37:49.621586+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019346","messageId":"dcc96a38-bd62-41a1-8ed1-05e34bea1d57","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:37:46.928...(+35B)
+[2026-07-23T10:37:57.392369+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (7771ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","collectionId":"COL_000016","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+4540B)
+[2026-07-23T10:37:57.622846+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000016","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+5527B)
+[2026-07-23T10:38:11.839739+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"147c9971-1ecd-46a0-b09b-c62b881d61b6","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:38:09.142746Z"}
+[2026-07-23T10:38:12.457930+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (618ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000016","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+5578B)
+[2026-07-23T10:38:25.171429+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019347","messageId":"0c37d85d-30af-4a45-bb3c-ff224c96f3ab","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:38:22.459...(+35B)
+[2026-07-23T10:38:26.950938+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (1780ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","collectionId":"COL_000017","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3880B)
+[2026-07-23T10:38:27.154808+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000017","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+5963B)
+[2026-07-23T10:38:47.316007+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"d9a206d5-4a5b-4fd4-ac05-d23a22dcf752","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:38:44.644950Z"}
+[2026-07-23T10:38:48.057115+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (741ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000017","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+6013B)
+[2026-07-23T10:39:00.456995+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019348","messageId":"92b0f096-31ea-4d22-b3f6-9b960001be10","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:38:57.786...(+35B)
+[2026-07-23T10:39:04.265515+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (3809ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019348","productionOrderDocumentNumber":"510019348","collectionId":"COL_000018","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5288B)
+[2026-07-23T10:39:04.486987+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000018","jobCardNumber":"510019348","productionOrderDocumentNumber":"510019348","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLEAR LD POO 720X60MIC...(+6380B)
+[2026-07-23T10:39:22.635620+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"4d41c517-17f8-460a-b7d3-3a6e2f00a221","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:39:19.961773Z"}
+[2026-07-23T10:39:23.459733+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (824ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000018","jobCardNumber":"510019348","productionOrderDocumentNumber":"510019348","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLEAR LD POO 720X60MIC...(+6430B)
+[2026-07-23T10:39:35.697515+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019349","messageId":"b268cf3c-f98d-4be5-900b-b016dba0d12c","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:39:32.999...(+35B)
+[2026-07-23T10:39:37.079711+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (1382ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019349","productionOrderDocumentNumber":"510019349","collectionId":"COL_000019","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5295B)
+[2026-07-23T10:39:37.298839+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000019","jobCardNumber":"510019349","productionOrderDocumentNumber":"510019349","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLEAR LD POO 750X60MIC...(+6797B)
+[2026-07-23T10:39:57.809864+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"b22a85e0-3818-47e0-8d67-fb8601b54f18","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:39:55.133631Z"}
+[2026-07-23T10:39:58.641143+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (831ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000019","jobCardNumber":"510019349","productionOrderDocumentNumber":"510019349","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLEAR LD POO 750X60MIC...(+6847B)
+[2026-07-23T10:40:10.956152+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019350","messageId":"5050a17d-b832-4926-a17f-b9a849a6521a","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:40:08.255...(+35B)
+[2026-07-23T10:40:15.467434+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (4511ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019350","productionOrderDocumentNumber":"510019350","collectionId":"COL_000020","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5298B)
+[2026-07-23T10:40:15.687429+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000020","jobCardNumber":"510019350","productionOrderDocumentNumber":"510019350","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLR M/P LD POO 640X90M...(+7216B)
+[2026-07-23T10:40:33.149697+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"a91dde3e-ee2a-4973-9fa9-85d6f243a2bb","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:40:30.453112Z"}
+[2026-07-23T10:40:33.964310+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (815ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000020","jobCardNumber":"510019350","productionOrderDocumentNumber":"510019350","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLR M/P LD POO 640X90M...(+7266B)
+[2026-07-23T10:40:46.335052+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019351","messageId":"ddce4bb0-f0ad-468c-b88b-55f3726ebb46","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:40:43.637...(+35B)
+[2026-07-23T10:40:48.287425+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (1952ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019351","productionOrderDocumentNumber":"510019351","collectionId":"COL_000021","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5281B)
+[2026-07-23T10:40:48.509860+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000021","jobCardNumber":"510019351","productionOrderDocumentNumber":"510019351","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLR 590X70MIC [RSA] LD...(+7636B)
+[2026-07-23T10:41:08.622559+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"2d0a64d8-6b44-422a-ae0a-05b6845d0986","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:41:05.943398Z"}
+[2026-07-23T10:41:13.006159+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (4384ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000021","jobCardNumber":"510019351","productionOrderDocumentNumber":"510019351","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLR 590X70MIC [RSA] LD...(+7686B)
+[2026-07-23T10:41:21.882430+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019352","messageId":"ac7ec9a8-01bf-416a-b79f-d3ca927d15c1","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:41:19.184...(+35B)
+[2026-07-23T10:41:25.689695+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (3807ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019352","productionOrderDocumentNumber":"510019352","collectionId":"COL_000022","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5284B)
+[2026-07-23T10:41:25.904400+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000022","jobCardNumber":"510019352","productionOrderDocumentNumber":"510019352","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLR [RSA] 550X80MIC LD...(+8056B)
+[2026-07-23T10:41:44.263487+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"a76d4926-08b4-4678-b3ca-6fcb3216afea","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:41:41.460333Z"}
+[2026-07-23T10:41:44.719368+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (456ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000022","jobCardNumber":"510019352","productionOrderDocumentNumber":"510019352","preMixId":"","linkedPreMixId":null,"productName":"SHRINK CLR [RSA] 550X80MIC LD...(+8106B)
+[2026-07-23T10:41:57.314743+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019353","messageId":"9642479b-55e8-4b5d-a03a-2b99dfc5861b","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:41:54.616...(+35B)
+[2026-07-23T10:41:59.875303+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (2561ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019353","productionOrderDocumentNumber":"510019353","collectionId":"COL_000023","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5292B)
+[2026-07-23T10:42:00.088727+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000023","jobCardNumber":"510019353","productionOrderDocumentNumber":"510019353","preMixId":"","linkedPreMixId":null,"productName":"COVERBAG CLEAR REFUSE BOR STA...(+8493B)
+[2026-07-23T10:42:19.381487+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"ae56f12a-f27d-4093-ac05-86a047a18e03","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:42:16.706890Z"}
+[2026-07-23T10:42:22.583233+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (3202ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000023","jobCardNumber":"510019353","productionOrderDocumentNumber":"510019353","preMixId":"","linkedPreMixId":null,"productName":"COVERBAG CLEAR REFUSE BOR STA...(+8543B)
+[2026-07-23T10:42:32.597272+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019354","messageId":"7337c800-b217-45e1-90b8-9b46a1d1e199","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:42:29.899...(+35B)
+[2026-07-23T10:42:38.322540+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (5725ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019354","productionOrderDocumentNumber":"510019354","collectionId":"COL_000024","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+7981B)
+[2026-07-23T10:42:38.545385+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000024","jobCardNumber":"510019354","productionOrderDocumentNumber":"510019354","preMixId":"","linkedPreMixId":null,"productName":"BAG CARRIER H/DUTY BLU  NAMPH...(+8945B)
+[2026-07-23T10:42:54.897694+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"302ce67e-4b25-42af-9e26-538b56a1d70f","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:42:52.196091Z"}
+[2026-07-23T10:42:55.681176+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (783ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000024","jobCardNumber":"510019354","productionOrderDocumentNumber":"510019354","preMixId":"","linkedPreMixId":null,"productName":"BAG CARRIER H/DUTY BLU  NAMPH...(+8995B)
+[2026-07-23T10:43:08.074611+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019355","messageId":"2d31064b-ae03-4dca-9506-100b833a5bf8","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:43:05.375...(+35B)
+[2026-07-23T10:43:08.129272+00:00] *** PPNAM/station_2/status action=None
+        offline
+[2026-07-23T10:43:09.975368+00:00] *** PPNAM/station_2/status action=None
+        online
+[2026-07-23T10:43:10.695100+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (2620ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","collectionId":"COL_000025","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3020B)
+[2026-07-23T10:43:10.918403+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000025","jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","preMixId":"","linkedPreMixId":null,"productName":"BUBBLEWRAP CLR ROLL [RSA] 400...(+9383B)
+[2026-07-23T10:43:30.292999+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"36799883-e91d-4919-8389-9a99aacce78a","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:43:27.591811Z"}
+[2026-07-23T10:43:33.061929+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (2769ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000025","jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","preMixId":"","linkedPreMixId":null,"productName":"BUBBLEWRAP CLR ROLL [RSA] 400...(+9433B)
+[2026-07-23T10:43:43.520211+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019356","messageId":"c8a24200-a48b-455b-b6a1-fea9b2498263","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:43:40.847...(+35B)
+[2026-07-23T10:43:45.896891+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (2377ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019356","productionOrderDocumentNumber":"510019356","collectionId":"COL_000026","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+7333B)
+[2026-07-23T10:43:46.125063+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000026","jobCardNumber":"510019356","productionOrderDocumentNumber":"510019356","preMixId":"","linkedPreMixId":null,"productName":"BAG CARRIER H/DUTY WHT SHIELD...(+9833B)
+[2026-07-23T10:44:05.677108+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"c74dd86d-997f-48cb-9436-57bbc94db2e5","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:44:02.996553Z"}
+[2026-07-23T10:44:06.114215+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (437ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000026","jobCardNumber":"510019356","productionOrderDocumentNumber":"510019356","preMixId":"","linkedPreMixId":null,"productName":"BAG CARRIER H/DUTY WHT SHIELD...(+9883B)
+[2026-07-23T10:44:18.989802+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019359","messageId":"52d653b0-0822-4d9b-a87f-2db6ab13034f","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:44:16.305...(+35B)
+[2026-07-23T10:44:21.189026+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (2199ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019359","productionOrderDocumentNumber":"510019359","collectionId":"COL_000027","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+7406B)
+[2026-07-23T10:44:21.405478+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000027","jobCardNumber":"510019359","productionOrderDocumentNumber":"510019359","preMixId":"","linkedPreMixId":null,"productName":"SHEET ROLL WHT FODDERWRAP [RS...(+10273B)
+[2026-07-23T10:45:21.483375+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"985e4a9a-288e-435d-ab96-95ba2eaa2f41","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:45:18.811423Z"}
+[2026-07-23T10:45:24.111508+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (2628ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000027","jobCardNumber":"510019359","productionOrderDocumentNumber":"510019359","preMixId":"","linkedPreMixId":null,"productName":"SHEET ROLL WHT FODDERWRAP [RS...(+10323B)
+[2026-07-23T10:45:34.657874+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"lookup","messageId":"bf8df8bd-cda8-4aac-b6e2-ecf617afaa3a","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:45:31.982767...(+29B)
+[2026-07-23T10:45:41.232362+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded err=service_unavailable:None (6574ms)
+        {"accepted":false,"reason":"SAP production order lookup failed and no stored local BOM snapshot is available.","jobCardNumber":"","productionOrderDocumentNumber":"","collectionId":"","status":"","collectionStatus":"","re...(+2331B)
+[2026-07-23T10:45:59.448023+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"30-lookup-state","messageId":"5004b3b5-0afa-4e4d-9252-d1eee6d1e322","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"8fb512ee378f4a6e9eaa130a8706e583","timestampUtc":"2026-07-23T10:45:...(+47B)
+[2026-07-23T10:46:04.115929+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded err=service_unavailable:None (4668ms)
+        {"accepted":false,"reason":"SAP production order lookup failed and no stored local BOM snapshot is available.","jobCardNumber":"","productionOrderDocumentNumber":"","collectionId":"","status":"","collectionStatus":"","re...(+2340B)
+[2026-07-23T10:53:00.263357+00:00] *** PPNAM/handheld_1/status action=None
+        offline
+[2026-07-23T10:53:10.942738+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T10:53:39.795095+00:00] --> PPNAM/handheld_1/req/login_requested action=login_requested
+        {"password":"1234","username":"Avi","messageId":"392e89ca-2eed-4990-88ed-f4eac30a08bd","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"","timestampUtc":"2026-07-23T10:53:37.081681Z"}
+[2026-07-23T10:53:42.541866+00:00] <-- PPNAM/handheld_1/res/operator_context action=operator_context (2747ms)
+        {"accepted":true,"reason":null,"operatorId":"e33f7e7c5b3b43c7832b977ee546c335","displayName":"Avi","username":"Avi","role":"Admin","roleLabel":"Admin","allowedActions":["submit_job_card","cancel_premix","recover_holding"...(+918B)
+[2026-07-23T10:53:43.232635+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"7de5ce52-b0a9-4d1b-bffb-2aaaeaa5070d","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"315c212f78764fedb849e25d37211bc1","timestampUtc":"2026-07-23T10:53:40.513854Z"}
+[2026-07-23T10:53:43.641044+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (408ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000027","jobCardNumber":"510019359","productionOrderDocumentNumber":"510019359","preMixId":"","linkedPreMixId":null,"productName":"SHEET ROLL WHT FODDERWRAP [RS...(+10323B)
+[2026-07-23T10:54:27.780438+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019355","messageId":"2d42ecb0-f53e-4b49-86d5-862b48617c0c","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"315c212f78764fedb849e25d37211bc1","timestampUtc":"2026-07-23T10:54:25.090...(+35B)
+[2026-07-23T10:54:32.890459+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (5110ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","collectionId":"COL_000028","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3016B)
+[2026-07-23T10:54:33.116838+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000028","jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","preMixId":"","linkedPreMixId":null,"productName":"BUBBLEWRAP CLR ROLL [RSA] 400...(+10711B)
+[2026-07-23T10:55:31.315777+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":10.0,"bagSizeOption":"full","collectionId":"COL_000028","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000044","requestedMaterialCode":"1600000044","messageId":"72e57b6d-ca46-42c0-af3e-a025f9a8809f","schemaVe...(+167B)
+[2026-07-23T10:55:34.595744+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result err=dac675694be14b7685280f006640ed6e:None (3280ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":0,"waitingQuantity":219.892,"collectedQuantity":0,"summary":"1 product(s) waiting for collection, 0 product(s) collected.","waitingProducts":[{"materi...(+3779B)
+[2026-07-23T10:56:57.829696+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":9.0,"bagSizeOption":"full","collectionId":"COL_000028","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000044","requestedMaterialCode":"1600000044","messageId":"4535ac35-07eb-48c0-8cad-8a8e06aa4dc2","schemaVer...(+166B)
+[2026-07-23T10:57:01.617608+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (3788ms)
+        {"collectionSummary":{"waitingProductCount":0,"collectedProductCount":1,"waitingQuantity":0,"collectedQuantity":219.892000,"summary":"0 product(s) waiting for collection, 1 product(s) collected.","waitingProducts":[],"co...(+3791B)
+[2026-07-23T10:57:01.841160+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000028","jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","preMixId":"","linkedPreMixId":null,"productName":"BUBBLEWRAP CLR ROLL [RSA] 400...(+10714B)
+[2026-07-23T10:57:02.752827+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"1f96ef07-dba2-43c1-967f-eb9f221d03e4","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"315c212f78764fedb849e25d37211bc1","timestampUtc":"2026-07-23T10:57:00.034312Z"}
+[2026-07-23T10:57:03.170448+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (418ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":"510019355","equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer...(+22030B)
+[2026-07-23T10:58:48.535260+00:00] *** PPNAM/handheld_1/status action=None
+        offline
+[2026-07-23T10:59:53.623031+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T11:00:21.267911+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"mixingArea":"MainMixingRoom","messageId":"3a3060bc-6ac4-4b7e-945d-913f334e864c","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"315c212f78764fedb849e25d37211bc1","timestampUtc":"2026-07-23T11:00:18.5...(+8B)
+[2026-07-23T11:00:24.200823+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (2933ms)
+        {"accepted":true,"reason":null,"mixingArea":"MainMixingRoom","productionOrderDocumentNumber":"510019355","equipment":[{"mixingArea":"MainMixingRoom","equipmentRole":"Mixer","machineCode":"MXR-01","displayName":"Main Mixe...(+14560B)
+[2026-07-23T11:00:24.404839+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"a834836e-cdb3-4416-bb35-22de62fad285","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"315c212f78764fedb849e25d37211bc1","timestampUtc":"2026-07-23T11:00:21.589902Z"}
+[2026-07-23T11:00:25.418594+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1014ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000028","jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","preMixId":"","linkedPreMixId":null,"productName":"BUBBLEWRAP CLR ROLL [RSA] 400...(+10765B)

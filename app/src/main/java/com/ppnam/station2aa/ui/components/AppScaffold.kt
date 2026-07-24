@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.*
@@ -78,7 +79,9 @@ fun AppScaffold(
                 Text(
                     text = statusLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = dotColor
+                    color = dotColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -86,7 +89,16 @@ fun AppScaffold(
 
     Scaffold(
         topBar = {
-            Column(modifier = Modifier.background(GraphiteSurface)) {
+            // statusBarsPadding(), applied INSIDE background(), is what stops the top bar
+            // drawing under the system status bar: MainActivity calls enableEdgeToEdge(), so
+            // without this the title overlapped the clock. The surface colour still paints the
+            // whole node — status-bar strip included — so the bar reads as one solid block
+            // rather than a floating row with a transparent gap above it.
+            Column(
+                modifier = Modifier
+                    .background(GraphiteSurface)
+                    .statusBarsPadding()
+            ) {
                 if (operatorName != null) {
                     // Operator info anchors the left edge of this row (after an optional back
                     // arrow) so it lines up with the title row directly beneath it.
@@ -106,14 +118,35 @@ fun AppScaffold(
                                 )
                             }
                         }
-                        TextButton(onClick = { showLogoutDialog = true }) {
-                            Text(
-                                text = if (!operatorRole.isNullOrBlank()) "$operatorName · $operatorRole" else operatorName,
-                                color = TextPrimary,
-                                style = MaterialTheme.typography.labelMedium
-                            )
+                        // The Box's weight(1f) claims all space left over after the icons/pill
+                        // (fixed-size, never squeezed — the connection pill in particular is
+                        // safety-relevant) are measured, exactly like the Spacer this replaces.
+                        // CenterStart keeps the button's content left-aligned instead of the
+                        // TextButton's own default centering, so it still lines up with the
+                        // title row directly beneath it; maxLines/ellipsis on the Text means a
+                        // long "name · role" truncates instead of forcing the pill to wrap.
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            // The logout icon is the affordance: without it this read as a plain
+                            // status label, and it is the app's ONLY route to switching operator
+                            // (Settings offers a second one now). Amber tint + icon make it
+                            // unmistakably a control rather than a caption.
+                            TextButton(onClick = { showLogoutDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = "Log out",
+                                    tint = AmberPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = if (!operatorRole.isNullOrBlank()) "$operatorName · $operatorRole" else operatorName,
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.weight(1f))
                         if (onRfidLookup != null) {
                             IconButton(onClick = onRfidLookup) {
                                 Icon(
@@ -197,6 +230,12 @@ fun AppScaffold(
             }
         },
         containerColor = GraphiteBackground,
+        // safeDrawing, not the default systemBars: it also covers the display cutout and — the
+        // reason it matters here — the IME. Every screen applies this PaddingValues, so when the
+        // keyboard opens the content area shrinks above it instead of the window panning and
+        // shoving the top bar (and with it the only logout control) off-screen entirely.
+        // Insets already consumed by the top bar above are not double-counted.
+        contentWindowInsets = WindowInsets.safeDrawing,
         content = content
     )
 }

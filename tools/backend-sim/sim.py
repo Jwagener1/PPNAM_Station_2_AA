@@ -3,8 +3,16 @@ contract traffic exactly like the real WPF backend would, with extensive
 logging (wire.jsonl, sim.log, state snapshots) as a second source of truth.
 
 Usage:
-    python sim.py [--host mqtt.sysone.co.za] [--port 1883]
+    python sim.py [--host mqtt.sysone.co.za] [--port 443]
+                  [--transport websockets] [--ws-path /mqtt] [--tls | --no-tls]
+                  [--username admin] [--password admin]
                   [--window 300] [--tolerance 1.0] [--yield-to-real]
+
+Defaults: wss on port 443, path /mqtt, admin/admin — per broker config as of
+2026-07-23. NOTE: the app's AppSettings.kt hardcodes port 8884, which
+disagrees with this; reconcile with whichever is actually live before
+testing against the real broker. For a plain factory broker (e.g.
+10.1.50.1:1883, no TLS/auth), pass --transport tcp --no-tls --username "".
 
 The simulator plays the role of station_2:
   - retained `online` on PPNAM/station_2/status (LWT: retained `offline`)
@@ -63,12 +71,22 @@ class Simulator:
             self.world.config["timestampWindowSeconds"] = args.window
         if args.tolerance is not None:
             self.world.config["overCollectionToleranceBags"] = args.tolerance
+        if getattr(args, "demo_collections", False):
+            from handlers.jobcards import seed_demo_collections
+            seed_demo_collections(self.world, self.log)
         self.queue = queue.Queue()
         self.announced = False
         self.real_station_seen = threading.Event()
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                                   client_id="station2-simulator",
-                                  protocol=mqtt.MQTTv5)
+                                  protocol=mqtt.MQTTv5,
+                                  transport=args.transport)
+        if args.transport == "websockets":
+            self.client.ws_set_options(path=args.ws_path)
+        if args.tls:
+            self.client.tls_set()
+        if args.username:
+            self.client.username_pw_set(args.username, args.password)
         self.client.will_set(STATUS_TOPIC, "offline", qos=1, retain=True)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -254,7 +272,22 @@ class Simulator:
 def main():
     parser = argparse.ArgumentParser(description="Station 2 MQTT backend simulator (contract v4)")
     parser.add_argument("--host", default="mqtt.sysone.co.za", help="MQTT broker host")
-    parser.add_argument("--port", type=int, default=1883, help="MQTT broker port")
+    parser.add_argument("--port", type=int, default=None,
+                        help="MQTT broker port (default: 443 for websockets, 1883 for tcp)")
+    parser.add_argument("--transport", choices=["tcp", "websockets"], default="websockets",
+                        help="matches the app's AppSettings default (websockets); pass "
+                             "--transport tcp for a plain factory broker")
+    parser.add_argument("--ws-path", default="/mqtt", help="WebSocket path (websockets transport only)")
+    parser.add_argument("--tls", dest="tls", action="store_true", default=True,
+                        help="enable TLS with system CA validation (default: on)")
+    parser.add_argument("--no-tls", dest="tls", action="store_false", help="disable TLS")
+    parser.add_argument("--username", default="admin", help="broker auth username (blank to disable auth)")
+    parser.add_argument("--password", default="admin", help="broker auth password")
+    parser.add_argument("--demo-collections", dest="demo_collections", action="store_true",
+                        default=True, help="pre-load a few job-card collections at startup, "
+                        "one already ReadyForMixing (default: on)")
+    parser.add_argument("--no-demo-collections", dest="demo_collections", action="store_false",
+                        help="start with no pre-loaded collections (clean world)")
     parser.add_argument("--window", type=int, default=None,
                         help="timestamp acceptance window in seconds (default from seed: 300)")
     parser.add_argument("--tolerance", type=float, default=None,
@@ -263,6 +296,8 @@ def main():
                         help="exit instead of announcing if the real Station 2 is online")
     parser.add_argument("--no-color", action="store_true", help="disable console colours")
     args = parser.parse_args()
+    if args.port is None:
+        args.port = 443 if args.transport == "websockets" else 1883
     sys.exit(Simulator(args).run())
 
 

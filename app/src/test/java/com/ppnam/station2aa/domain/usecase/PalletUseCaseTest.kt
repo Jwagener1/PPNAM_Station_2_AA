@@ -292,4 +292,44 @@ class PalletUseCaseTest {
         assertTrue(result.isFailure)
         assertEquals("Consumed pallets cannot be recovered.", result.exceptionOrNull()?.message)
     }
+
+    /**
+     * Regression, 2026-07-23: scanning any tag Station 2 does not know crashed the whole app.
+     *
+     * A not-found lookup is `accepted: true, found: false` with every descriptive field omitted —
+     * `palletState` included. Gson writes that JSON null straight into the DTO field (it does not
+     * honour Kotlin nullability, and a data-class default only applies when the key is *absent*),
+     * and `PalletState.fromWire` then threw NullPointerException on its non-null parameter check.
+     * On the floor that is an operator scanning a pallet from another line and the app dying.
+     */
+    @Test
+    fun `lookup survives a not-found response whose descriptive fields are all null`() = runTest {
+        stubLookup(
+            MqttOutcome.Accepted(
+                PalletLookupResultResponse(
+                    found = false,
+                    usable = false,
+                    recoverable = false,
+                    palletRfidTag = "EPC:UNKNOWN-TAG",
+                    palletId = null,
+                    productCode = null,
+                    productName = null,
+                    batchNumber = null,
+                    unit = null,
+                    localLocation = null,
+                    palletState = null,
+                    blocked = false,
+                ),
+                NextAction.NONE,
+            )
+        )
+
+        val info = useCase.lookup("EPC:UNKNOWN-TAG").getOrThrow()
+
+        assertFalse(info.found)
+        assertEquals(PalletState.Unknown, info.palletState)
+        assertEquals("EPC:UNKNOWN-TAG", info.palletRfidTag)
+        assertEquals("", info.palletId)
+        assertEquals("", info.productName)
+    }
 }

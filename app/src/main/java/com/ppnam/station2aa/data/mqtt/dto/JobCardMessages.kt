@@ -71,13 +71,48 @@ data class BomLoadedResponse(
     val ingredients: List<BomLineResponse> = emptyList(),
 )
 
+/**
+ * One entry in `active_job_cards_list`.
+ *
+ * Several concurrent collections per job card is intended, client-requested behaviour, so
+ * [jobCardNumber] alone does NOT identify a row — [collectionId] does. The progress fields are
+ * what let the operator tell four collections of the same card apart; they were already on the
+ * wire and simply weren't being parsed.
+ */
 data class ActiveJobCardSummary(
     val jobCardNumber: String = "",
     val productionOrderDocumentNumber: String = "",
     val collectionId: String = "",
     val productName: String = "",
-    val status: String = ""
-)
+    val status: String = "",
+    /**
+     * 0–100, server-computed. Never recomputed from the counts below.
+     *
+     * Nullable because null and 0.0 mean different things and the live backend sends null: on
+     * 2026-07-23 every one of these four arrived null, so a collection sitting at ReadyForMixing
+     * rendered as a confident "0%". "Not told" must not be displayed as "no progress" — the same
+     * null-is-not-zero rule [BomLine] already applies to its bag fields.
+     */
+    val progressPercent: Double? = null,
+    val completedIngredientCount: Int? = null,
+    val requiredIngredientCount: Int? = null,
+    /** Lines sitting on a manager approval — worth flagging, the operator can't clear them alone. */
+    val pendingApprovalCount: Int? = null,
+) {
+    /**
+     * `status` reads as a wire token ("ReadyForMixing"). Operators read this list to pick the
+     * collection they are working on, so it is spelled out. Unknown values pass through verbatim
+     * rather than being flattened — a new server status must stay visible, not vanish.
+     */
+    val statusLabel: String
+        get() = when (status) {
+            "Collecting" -> "Collecting"
+            "ReadyForMixing" -> "Ready to mix"
+            "Mixing" -> "Mixing"
+            "Cancelled" -> "Cancelled"
+            else -> status
+        }
+}
 
 data class ActiveJobCardsListResponse(
     val jobs: List<ActiveJobCardSummary> = emptyList()

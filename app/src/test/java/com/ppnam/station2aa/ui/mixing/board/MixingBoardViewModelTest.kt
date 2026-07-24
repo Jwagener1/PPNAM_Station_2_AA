@@ -482,6 +482,36 @@ class MixingBoardViewModelTest {
     }
 
     @Test
+    fun `a failed (timed out) cycle action re-syncs the board from the server instead of trusting the stale cache`() = runTest {
+        // The real bug this guards: a machine_cycle request can time out client-side (flaky
+        // WiFi/slow backend) while Station 2 actually accepted it. The late confirmation gets
+        // dropped by MqttRepositoryImpl's correlation matching, so the ONLY way the board learns
+        // the true state is a fresh overview fetch — never trusting whatever it had cached before.
+        val refreshedAfterServerActuallyFinished = mainOverview.copy(
+            equipment = listOf(equipment("MXR-01"), equipment("MXR-02", status = "Available")),
+            activeCycles = emptyList(),
+        )
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(
+            Result.success(mainOverview), Result.success(refreshedAfterServerActuallyFinished))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        viewModel.openArea(MixingArea.Main)
+        advanceUntilIdle()
+        viewModel.machineChosen("MXR-02")
+
+        whenever(mockUseCase.finish("MXR-02", "CYC_9")).thenReturn(
+            com.ppnam.station2aa.domain.model.MachineCycleOutcome.Failed("Timed out waiting for Station 2"))
+        viewModel.finishCycle()
+        advanceUntilIdle()
+
+        verify(mockUseCase, times(2)).fetchOverview(eq(MixingArea.Main), anyOrNull())
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertEquals("Available", board.overview.equipment.single { it.machineCode == "MXR-02" }.status)
+        assertTrue(board.overview.activeCycles.isEmpty())
+        assertTrue(board.sheet is BoardSheet.None)
+        assertFalse(board.busy)
+    }
+
+    @Test
     fun `submitForceClose refuses blank credentials without touching the wire`() = runTest {
         openMainBoard(); advanceUntilIdle()
         viewModel.machineChosen("MXR-02")

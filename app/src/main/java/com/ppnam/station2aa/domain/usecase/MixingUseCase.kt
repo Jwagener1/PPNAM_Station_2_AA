@@ -62,8 +62,38 @@ class MixingUseCase @Inject constructor(
                 )
                 Result.success(order)
             }
-            is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Job card rejected"))
+            is MqttOutcome.Rejected -> Result.failure(Exception(humaniseLookupRejection(outcome.reason)))
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
+        }
+    }
+
+    /**
+     * Station 2's rejection reasons are written for engineers. The one an operator actually hits —
+     * a job card number that doesn't exist — came back as "SAP production order lookup failed and
+     * no stored local BOM snapshot is available", which tells a shop-floor user nothing about what
+     * to do next.
+     *
+     * Only the reasons we recognise are rewritten; anything else passes through verbatim rather
+     * than being flattened into a generic message that would hide a real fault.
+     */
+    private fun humaniseLookupRejection(reason: String?): String {
+        val raw = reason?.trim().orEmpty()
+        if (raw.isBlank()) return "Job card rejected"
+        // Matched on substrings because Station 2 words this several ways and has changed the
+        // wording at least once: it sent "SAP production order lookup failed and no stored local
+        // BOM snapshot is available" in July, and "Job card 'N' does not map to a SAP production
+        // order." by 2026-07-23 — which slipped straight through to the operator verbatim.
+        // "SAP production order" is the stable part of every variant seen so far.
+        val notFound = listOf(
+            "SAP production order lookup failed",
+            "no stored local BOM snapshot",
+            "does not map to a SAP production order",
+            "not map to a sap production order",
+        )
+        return if (notFound.any { raw.contains(it, ignoreCase = true) }) {
+            "That job card number wasn't found. Check the number on the card and try again."
+        } else {
+            raw
         }
     }
 
@@ -91,7 +121,11 @@ class MixingUseCase @Inject constructor(
         remainingQty = remainingQuantity,
         availableQty = availableQuantity,
         // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
-        uom = unit.ifBlank { uomCode },
+        // orEmpty() before ifBlank(): Gson writes a JSON null straight into these non-null String
+        // fields (it does not honour Kotlin nullability, and the data-class default only applies
+        // when the key is absent), so a null `unit` would NPE on ifBlank and take down every job
+        // card load. Same failure mode that crashed the pallet lookup on 2026-07-23.
+        uom = unit.orEmpty().ifBlank { uomCode.orEmpty() },
         // Null on a bulk line, and null is meaningful — do NOT coalesce to 0.0.
         bagSize = bagSize,
         expectedBags = expectedBags,

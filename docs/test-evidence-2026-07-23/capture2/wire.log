@@ -1,0 +1,412 @@
+[2026-07-23T11:07:45.029089+00:00] sniffer writing to C:\Users\Jonathan\AppData\Local\Temp\claude\C--Dev-PPNAM-Station-2-AA\f5af4f29-5ae6-49ae-a0ea-cbc09ef80b09\scratchpad\capture2\wire.jsonl
+[2026-07-23T11:07:45.034783+00:00] SNIFFER CONNECTED rc=Success
+[2026-07-23T11:07:45.040673+00:00] *** PPNAM/handheld_3/status action=None
+        offline
+[2026-07-23T11:07:45.041155+00:00] *** PPNAM/station_2/status action=None
+        online
+[2026-07-23T11:07:45.041442+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T11:11:05.519838+00:00] *** PPNAM/handheld_1/status action=None
+        online
+[2026-07-23T11:11:20.282316+00:00] --> PPNAM/handheld_1/req/login_requested action=login_requested
+        {"password":"1234","username":"Avi","messageId":"3476a88f-e86b-4d54-a1dc-b6d13988b885","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"","timestampUtc":"2026-07-23T11:11:17.515402Z"}
+[2026-07-23T11:11:26.812136+00:00] <-- PPNAM/handheld_1/res/operator_context action=operator_context (6530ms)
+        {"accepted":true,"reason":null,"operatorId":"e33f7e7c5b3b43c7832b977ee546c335","displayName":"Avi","username":"Avi","role":"Admin","roleLabel":"Admin","allowedActions":["submit_job_card","cancel_premix","recover_holding"...(+918B)
+[2026-07-23T11:11:27.514012+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"fecf2e70-e9bb-43f7-a846-4b1a90cbc321","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:11:24.777252Z"}
+[2026-07-23T11:11:34.500850+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (6987ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000028","jobCardNumber":"510019355","productionOrderDocumentNumber":"510019355","preMixId":"","linkedPreMixId":null,"productName":"BUBBLEWRAP CLR ROLL [RSA] 400...(+10765B)
+[2026-07-23T11:11:38.268952+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019341","messageId":"ee9fcb5a-4c73-4172-8f88-4883afa6a269","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:11:35.523...(+35B)
+[2026-07-23T11:11:56.665392+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (18396ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","collectionId":"COL_000029","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3824B)
+[2026-07-23T11:11:57.053389+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000029","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+11140B)
+[2026-07-23T11:12:48.892108+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"3d12bc34-e3f6-4d5c-b7c5-567fac1d3002","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:12:46.176632Z"}
+[2026-07-23T11:12:55.069491+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (6177ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000029","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+11190B)
+[2026-07-23T11:13:02.150699+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019341","messageId":"aced71a5-422a-4beb-be94-3c47fb85cbce","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:12:59.442...(+35B)
+[2026-07-23T11:13:16.200626+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (14050ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","collectionId":"COL_000030","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3824B)
+[2026-07-23T11:13:16.432609+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000030","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+11565B)
+[2026-07-23T11:13:37.807403+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":67.0,"bagSizeOption":"full","collectionId":"COL_000030","palletRfidTag":"DUMMY-ST2-1600000050","requestedMaterialCode":"1600000050","messageId":"823f5fa2-ae0f-425c-8004-8ef192ceb2f1","schemaVersion":"4.0","de...(+151B)
+[2026-07-23T11:13:39.699319+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result err=936666e9990c4c0cbd33c6ec9ca4e157:None (1892ms)
+        {"collectionSummary":{"waitingProductCount":2,"collectedProductCount":0,"waitingQuantity":2209.680,"collectedQuantity":0,"summary":"2 product(s) waiting for collection, 0 product(s) collected.","waitingProducts":[{"mater...(+5052B)
+[2026-07-23T11:14:33.629783+00:00] --> PPNAM/handheld_1/req/holding_recovery_requested action=holding_recovery_requested
+        {"auditReason":"Pallet is physically at Station 2; fixed door read was missed.","collectionId":"COL_000030","palletRfidTag":"DUMMY-ST2-1600000050","messageId":"3b0f49f4-04fb-4607-9b70-68b2dda9c4ff","schemaVersion":"4.0",...(+154B)
+[2026-07-23T11:14:39.005089+00:00] <-- PPNAM/handheld_1/res/holding_recovery_result action=holding_recovery_result (5375ms)
+        {"accepted":false,"reason":"Recovery product is not valid for the active ingredient collection.","preMixId":"","collectionId":"COL_000030","palletRfidTag":"DUMMY-ST2-1600000050","productCode":"","exceptionId":"a2ac12987d...(+359B)
+[2026-07-23T11:15:38.247773+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"3690559a-08e5-4bd2-b702-685da0cd2cc7","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:15:35.506554Z"}
+[2026-07-23T11:15:41.819278+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (3571ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000030","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+11615B)
+[2026-07-23T11:15:51.360020+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019341","messageId":"392e931d-93d8-4a28-9ae2-277aee307981","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:15:48.643...(+35B)
+[2026-07-23T11:15:55.064039+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (3704ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","collectionId":"COL_000031","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3824B)
+[2026-07-23T11:15:55.303086+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000031","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+11990B)
+[2026-07-23T11:16:14.904647+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":67.0,"bagSizeOption":"full","collectionId":"COL_000031","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000050","requestedMaterialCode":"1600000050","messageId":"91c94512-a61d-4a30-a079-da5864628e38","schemaVe...(+167B)
+[2026-07-23T11:16:17.513267+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (2609ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":1,"waitingQuantity":552.420,"collectedQuantity":1657.260000,"summary":"1 product(s) waiting for collection, 1 product(s) collected.","waitingProducts"...(+5058B)
+[2026-07-23T11:16:17.735684+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000031","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+12002B)
+[2026-07-23T11:16:40.465224+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":23.0,"bagSizeOption":"full","collectionId":"COL_000031","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000035","requestedMaterialCode":"1600000035","messageId":"4877a6e4-698e-4af0-836c-c0d5947af5c6","schemaVe...(+167B)
+[2026-07-23T11:16:44.490864+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (4026ms)
+        {"collectionSummary":{"waitingProductCount":0,"collectedProductCount":2,"waitingQuantity":0,"collectedQuantity":2209.680000,"summary":"0 product(s) waiting for collection, 2 product(s) collected.","waitingProducts":[],"c...(+5088B)
+[2026-07-23T11:16:44.710712+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000031","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+11994B)
+[2026-07-23T11:16:45.580253+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"cae0b0d3-3f00-47e3-a9ac-6a8f3a32531d","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:16:42.864810Z"}
+[2026-07-23T11:16:46.611563+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (1031ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+22433B)
+[2026-07-23T11:17:18.005900+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"b375d3ce-4e96-4398-8450-15ff811de882","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:17:15.262734Z"}
+[2026-07-23T11:17:19.202228+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1196ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000031","jobCardNumber":"510019341","productionOrderDocumentNumber":"510019341","preMixId":"","linkedPreMixId":null,"productName":"SHEET CLR PERF LD POO 1250X21...(+12044B)
+[2026-07-23T11:17:31.297026+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019347","messageId":"3da69bff-184a-4a79-8b84-80131eb9f5c5","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:17:28.556...(+35B)
+[2026-07-23T11:17:37.296817+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (6000ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","collectionId":"COL_000032","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3875B)
+[2026-07-23T11:17:37.536987+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000032","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+12429B)
+[2026-07-23T11:17:58.730281+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":22.0,"bagSizeOption":"full","collectionId":"COL_000032","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000020","requestedMaterialCode":"1600000020","messageId":"c7da580d-ef57-4db2-ae61-5f3e133469b6","schemaVe...(+167B)
+[2026-07-23T11:18:00.029447+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (1299ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":1,"waitingQuantity":1604.755,"collectedQuantity":534.918000,"summary":"1 product(s) waiting for collection, 1 product(s) collected.","waitingProducts"...(+5137B)
+[2026-07-23T11:18:00.247956+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000032","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+12441B)
+[2026-07-23T11:18:18.897071+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"116baa05-bc37-43ae-aa3b-c23799865890","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:18:16.173149Z"}
+[2026-07-23T11:18:19.327382+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (430ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000032","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+12491B)
+[2026-07-23T11:18:32.178783+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019339","messageId":"76bbcd01-cd72-42ff-af8a-911017050e5b","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:18:29.460...(+35B)
+[2026-07-23T11:18:39.106642+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (6928ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","collectionId":"COL_000033","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+4539B)
+[2026-07-23T11:18:39.359225+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000033","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+12865B)
+[2026-07-23T11:18:59.723577+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":15.0,"bagSizeOption":"full","collectionId":"COL_000033","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000035","requestedMaterialCode":"1600000035","messageId":"a9938431-2612-4621-8708-addf6bdd13fd","schemaVe...(+167B)
+[2026-07-23T11:19:01.030946+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (1307ms)
+        {"collectionSummary":{"waitingProductCount":2,"collectedProductCount":1,"waitingQuantity":3935.792,"collectedQuantity":374.837000,"summary":"2 product(s) waiting for collection, 1 product(s) collected.","waitingProducts"...(+6236B)
+[2026-07-23T11:19:01.249079+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000033","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+12878B)
+[2026-07-23T11:19:29.427007+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":8.0,"bagSizeOption":"full","collectionId":"COL_000033","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000008","requestedMaterialCode":"1600000008","messageId":"e42de72b-a033-4e40-93dd-6fa91fb72cee","schemaVer...(+166B)
+[2026-07-23T11:19:31.144095+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (1717ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":2,"waitingQuantity":3748.373,"collectedQuantity":562.256000,"summary":"1 product(s) waiting for collection, 2 product(s) collected.","waitingProducts"...(+6279B)
+[2026-07-23T11:19:31.380655+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000033","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+12878B)
+[2026-07-23T11:19:49.565309+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"91c35955-a1d8-4650-94a6-6ff894153b12","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:19:46.819465Z"}
+[2026-07-23T11:19:54.045708+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (4480ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000033","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+12928B)
+[2026-07-23T11:20:02.813539+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019346","messageId":"b9078e47-94a7-4f93-a658-e497fe393327","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:20:00.070...(+35B)
+[2026-07-23T11:20:06.663439+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (3850ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","collectionId":"COL_000034","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+4535B)
+[2026-07-23T11:20:06.895976+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000034","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+13329B)
+[2026-07-23T11:20:26.361402+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":6.0,"bagSizeOption":"full","collectionId":"COL_000034","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000050","requestedMaterialCode":"1600000050","messageId":"424b28c9-461f-40d8-a267-8f8b30f88e9f","schemaVer...(+166B)
+[2026-07-23T11:20:27.490726+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (1129ms)
+        {"collectionSummary":{"waitingProductCount":2,"collectedProductCount":1,"waitingQuantity":406.050,"collectedQuantity":134.454000,"summary":"2 product(s) waiting for collection, 1 product(s) collected.","waitingProducts":...(+6228B)
+[2026-07-23T11:20:27.726990+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000034","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+13341B)
+[2026-07-23T11:20:56.378338+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":1.0,"bagSizeOption":"full","collectionId":"COL_000034","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1500000316","requestedMaterialCode":"1500000316","messageId":"87855e35-6185-47b3-a653-0564e963e742","schemaVer...(+166B)
+[2026-07-23T11:21:00.817769+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (4439ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":2,"waitingQuantity":403.361,"collectedQuantity":137.143000,"summary":"1 product(s) waiting for collection, 2 product(s) collected.","waitingProducts":...(+6266B)
+[2026-07-23T11:21:01.078165+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000034","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+13340B)
+[2026-07-23T11:21:17.358719+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"b676ee72-808b-4099-a120-a8f550b3244d","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:21:14.635480Z"}
+[2026-07-23T11:21:17.840058+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (481ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000034","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+13391B)
+[2026-07-23T11:21:30.640987+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019340","messageId":"d6da1a84-027c-4075-ab5e-35a1e615a2e0","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:21:27.894...(+35B)
+[2026-07-23T11:21:34.820899+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (4180ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","collectionId":"COL_000035","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5248B)
+[2026-07-23T11:21:35.053455+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000035","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13807B)
+[2026-07-23T11:21:56.126025+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":11.0,"bagSizeOption":"full","collectionId":"COL_000035","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000050","requestedMaterialCode":"1600000050","messageId":"fa93c41d-e4b2-4054-a09b-45d57793e3e4","schemaVe...(+167B)
+[2026-07-23T11:22:00.290183+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (4164ms)
+        {"collectionSummary":{"waitingProductCount":3,"collectedProductCount":1,"waitingQuantity":813.476,"collectedQuantity":266.714000,"summary":"3 product(s) waiting for collection, 1 product(s) collected.","waitingProducts":...(+7395B)
+[2026-07-23T11:22:00.532087+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000035","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13817B)
+[2026-07-23T11:22:26.468909+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":1.0,"bagSizeOption":"full","collectionId":"COL_000035","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1500000316","requestedMaterialCode":"1500000316","messageId":"9c8f4cf6-6fde-454a-b1d2-7733675fefbc","schemaVer...(+166B)
+[2026-07-23T11:22:28.300712+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (1832ms)
+        {"collectionSummary":{"waitingProductCount":2,"collectedProductCount":2,"waitingQuantity":808.142,"collectedQuantity":272.048000,"summary":"2 product(s) waiting for collection, 2 product(s) collected.","waitingProducts":...(+7428B)
+[2026-07-23T11:22:28.515420+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000035","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13818B)
+[2026-07-23T11:22:56.458759+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":1.0,"bagSizeOption":"full","collectionId":"COL_000035","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1500000317","requestedMaterialCode":"1500000317","messageId":"8d1deb04-bfcc-453b-a0c0-9b04a57a1585","schemaVer...(+166B)
+[2026-07-23T11:23:06.027787+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (9569ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":3,"waitingQuantity":800.141,"collectedQuantity":280.049000,"summary":"1 product(s) waiting for collection, 3 product(s) collected.","waitingProducts":...(+7462B)
+[2026-07-23T11:23:06.271982+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000035","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13818B)
+[2026-07-23T11:24:27.629339+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"4188e536-b2d9-47ef-b52e-d69c0f8da3e4","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:24:24.907120Z"}
+[2026-07-23T11:24:30.954765+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (3325ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000035","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13868B)
+[2026-07-23T11:24:40.776907+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019347","messageId":"4e677b87-3acc-498b-9820-76d8a3b68f9a","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:24:38.028...(+35B)
+[2026-07-23T11:24:45.983588+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (5207ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","collectionId":"COL_000036","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+3874B)
+[2026-07-23T11:24:46.218323+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000036","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+14253B)
+[2026-07-23T11:25:06.449133+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":65.0,"bagSizeOption":"full","collectionId":"COL_000036","palletRfidTag":"DUMMY-ST2-1600000039","requestedMaterialCode":"1600000039","messageId":"5bddd1ed-8455-435a-878e-32ea203a48d1","schemaVersion":"4.0","de...(+151B)
+[2026-07-23T11:25:11.208361+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (4759ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":1,"waitingQuantity":534.918,"collectedQuantity":1604.755000,"summary":"1 product(s) waiting for collection, 1 product(s) collected.","waitingProducts"...(+5127B)
+[2026-07-23T11:25:11.502756+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000036","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+14265B)
+[2026-07-23T11:25:32.136707+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":22.0,"bagSizeOption":"full","collectionId":"COL_000036","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000020","requestedMaterialCode":"1600000020","messageId":"a29fad5d-cf5d-44d2-8b67-237e315f30fe","schemaVe...(+167B)
+[2026-07-23T11:25:36.329649+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (4193ms)
+        {"collectionSummary":{"waitingProductCount":0,"collectedProductCount":2,"waitingQuantity":0,"collectedQuantity":2139.673000,"summary":"0 product(s) waiting for collection, 2 product(s) collected.","waitingProducts":[],"c...(+5171B)
+[2026-07-23T11:25:36.555908+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000036","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+14257B)
+[2026-07-23T11:25:37.413895+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"e4746f9d-07ec-4391-9aa4-b365d4c323fb","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:25:34.662927Z"}
+[2026-07-23T11:25:37.946565+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (533ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+22853B)
+[2026-07-23T11:25:57.465588+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"0bf52d83-9eb0-48ba-8ecf-1f0ff02eeeab","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:25:54.746028Z"}
+[2026-07-23T11:25:58.153097+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (688ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000036","jobCardNumber":"510019347","productionOrderDocumentNumber":"510019347","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L 1300\u002B900...(+14307B)
+[2026-07-23T11:26:10.817453+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019339","messageId":"325f79f1-cb7f-4578-970c-8d2bbdc45cb7","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:26:08.050...(+35B)
+[2026-07-23T11:26:20.192761+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (9375ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","collectionId":"COL_000037","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+4544B)
+[2026-07-23T11:26:20.475469+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000037","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+14682B)
+[2026-07-23T11:26:43.252001+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":150.0,"bagSizeOption":"full","collectionId":"COL_000037","palletRfidTag":"DUMMY-ST2-1600000039","requestedMaterialCode":"1600000039","messageId":"49695d62-df68-43e1-8b4a-54d407f4c41d","schemaVersion":"4.0","d...(+152B)
+[2026-07-23T11:26:46.000033+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (2748ms)
+        {"collectionSummary":{"waitingProductCount":2,"collectedProductCount":1,"waitingQuantity":562.256,"collectedQuantity":3748.373000,"summary":"2 product(s) waiting for collection, 1 product(s) collected.","waitingProducts"...(+6230B)
+[2026-07-23T11:26:46.272973+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000037","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+14694B)
+[2026-07-23T11:27:09.330905+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":15.0,"bagSizeOption":"full","collectionId":"COL_000037","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000035","requestedMaterialCode":"1600000035","messageId":"a9d5c41d-2397-4d67-abf5-e57f9431088b","schemaVe...(+167B)
+[2026-07-23T11:27:11.825872+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (2495ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":2,"waitingQuantity":187.419,"collectedQuantity":4123.210000,"summary":"1 product(s) waiting for collection, 2 product(s) collected.","waitingProducts"...(+6282B)
+[2026-07-23T11:27:12.051681+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000037","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+14694B)
+[2026-07-23T11:27:39.309735+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":8.0,"bagSizeOption":"full","collectionId":"COL_000037","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000008","requestedMaterialCode":"1600000008","messageId":"a0bb5394-097b-47fc-bcca-8da663b6540f","schemaVer...(+166B)
+[2026-07-23T11:27:43.743648+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (4434ms)
+        {"collectionSummary":{"waitingProductCount":0,"collectedProductCount":3,"waitingQuantity":0,"collectedQuantity":4310.629000,"summary":"0 product(s) waiting for collection, 3 product(s) collected.","waitingProducts":[],"c...(+6306B)
+[2026-07-23T11:27:43.976052+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000037","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+14686B)
+[2026-07-23T11:27:44.848519+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"9b6f223c-13dd-49eb-936d-babe85488c19","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:27:42.089081Z"}
+[2026-07-23T11:27:45.947500+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (1099ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+23263B)
+[2026-07-23T11:28:04.925517+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"a4ac7ed0-68e1-4528-ba71-8fa14f01a557","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:28:02.201810Z"}
+[2026-07-23T11:28:06.089442+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1164ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000037","jobCardNumber":"510019339","productionOrderDocumentNumber":"510019339","preMixId":"","linkedPreMixId":null,"productName":"BAG CLR [RSA]  M 500X700X40MI...(+14736B)
+[2026-07-23T11:28:18.403569+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019346","messageId":"053c09df-95e5-45c4-825d-73092ea42339","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:28:15.679...(+35B)
+[2026-07-23T11:28:24.248110+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (5845ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","collectionId":"COL_000038","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+4540B)
+[2026-07-23T11:28:24.479057+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000038","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+15137B)
+[2026-07-23T11:28:43.985958+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":17.0,"bagSizeOption":"full","collectionId":"COL_000038","palletRfidTag":"DUMMY-ST2-1600000039","requestedMaterialCode":"1600000039","messageId":"6f9310f1-02aa-4df2-a3f3-c676021e9410","schemaVersion":"4.0","de...(+151B)
+[2026-07-23T11:28:52.335782+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (8350ms)
+        {"collectionSummary":{"waitingProductCount":2,"collectedProductCount":1,"waitingQuantity":137.143,"collectedQuantity":403.361000,"summary":"2 product(s) waiting for collection, 1 product(s) collected.","waitingProducts":...(+6217B)
+[2026-07-23T11:28:52.561543+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000038","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+15149B)
+[2026-07-23T11:29:09.540798+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":6.0,"bagSizeOption":"full","collectionId":"COL_000038","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000050","requestedMaterialCode":"1600000050","messageId":"838cdb67-f4ee-44e8-a771-1eb5da23ad04","schemaVer...(+166B)
+[2026-07-23T11:29:12.325400+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (2785ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":2,"waitingQuantity":2.689,"collectedQuantity":537.815000,"summary":"1 product(s) waiting for collection, 2 product(s) collected.","waitingProducts":[{...(+6268B)
+[2026-07-23T11:29:12.559504+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000038","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+15147B)
+[2026-07-23T11:29:39.749768+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":1.0,"bagSizeOption":"full","collectionId":"COL_000038","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1500000316","requestedMaterialCode":"1500000316","messageId":"cd2ada67-1bd5-4da7-ac72-8a5b1883bd43","schemaVer...(+166B)
+[2026-07-23T11:29:44.591181+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (4841ms)
+        {"collectionSummary":{"waitingProductCount":0,"collectedProductCount":3,"waitingQuantity":0,"collectedQuantity":540.504000,"summary":"0 product(s) waiting for collection, 3 product(s) collected.","waitingProducts":[],"co...(+6290B)
+[2026-07-23T11:29:44.830877+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000038","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+15141B)
+[2026-07-23T11:29:45.664979+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"39c95cd8-31f0-49a4-a8d7-2c946a24beef","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:29:42.905628Z"}
+[2026-07-23T11:29:46.666664+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (1002ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+23700B)
+[2026-07-23T11:30:05.402138+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"e585f754-6f90-4164-9abd-2f0b4852e824","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:30:02.669161Z"}
+[2026-07-23T11:30:06.727331+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1325ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000038","jobCardNumber":"510019346","productionOrderDocumentNumber":"510019346","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER CLR L OUTER 3 M/P [...(+15191B)
+[2026-07-23T11:30:18.855481+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019340","messageId":"50fd824d-a7a6-4b32-a9c8-4eeb5b1d8b0c","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:30:16.086...(+35B)
+[2026-07-23T11:30:28.253931+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (9398ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","collectionId":"COL_000039","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5248B)
+[2026-07-23T11:30:28.480588+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15606B)
+[2026-07-23T11:30:48.364400+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":33.0,"bagSizeOption":"full","collectionId":"COL_000039","palletRfidTag":"DUMMY-ST2-1600000039","requestedMaterialCode":"1600000039","messageId":"acfb0f68-77fc-4ac9-bd43-076bd7094b08","schemaVersion":"4.0","de...(+151B)
+[2026-07-23T11:30:53.417899+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (5053ms)
+        {"collectionSummary":{"waitingProductCount":3,"collectedProductCount":1,"waitingQuantity":280.049,"collectedQuantity":800.141000,"summary":"3 product(s) waiting for collection, 1 product(s) collected.","waitingProducts":...(+7379B)
+[2026-07-23T11:30:53.646586+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15618B)
+[2026-07-23T11:31:14.046213+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":11.0,"bagSizeOption":"full","collectionId":"COL_000039","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000050","requestedMaterialCode":"1600000050","messageId":"4ba9c7fb-bd83-43c6-a415-1a9dbf611364","schemaVe...(+167B)
+[2026-07-23T11:31:19.147271+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (5101ms)
+        {"collectionSummary":{"waitingProductCount":2,"collectedProductCount":2,"waitingQuantity":13.335,"collectedQuantity":1066.855000,"summary":"2 product(s) waiting for collection, 2 product(s) collected.","waitingProducts":...(+7428B)
+[2026-07-23T11:31:19.390156+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15617B)
+[2026-07-23T11:31:44.380781+00:00] --> PPNAM/handheld_1/req/ingredient_scan_requested action=ingredient_scan_requested
+        {"bagCount":1.0,"bagSizeOption":"full","collectionId":"COL_000039","palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1500000316","requestedMaterialCode":"1500000316","messageId":"d107a395-18a0-40ce-a9b0-deef6cc9f50b","schemaVer...(+166B)
+[2026-07-23T11:31:55.806999+00:00] <-- PPNAM/handheld_1/res/ingredient_scan_result action=ingredient_scan_result (11426ms)
+        {"collectionSummary":{"waitingProductCount":1,"collectedProductCount":3,"waitingQuantity":8.001,"collectedQuantity":1072.189000,"summary":"1 product(s) waiting for collection, 3 product(s) collected.","waitingProducts":[...(+7460B)
+[2026-07-23T11:31:56.088690+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15617B)
+[2026-07-23T11:32:38.810483+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"6ab54bac-ba94-4047-8627-486edf2eb0b3","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:32:36.050152Z"}
+[2026-07-23T11:32:40.454248+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1644ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15667B)
+[2026-07-23T11:32:48.318503+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"675c5670-7535-4fc9-bda9-32ef9af2c4cc","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:32:45.560568Z"}
+[2026-07-23T11:32:49.220693+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (902ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+23699B)
+[2026-07-23T11:33:20.736218+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"mixingArea":"MainMixingRoom","messageId":"a0873eb6-1f89-4c83-ab12-8278e443e922","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:33:17.9...(+8B)
+[2026-07-23T11:33:25.436167+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (4700ms)
+        {"accepted":true,"reason":null,"mixingArea":"MainMixingRoom","productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"MainMixingRoom","equipmentRole":"Mixer","machineCode":"MXR-01","displayName":"Main Mixer 1","i...(+15827B)
+[2026-07-23T11:33:25.503250+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"105c619b-df3f-4936-8545-3586260136a4","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:33:22.768264Z"}
+[2026-07-23T11:33:26.499928+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (997ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15667B)
+[2026-07-23T11:34:53.369526+00:00] --> PPNAM/handheld_1/req/machine_cycle_start_requested action=machine_cycle_start_requested
+        {"collectionId":"COL_000031","machineCode":"MXR-01","productionOrderDocumentNumber":"510019341","messageId":"e7936573-410a-4b90-8373-4434a44d8d37","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddb...(+103B)
+[2026-07-23T11:34:59.054853+00:00] <-- PPNAM/handheld_1/res/machine_cycle_result action=Started (5685ms)
+        {"accepted":true,"reason":null,"action":"Started","mixingArea":"MainMixingRoom","equipmentRole":"Mixer","machineCode":"MXR-01","cycleId":"CYC_000010","productionOrderDocumentNumber":"510019341","collectionId":"COL_000031...(+15058B)
+[2026-07-23T11:34:59.214381+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"4de9590e-fc4a-45f3-9ae2-b4b0b1f4e462","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:34:56.481279Z"}
+[2026-07-23T11:34:59.334627+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15188B)
+[2026-07-23T11:35:00.059405+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (845ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+15238B)
+[2026-07-23T11:35:53.258498+00:00] --> PPNAM/handheld_1/req/machine_cycle_start_requested action=machine_cycle_start_requested
+        {"collectionId":"COL_000036","machineCode":"MXR-02","productionOrderDocumentNumber":"510019347","messageId":"5e92d151-479d-4c62-a725-24b12834b344","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddb...(+103B)
+[2026-07-23T11:35:58.807773+00:00] <-- PPNAM/handheld_1/res/machine_cycle_result action=Started (5549ms)
+        {"accepted":true,"reason":null,"action":"Started","mixingArea":"MainMixingRoom","equipmentRole":"Mixer","machineCode":"MXR-02","cycleId":"CYC_000011","productionOrderDocumentNumber":"510019347","collectionId":"COL_000036...(+15082B)
+[2026-07-23T11:35:58.902256+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"4e1f2a74-1533-416e-89a2-2d17976432a2","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:35:56.168191Z"}
+[2026-07-23T11:35:59.033550+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+14749B)
+[2026-07-23T11:36:00.216489+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1314ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+14799B)
+[2026-07-23T11:36:38.644851+00:00] --> PPNAM/handheld_1/req/machine_cycle_start_requested action=machine_cycle_start_requested
+        {"collectionId":"COL_000037","machineCode":"MXR-03","productionOrderDocumentNumber":"510019339","messageId":"53f3e13a-45d4-4453-8ef1-a657ac7c74a4","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddb...(+103B)
+[2026-07-23T11:36:44.618323+00:00] <-- PPNAM/handheld_1/res/machine_cycle_result action=Started (5973ms)
+        {"accepted":true,"reason":null,"action":"Started","mixingArea":"MainMixingRoom","equipmentRole":"Mixer","machineCode":"MXR-03","cycleId":"CYC_000012","productionOrderDocumentNumber":"510019339","collectionId":"COL_000037...(+15106B)
+[2026-07-23T11:36:44.796513+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"57f32821-96f8-4fc6-9033-85bde18d5f11","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:36:42.050360Z"}
+[2026-07-23T11:36:44.863304+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+14320B)
+[2026-07-23T11:36:45.423942+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (627ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+14370B)
+[2026-07-23T11:37:05.891934+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"9eb066ad-871f-4159-8fa2-1aba1b110a0c","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:37:03.127380Z"}
+[2026-07-23T11:37:07.430786+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (1539ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+23407B)
+[2026-07-23T11:37:37.038912+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"mixingArea":"JandiBulkMixing","messageId":"4071339f-da39-462a-b8d7-d5c95c513513","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:37:34....(+9B)
+[2026-07-23T11:37:42.234760+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (5196ms)
+        {"accepted":true,"reason":null,"mixingArea":"JandiBulkMixing","productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"JandiBulkMixing","equipmentRole":"Mixer","machineCode":"JAN-MIX-01","displayName":"JANDI 2/3 ...(+3005B)
+[2026-07-23T11:37:42.272385+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"f1555539-93e5-47c1-b400-ef37fa5ac9ff","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:37:39.537116Z"}
+[2026-07-23T11:37:42.839811+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (567ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+14369B)
+[2026-07-23T11:38:31.012449+00:00] --> PPNAM/handheld_1/req/machine_cycle_start_requested action=machine_cycle_start_requested
+        {"collectionId":"COL_000038","machineCode":"JAN-MIX-01","productionOrderDocumentNumber":"510019346","messageId":"bf7f0433-1e05-400b-892f-5291d10aae11","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d...(+107B)
+[2026-07-23T11:38:35.990265+00:00] <-- PPNAM/handheld_1/res/machine_cycle_result action=Started (4978ms)
+        {"accepted":true,"reason":null,"action":"Started","mixingArea":"JandiBulkMixing","equipmentRole":"Mixer","machineCode":"JAN-MIX-01","cycleId":"CYC_000013","productionOrderDocumentNumber":"510019346","collectionId":"COL_0...(+3547B)
+[2026-07-23T11:38:36.075215+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"c0bbfbb2-f220-40dd-a35a-b294dd67cb2c","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:38:33.339196Z"}
+[2026-07-23T11:38:36.240850+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13865B)
+[2026-07-23T11:38:37.517998+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1443ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13915B)
+[2026-07-23T11:39:34.602726+00:00] --> PPNAM/handheld_1/req/machine_cycle_finish_requested action=machine_cycle_finish_requested
+        {"cycleId":"CYC_000013","machineCode":"JAN-MIX-01","messageId":"74d3a22d-1b75-46f2-93a3-18bb2df96457","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2...(+58B)
+[2026-07-23T11:39:39.161283+00:00] <-- PPNAM/handheld_1/res/machine_cycle_result action=Finished (4559ms)
+        {"accepted":true,"reason":null,"action":"Finished","mixingArea":"JandiBulkMixing","equipmentRole":"Mixer","machineCode":"JAN-MIX-01","cycleId":"CYC_000013","productionOrderDocumentNumber":"510019346","collectionId":"COL_...(+3672B)
+[2026-07-23T11:39:39.261401+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"8b56d50a-1db1-4e02-9fb9-a7b2df9b1c9e","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:39:36.524834Z"}
+[2026-07-23T11:39:40.254957+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (994ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13915B)
+[2026-07-23T11:40:23.349151+00:00] --> PPNAM/handheld_1/req/machine_cycle_start_requested action=machine_cycle_start_requested
+        {"machineCode":"JAN-02","mixBatchIds":["MIX_000009"],"productionOrderDocumentNumber":"510019346","messageId":"32bbe375-7545-4c48-8ab3-aef79d6bbe2e","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9dd...(+104B)
+[2026-07-23T11:40:25.166498+00:00] <-- PPNAM/handheld_1/res/machine_cycle_result action=Started (1817ms)
+        {"accepted":true,"reason":null,"action":"Started","mixingArea":"JandiBulkMixing","equipmentRole":"ProductionMachine","machineCode":"JAN-02","cycleId":"RUN_000010","productionOrderDocumentNumber":"510019346","collectionId...(+3625B)
+[2026-07-23T11:40:25.232742+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"7f5a46cd-ca91-4227-a836-4bb6c927e9c4","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:40:22.496580Z"}
+[2026-07-23T11:40:26.109534+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (877ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13915B)
+[2026-07-23T11:41:10.388898+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"d6d410a4-8a69-494a-8fd0-f1ad3ac8623d","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:41:07.637598Z"}
+[2026-07-23T11:41:18.464210+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (8075ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+23373B)
+[2026-07-23T11:41:21.787032+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"mixingArea":"MainMixingRoom","messageId":"a5485056-b6d4-49f9-bc94-eb2a40d214f1","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:41:19.0...(+8B)
+[2026-07-23T11:41:23.618897+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (1832ms)
+        {"accepted":true,"reason":null,"mixingArea":"MainMixingRoom","productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"MainMixingRoom","equipmentRole":"Mixer","machineCode":"MXR-01","displayName":"Main Mixer 1","i...(+15501B)
+[2026-07-23T11:41:23.723679+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"01bf2db3-97a0-492b-8e86-8133c156c5f6","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:41:20.984966Z"}
+[2026-07-23T11:41:25.091575+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1368ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13915B)
+[2026-07-23T11:45:10.178827+00:00] --> PPNAM/handheld_1/req/machine_cycle_force_close_requested action=machine_cycle_force_close_requested
+        {"auditReason":"Automated test force closetAutomated test force closei","cycleId":"CYC_000010","machineCode":"MXR-01","managerPassword":"1234","managerUsername":"Avi","messageId":"325222b2-e8d8-4faf-94e6-2f5acd8fdc00","s...(+174B)
+[2026-07-23T11:45:17.358749+00:00] <-- PPNAM/handheld_1/res/machine_cycle_result action=ForceClose (7180ms)
+        {"accepted":true,"reason":null,"action":"ForceClose","mixingArea":"MainMixingRoom","equipmentRole":"Mixer","machineCode":"MXR-01","cycleId":"CYC_000010","productionOrderDocumentNumber":"510019341","collectionId":"COL_000...(+15591B)
+[2026-07-23T11:45:17.504523+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"53f7a7e6-e113-4284-88d6-fde12e4dcbeb","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:45:14.763205Z"}
+[2026-07-23T11:45:18.291638+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (787ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13915B)
+[2026-07-23T11:46:32.969599+00:00] --> PPNAM/handheld_1/req/mixing_overview_requested action=mixing_overview_requested
+        {"messageId":"2453a559-0fa6-4791-bae6-247fda8a6d90","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:46:30.210664Z"}
+[2026-07-23T11:46:37.460366+00:00] <-- PPNAM/handheld_1/res/mixing_overview_result action=mixing_overview_result (4491ms)
+        {"accepted":true,"reason":null,"mixingArea":null,"productionOrderDocumentNumber":null,"equipment":[{"mixingArea":"DolciBulkMixing","equipmentRole":"Mixer","machineCode":"DOL-MIX-01","displayName":"DOLCI Bulk Mixer 1","is...(+23831B)
+[2026-07-23T11:46:37.547738+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"3bc5bc13-f8b1-4522-a4ed-99be058eefbc","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:46:34.781691Z"}
+[2026-07-23T11:46:38.917498+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (1370ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13915B)
+[2026-07-23T11:47:07.147689+00:00] --> PPNAM/handheld_1/req/pallet_lookup_requested action=pallet_lookup_requested
+        {"palletRfidTag":"EPC:DUMMY-ST2-ACTIVE-20260717-1600000044","messageId":"c107a736-6cef-42b9-80ea-0d4610fde17b","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timesta...(+97B)
+[2026-07-23T11:47:08.498975+00:00] <-- PPNAM/handheld_1/res/pallet_lookup_result action=pallet_lookup_result (1351ms)
+        {"accepted":true,"reason":null,"nextAction":"","found":true,"usable":true,"recoverable":false,"palletRfidTag":"DUMMY-ST2-ACTIVE-20260717-1600000044","palletId":"DUMMY-ST2-ACTIVE-20260717-1600000044","productCode":"160000...(+538B)
+[2026-07-23T11:47:50.473086+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"157de7c5-a4c4-42d5-8840-8b6a24b5343e","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:47:47.688396Z"}
+[2026-07-23T11:47:55.476055+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (5003ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000039","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+13915B)
+[2026-07-23T11:48:05.928540+00:00] --> PPNAM/handheld_1/req/job_card_load_requested action=job_card_load_requested
+        {"jobCardNumber":"510019340","messageId":"00e8c8ec-8532-4d55-b7d8-ad3e6d08f181","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:48:03.152...(+35B)
+[2026-07-23T11:48:10.939255+00:00] <-- PPNAM/handheld_1/res/bom_loaded action=bom_loaded (5011ms)
+        {"accepted":true,"reason":null,"jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","collectionId":"COL_000040","status":"Collecting","collectionStatus":"Collecting","resumedExistingCollection":false,"...(+5248B)
+[2026-07-23T11:48:11.188320+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000040","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+14331B)
+[2026-07-23T11:51:25.261994+00:00] --> PPNAM/handheld_1/req/active_job_cards_requested action=active_job_cards_requested
+        {"messageId":"6bbd54e2-3558-43c8-a3f9-cb117f24cafb","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:51:22.480706Z"}
+[2026-07-23T11:51:35.628371+00:00] <-- PPNAM/handheld_1/res/active_job_cards_list action=active_job_cards_list (10366ms)
+        {"accepted":true,"reason":null,"jobs":[{"collectionId":"COL_000040","jobCardNumber":"510019340","productionOrderDocumentNumber":"510019340","preMixId":"","linkedPreMixId":null,"productName":"BAG BALER RED/TINT L CIBA OUT...(+14381B)
+[2026-07-23T11:51:59.451796+00:00] --> PPNAM/handheld_1/req/reader_logout_requested action=reader_logout_requested
+        {"messageId":"d7279cb4-b7fe-4cca-a945-7a6dddfc4ee7","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:51:56.672918Z"}
+[2026-07-23T11:52:19.521851+00:00] --> PPNAM/handheld_1/req/reader_logout_requested action=reader_logout_requested
+        {"messageId":"d7279cb4-b7fe-4cca-a945-7a6dddfc4ee7","schemaVersion":"4.0","deviceId":"handheld_1","operatorSessionId":"3d9ddbf0326a4cd0bc38bea60eca803f","timestampUtc":"2026-07-23T11:51:56.672918Z"}
+[2026-07-23T11:52:25.078599+00:00] <-- PPNAM/handheld_1/res/operator_context action=operator_context (5557ms)
+        {"accepted":true,"reason":null,"operatorId":"","displayName":"","username":"","role":"","roleLabel":"","allowedActions":["submit_job_card","cancel_premix","recover_holding","scan_ingredient","assign_hopper","complete_pre...(+614B)
+[2026-07-23T11:52:25.162501+00:00] <-- PPNAM/handheld_1/res/operator_context action=operator_context
+        {"accepted":true,"reason":null,"operatorId":"","displayName":"","username":"","role":"","roleLabel":"","allowedActions":["submit_job_card","cancel_premix","recover_holding","scan_ingredient","assign_hopper","complete_pre...(+614B)

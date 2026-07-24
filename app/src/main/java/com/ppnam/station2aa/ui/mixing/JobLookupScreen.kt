@@ -1,5 +1,6 @@
 package com.ppnam.station2aa.ui.mixing
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,9 +12,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
@@ -21,7 +29,9 @@ import com.ppnam.station2aa.ui.theme.GraphiteBorder
 import com.ppnam.station2aa.ui.theme.GraphiteSurface
 import com.ppnam.station2aa.ui.theme.TextMuted
 import com.ppnam.station2aa.ui.theme.TextPrimary
+import com.ppnam.station2aa.ui.theme.WarningOrange
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun JobLookupScreen(
     onJobFound: (orderNo: String) -> Unit,
@@ -29,6 +39,7 @@ fun JobLookupScreen(
     onLogout: () -> Unit = {},
     onRfidLookup: () -> Unit = {},
     onOpenMixing: () -> Unit = {},
+    onExitApp: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -37,8 +48,64 @@ fun JobLookupScreen(
     val activeJobsError by viewModel.activeJobsError.collectAsState()
     val session by viewModel.session.collectAsState()
     var orderInput by rememberSaveable { mutableStateOf("") }
+    var showExitDialog by rememberSaveable { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
-    LaunchedEffect(Unit) { viewModel.loadActiveJobs() }
+    // Same accidental-exit hazard the login screen has, and this is where operators actually
+    // spend their time: Job Lookup is the start of the post-login graph, so Back had nothing to
+    // pop and dropped straight to the Android launcher. Two stages, as on Login — dismiss the
+    // keyboard first, then ask.
+    val imeVisible = WindowInsets.isImeVisible
+    BackHandler {
+        if (imeVisible) {
+            keyboard?.hide()
+            focusManager.clearFocus()
+        } else {
+            showExitDialog = true
+        }
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Close the app?", color = TextPrimary) },
+            text = {
+                Text(
+                    "You'll leave PPNAM Station 2. Any collection in progress stays saved on Station 2.",
+                    color = TextMuted
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitDialog = false
+                    onExitApp()
+                }) { Text("Close", color = DangerRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("Stay") }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
+
+    // Re-fetches on first entry, on in-app back navigation, AND every time the screen becomes
+    // visible again after the app was merely backgrounded (screen locked, operator took a call,
+    // switched apps). A plain LaunchedEffect(Unit) covers the first two — it reruns on fresh
+    // composition — but never fires for the third, because the composable does not leave
+    // composition when the activity is backgrounded. The result was an Active Jobs list showing
+    // last-fetched progress with no new request on the wire, which on a shared handheld is the
+    // list an operator picks their collection from. Same mechanism as MixingAreaPickerScreen.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadActiveJobs()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { destination ->
@@ -82,7 +149,10 @@ fun JobLookupScreen(
                     modifier = Modifier.weight(1f, fill = false).heightIn(max = 240.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(activeJobs) { job ->
+                    // collectionId, not jobCardNumber, is the identity: several concurrent
+                    // collections per job card is intended behaviour, and duplicate keys would
+                    // make LazyColumn throw.
+                    items(activeJobs, key = { it.collectionId.ifBlank { it.jobCardNumber } }) { job ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -92,8 +162,51 @@ fun JobLookupScreen(
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(job.jobCardNumber, style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                // Four collections of the same job card previously rendered as
+                                // four visually identical rows — order number plus product name —
+                                // while actually holding 0%, 75%, 75% and 0% progress, so the
+                                // operator had no way to pick the one they were working on. Every
+                                // field below was already in the response and simply unread.
+                                // Every progress figure here is optional, because the backend
+                                // genuinely omits them. Rendering a missing percentage as "0%"
+                                // told the operator a ReadyForMixing collection had no progress
+                                // at all. `status` is the one field Station 2 fills in reliably,
+                                // so it leads and the numbers embellish it only when they exist.
+                                Text(
+                                    buildString {
+                                        if (job.collectionId.isNotBlank()) append(job.collectionId)
+                                        if (job.status.isNotBlank()) {
+                                            if (isNotEmpty()) append(" · ")
+                                            append(job.statusLabel)
+                                        }
+                                        val required = job.requiredIngredientCount ?: 0
+                                        if (required > 0) {
+                                            if (isNotEmpty()) append(" · ")
+                                            append("${job.completedIngredientCount ?: 0} of $required lines")
+                                        }
+                                        job.progressPercent?.let { percent ->
+                                            if (isNotEmpty()) append(" · ")
+                                            append("%.0f%%".format(percent))
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = AmberPrimary
+                                )
                                 if (job.productName.isNotBlank()) {
-                                    Text(job.productName, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                    Text(
+                                        job.productName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextMuted,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                if ((job.pendingApprovalCount ?: 0) > 0) {
+                                    Text(
+                                        "${job.pendingApprovalCount} line(s) awaiting approval",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = WarningOrange
+                                    )
                                 }
                             }
                         }
@@ -114,7 +227,12 @@ fun JobLookupScreen(
                 onValueChange = { orderInput = it },
                 label = { Text("Production Order No.") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                // A digits-only field opened the full QWERTY keyboard while the bag-count field
+                // correctly opened a keypad. Matched to the keypad.
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Search
+                ),
                 keyboardActions = KeyboardActions(onSearch = { viewModel.lookupJob(orderInput) }),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AmberPrimary,

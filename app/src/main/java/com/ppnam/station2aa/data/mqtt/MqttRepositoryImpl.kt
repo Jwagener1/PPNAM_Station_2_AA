@@ -132,6 +132,7 @@ class MqttRepositoryImpl @Inject constructor(
                         _connectionState.value = MqttConnectionState.CONNECTED
                     } catch (e: Exception) {
                         _connectionState.value = MqttConnectionState.DISCONNECTED
+                        scheduleSubscribeRetry(client, settings.deviceId)
                     }
                 }
             },
@@ -140,8 +141,38 @@ class MqttRepositoryImpl @Inject constructor(
         return client
     }
 
+    // The transport genuinely is connected at this point (isTransportConnected stays true);
+    // only the subscribe step failed. connect() must NOT be reused to retry it — its
+    // isTransportConnected guard would make that an immediate no-op, permanently stranding
+    // the app in DISCONNECTED with a live-but-unsubscribed client. Keep retrying just the
+    // subscribe step on its own timer until it succeeds or this client is superseded.
+    private var subscribeRetryJob: Job? = null
+
+    private fun scheduleSubscribeRetry(client: Mqtt5AsyncClient, deviceId: String) {
+        if (subscribeRetryJob?.isActive == true) return
+        subscribeRetryJob = scope.launch {
+            while (isActive) {
+                delay(RECONNECT_RETRY_DELAY_MS)
+                if (mqttClient !== client || !isTransportConnected.get()) return@launch
+                if (_connectionState.value == MqttConnectionState.CONNECTED) return@launch
+                try {
+                    retryBounded(SUBSCRIBE_RETRY_ATTEMPTS, SUBSCRIBE_RETRY_DELAY_MS) {
+                        withTimeout(SUBSCRIBE_TIMEOUT_MS) {
+                            subscribeAndAnnounce(client, deviceId)
+                        }
+                    }
+                    _connectionState.value = MqttConnectionState.CONNECTED
+                    return@launch
+                } catch (e: Exception) {
+                    // keep looping
+                }
+            }
+        }
+    }
+
     private fun handleTransportDisconnected(client: Mqtt5AsyncClient) {
         if (mqttClient === client) {
+            subscribeRetryJob?.cancel()
             isTransportConnected.set(false)
             _connectionState.value = MqttConnectionState.RECONNECTING
             // The retained presence we last saw is no longer evidence of anything — we are not
@@ -255,12 +286,14 @@ class MqttRepositoryImpl @Inject constructor(
                 _connectionState.value = MqttConnectionState.CONNECTED
             } catch (e: Exception) {
                 _connectionState.value = MqttConnectionState.DISCONNECTED
+                scheduleSubscribeRetry(client, currentDeviceId)
             }
         }
     }
 
     override fun disconnect() {
         retryJob?.cancel()
+        subscribeRetryJob?.cancel()
         publishOfflineBestEffort(mqttClient, currentDeviceId)
         mqttClient?.disconnect()
         _connectionState.value = MqttConnectionState.DISCONNECTED
@@ -370,13 +403,9 @@ class MqttRepositoryImpl @Inject constructor(
             MqttOutcome.Accepted(body, nextAction)
         } else {
             val code = envelope.errorCode?.let { ErrorCode(it) }
-            // The transport stamps operatorSessionId onto every envelope, so it owns the fact that a
-            // session is no longer valid. Handling this here covers every request in the app in one
-            // place, instead of repeating the check in every use case.
-            if (code == ErrorCode.SESSION_REQUIRED) {
-                Log.w(TAG, "Station 2 rejected $expectedResponseType with session_required — clearing local session")
-                sessionHolder.clear()
-            }
+            // SESSION_REQUIRED is handled centrally in handleIncomingResponse() — that runs for
+            // every incoming response, matched or not, so a late reply that arrives after this
+            // request already timed out still clears the session instead of being silently dropped.
             if (code == ErrorCode.CLIENT_UPGRADE_REQUIRED) {
                 Log.w(TAG, "Station 2 requires a newer reader build ($expectedResponseType) — latching upgradeRequired")
                 _upgradeRequired.value = true
@@ -426,6 +455,23 @@ class MqttRepositoryImpl @Inject constructor(
         recordClockSkew(envelope?.timestampUtc ?: "")
         if (envelope?.errorCode == ErrorCode.CLIENT_UPGRADE_REQUIRED.raw) {
             _upgradeRequired.value = true
+        }
+        // Independent of whether a pending waiter matches this response — a late reply to a
+        // request that already gave up and timed out must still clear a session Station 2 has
+        // truly invalidated. BUT: the rejection's own operatorSessionId must match the session we
+        // currently believe is active before we act on it. Without that check, a stale response
+        // for an OLD, already-superseded session (e.g. a retried request from before the operator
+        // logged out and back in, landing late after a new session is already active) would log
+        // the operator out of their brand-new, perfectly valid session — exactly the kind of
+        // spurious mid-action logout that made "finish a cycle" / "start a second machine" look
+        // broken, when a request that had nothing to do with the current session happened to
+        // resolve at the wrong moment.
+        if (envelope?.errorCode == ErrorCode.SESSION_REQUIRED.raw &&
+            !envelope.operatorSessionId.isNullOrBlank() &&
+            envelope.operatorSessionId == sessionHolder.currentSessionIdOrEmpty()
+        ) {
+            Log.w(TAG, "Station 2 rejected a response on $topic with session_required — clearing local session")
+            sessionHolder.clear()
         }
         val id = envelope?.inResponseToMessageId
         if (id.isNullOrBlank()) {

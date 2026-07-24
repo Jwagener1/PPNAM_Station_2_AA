@@ -1,7 +1,9 @@
 package com.ppnam.station2aa
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
@@ -21,7 +23,15 @@ val LocalWindowSize = compositionLocalOf { DpSize.Unspecified }
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Explicitly dark, not the auto() default: auto() chooses the bar icon colour from the
+        // DEVICE's light/dark setting, and this app is dark unconditionally. On a handheld left in
+        // light mode that produced dark status-bar icons on the app's near-black bar — the clock
+        // and battery were barely legible. SystemBarStyle.dark means "the background behind this
+        // bar is dark", i.e. draw light icons.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
 
         setContent {
             val configuration = LocalConfiguration.current

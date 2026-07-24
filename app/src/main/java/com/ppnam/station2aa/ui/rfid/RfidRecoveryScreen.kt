@@ -100,6 +100,10 @@ fun RfidRecoveryScreen(
                                         LabelValueRow("Product", pallet.productName)
                                         LabelValueRow("Batch No", pallet.batchNumber)
                                         LabelValueRow("Remaining", "${pallet.remainingQuantity} ${pallet.unit}")
+                                        // The response has always carried remainingBags and the
+                                        // screen showed only kg — in a bag-driven workflow the
+                                        // bag count is the more actionable of the two.
+                                        LabelValueRow("Remaining bags", "%.2f".format(pallet.remainingBags))
                                         LabelValueRow("Location", pallet.localLocation)
                                         LabelValueRow("State", pallet.palletState.name)
                                         if (pallet.blocked) {

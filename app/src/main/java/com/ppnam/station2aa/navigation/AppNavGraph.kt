@@ -1,7 +1,12 @@
 package com.ppnam.station2aa.navigation
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -23,18 +28,30 @@ import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 import com.ppnam.station2aa.ui.session.SessionWatcher
 import com.ppnam.station2aa.ui.settings.SettingsScreen
 
+/** Unwraps the Compose LocalContext to the hosting Activity, or null if it isn't one. */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @Composable
 fun AppNavGraph(navController: NavHostController = rememberNavController()) {
     SessionWatcher(navController)
     NavHost(navController = navController, startDestination = NavRoutes.LOGIN) {
         composable(NavRoutes.LOGIN) {
+            // LocalActivity only exists from activity-compose 1.10; this project is on 1.9.0.
+            val activity = LocalContext.current.findActivity()
             LoginScreen(
                 onLoggedIn = {
                     navController.navigate(NavRoutes.MIXING) {
                         popUpTo(NavRoutes.LOGIN) { inclusive = true }
                     }
                 },
-                onNavigateSettings = { navController.navigate(NavRoutes.SETTINGS) }
+                onNavigateSettings = { navController.navigate(NavRoutes.SETTINGS) },
+                // Login is the start destination — there is no back stack to pop, so leaving
+                // means finishing the Activity. Only reached via the explicit confirm dialog.
+                onExitApp = { activity?.finish() },
             )
         }
         composable(NavRoutes.SETTINGS) {
@@ -46,19 +63,21 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     navController.getBackStackEntry(NavRoutes.MIXING)
                 }
                 val viewModel: MixingViewModel = hiltViewModel(parentEntry)
+                val activity = LocalContext.current.findActivity()
                 JobLookupScreen(
                     onJobFound = { orderNo -> navController.navigate(NavRoutes.ingredientScan(orderNo)) },
                     onSettings = { navController.navigate(NavRoutes.SETTINGS) },
-                    onLogout = {
-                        navController.navigate(NavRoutes.LOGIN) {
-                            popUpTo(0)
-                        }
-                    },
+                    // Navigation on logout is SessionWatcher's job alone — see the comment on
+                    // MixingAreaPickerScreen's onLogout below.
+                    onLogout = {},
                     onRfidLookup = {
                         viewModel.pauseScanning()
                         navController.navigate(NavRoutes.RFID_RECOVERY)
                     },
                     onOpenMixing = { navController.navigate(NavRoutes.mixingAreas()) },
+                    // Start of the post-login graph: nothing to pop, so leaving finishes the
+                    // Activity. Only reached via the explicit confirm dialog.
+                    onExitApp = { activity?.finish() },
                     viewModel = viewModel
                 )
             }
@@ -99,9 +118,11 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     pendingCollectionId = backStackEntry.arguments?.getString("pendingCollectionId"),
                     onAreaChosen = { area -> navController.navigate(NavRoutes.mixingAreaBoard(area.wire)) },
                     onBack = { navController.popBackStack() },
-                    onLogout = {
-                        navController.navigate(NavRoutes.LOGIN) { popUpTo(0) }
-                    },
+                    // Navigation on logout is SessionWatcher's job alone (it reacts to the
+                    // session going null, which authUseCase.logout() causes before this event
+                    // even fires) — a second navigate(LOGIN){popUpTo(0)} here raced it non-
+                    // deterministically, occasionally double-tearing-down/recreating Login.
+                    onLogout = {},
                     viewModel = viewModel,
                 )
             }
@@ -113,14 +134,17 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 val area = MixingArea.fromWire(backStackEntry.arguments?.getString("area"))
                 if (area == null) {
                     // Only our own navigate() calls mint this route; a bad value is a bug.
-                    navController.popBackStack()
+                    // Navigation must run as a side effect, not directly in the composable body —
+                    // calling popBackStack() here unconditionally on every recomposition of this
+                    // branch is exactly the unsafe pattern Navigation-Compose warns against.
+                    LaunchedEffect(Unit) { navController.popBackStack() }
                 } else {
                     MixingBoardScreen(
                         area = area,
                         onBack = { navController.popBackStack() },
-                        onLogout = {
-                            navController.navigate(NavRoutes.LOGIN) { popUpTo(0) }
-                        },
+                        // Navigation on logout is SessionWatcher's job alone — see the comment on
+                        // MixingAreaPickerScreen's onLogout above.
+                        onLogout = {},
                         viewModel = viewModel,
                     )
                 }

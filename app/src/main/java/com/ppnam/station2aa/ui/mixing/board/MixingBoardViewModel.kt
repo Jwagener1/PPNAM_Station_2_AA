@@ -18,7 +18,7 @@ import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingBoardUseCase
 import com.ppnam.station2aa.ui.components.ConnectionStatus
-import com.ppnam.station2aa.ui.components.resolveConnectionStatus
+import com.ppnam.station2aa.ui.components.connectionStatusFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -144,13 +144,11 @@ class MixingBoardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<MixingBoardUiState>(MixingBoardUiState.Loading)
     val uiState: StateFlow<MixingBoardUiState> = _uiState.asStateFlow()
 
-    val connectionStatus: StateFlow<ConnectionStatus> = combine(
+    val connectionStatus: StateFlow<ConnectionStatus> = connectionStatusFlow(
         mqttRepository.connectionState,
         mqttRepository.stationOnline,
         mqttRepository.clockSkewMillis,
-    ) { state, stationOnline, skew ->
-        resolveConnectionStatus(state, stationOnline, skew)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
@@ -496,7 +494,22 @@ class MixingBoardViewModel @Inject constructor(
                 _messages.trySend(outcome.reason)
             }
             is MachineCycleOutcome.Failed -> {
-                setBoard(board.copy(sheet = BoardSheet.None, busy = false))
+                // No response reached us (timeout, drop, disconnect) — Station 2 may still have
+                // applied the change server-side. Trusting our stale cache here is exactly the bug:
+                // the board would keep showing a machine as free/occupied when it no longer is, and
+                // e.g. a just-started cycle would never appear to finish against. Re-sync from the
+                // server instead of guessing. Same reasoning as Accepted (§8): clear the selection
+                // and re-fetch ready collections too, since a "no response" start/finish may have
+                // actually landed server-side and consumed exactly what's still selected.
+                val resynced = useCase.fetchOverview(board.area).getOrNull()
+                val collections = useCase.fetchReadyCollections().getOrElse { board.readyCollections }
+                setBoard(board.copy(
+                    overview = resynced ?: board.overview,
+                    readyCollections = collections,
+                    selection = BoardSelection.None,
+                    sheet = BoardSheet.None,
+                    busy = false,
+                ))
                 _messages.trySend(outcome.message)
             }
         }

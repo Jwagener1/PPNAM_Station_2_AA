@@ -1,0 +1,41 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- top handle -->
+    <path d="M210,60 L302,60"/>
+    <path d="M256,60 L256,132"/>
+
+    <!-- claw / feed arms -->
+    <path d="M256,132 L256,164 L196,232"/>
+    <path d="M256,132 L256,164 L316,232"/>
+
+    <!-- outer rack posts (connect to top, run down to legs) -->
+    <path d="M165,152 L214,152"/>
+    <path d="M347,152 L298,152"/>
+    <path d="M165,152 L165,382"/>
+    <path d="M347,152 L347,382"/>
+
+    <!-- tank body -->
+    <path d="M200,190 L200,332 C200,372 224,404 256,404 C288,404 312,372 312,332 L312,190"/>
+
+    <!-- liquid wave -->
+    <path d="M214,300 C234,284 246,316 266,300 C286,284 298,316 306,300"/>
+
+    <!-- spout -->
+    <path d="M228,402 L228,436 L284,436 L284,402"/>
+
+    <!-- legs -->
+    <path d="M165,382 L165,436"/>
+    <path d="M347,382 L347,436"/>
+
+    <!-- feet -->
+    <path d="M138,436 L192,436"/>
+    <path d="M152,436 L152,452"/>
+    <path d="M178,436 L178,452"/>
+
+    <path d="M320,436 L374,436"/>
+    <path d="M334,436 L334,452"/>
+    <path d="M360,436 L360,452"/>
+
+  </g>
+</svg>

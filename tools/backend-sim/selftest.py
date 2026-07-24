@@ -127,7 +127,8 @@ class DirectHandheld(Handheld):
 
     def __init__(self):
         import sim as sim_module
-        args = argparse.Namespace(host="direct", port=0, window=None,
+        args = argparse.Namespace(host="direct", port=0, transport="tcp", ws_path="/mqtt",
+                                  tls=False, username="", password="", window=None,
                                   tolerance=None, yield_to_real=False, no_color=True)
         self.sim = sim_module.Simulator(args)
         self.sim.client = _FakeClient(rx=queue.Queue())

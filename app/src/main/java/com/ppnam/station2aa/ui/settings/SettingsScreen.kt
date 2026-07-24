@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,8 +37,30 @@ fun SettingsScreen(
     val pinState = viewModel.pinState.value
     val pinInput = viewModel.pinInput.value
     val pinError = viewModel.pinError.value
+    val pinErrorMessage = viewModel.pinErrorMessage.value
+    val pinLockoutMessage = viewModel.pinLockoutMessage.value
     val applyState = viewModel.applyState.value
     val draft = viewModel.draftSettings.value
+    val session by viewModel.session.collectAsState()
+    var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Log out?", color = TextPrimary) },
+            text = { Text("You'll need to log in again to continue.", color = TextMuted) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                    viewModel.logout()
+                }) { Text("Log out", color = DangerRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel") }
+            },
+            containerColor = GraphiteSurface
+        )
+    }
 
     AppScaffold(
         title = "Settings",
@@ -160,6 +183,14 @@ fun SettingsScreen(
                                     modifier = Modifier.height(56.dp)
                                 ) { Text("Unlock") }
                             }
+                            // Was a red border and nothing else — the operator had no idea
+                            // whether the PIN was wrong or the field had simply mis-registered.
+                            pinErrorMessage?.let {
+                                Text(it, style = MaterialTheme.typography.labelMedium, color = DangerRed)
+                            }
+                            pinLockoutMessage?.let {
+                                Text(it, style = MaterialTheme.typography.labelMedium, color = DangerRed)
+                            }
                         }
                     }
                 }
@@ -170,14 +201,6 @@ fun SettingsScreen(
                             value = draft.deviceId,
                             label = "Device ID",
                             onValueChange = { viewModel.updateDraft(draft.copy(deviceId = it)) }
-                        )
-                        SettingsTextField(
-                            value = draft.scannerId.toString(),
-                            label = "Scanner ID",
-                            keyboardType = KeyboardType.Number,
-                            onValueChange = {
-                                viewModel.updateDraft(draft.copy(scannerId = it.toIntOrNull() ?: draft.scannerId))
-                            }
                         )
                     }
 
@@ -273,6 +296,47 @@ fun SettingsScreen(
                             .height(56.dp)
                     ) {
                         Text("Test & Apply")
+                    }
+                }
+            }
+
+            // The top bar's operator label was the ONLY way to switch users, and it read as a
+            // caption rather than a control. Settings is the obvious second home for it — and the
+            // one place still reachable when a keyboard is covering the bar.
+            session?.let { operator ->
+                HorizontalDivider(color = GraphiteBorder)
+                SectionLabel("Session")
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+                    border = BorderStroke(1.dp, GraphiteBorder)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "SIGNED IN AS",
+                                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
+                                color = TextMuted
+                            )
+                            Text(
+                                if (operator.role.isNotBlank()) "${operator.operatorName} · ${operator.role}"
+                                else operator.operatorName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = TextPrimary
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = { showLogoutDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                            border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
+                        ) { Text("Log Out") }
                     }
                 }
             }

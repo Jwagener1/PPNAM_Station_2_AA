@@ -6,11 +6,6 @@ import org.junit.Test
 class AppSettingsTest {
 
     @Test
-    fun `default scannerId is 1`() {
-        assertEquals(1, AppSettings().scannerId)
-    }
-
-    @Test
     fun `default deviceId is handheld_1`() {
         assertEquals("handheld_1", AppSettings().deviceId)
     }
@@ -21,8 +16,8 @@ class AppSettingsTest {
     }
 
     @Test
-    fun `default mqtt port is 8884`() {
-        assertEquals(8884, AppSettings().mqttPort)
+    fun `default mqtt port is 443`() {
+        assertEquals(443, AppSettings().mqttPort)
     }
 
     @Test
@@ -40,7 +35,10 @@ class AppSettingsTest {
     }
 
     @Test
-    fun `default requestTimeoutMs is 10000`() {
-        assertEquals(10_000L, AppSettings().requestTimeoutMs)
+    fun `default requestTimeoutMs is 20000`() {
+        // Raised from 10s: factory-floor WiFi is unreliable enough that 3 x 10s (30s total)
+        // regularly wasn't enough headroom, causing genuinely-accepted requests to be timed out
+        // client-side while Station 2 processed them — see MixingBoardViewModel's Failed re-sync.
+        assertEquals(20_000L, AppSettings().requestTimeoutMs)
     }
 }

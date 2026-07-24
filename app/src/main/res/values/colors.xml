@@ -2,4 +2,7 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- Mirrors ui.theme.GraphiteBackground. Duplicated here because the cold-start splash
+         theme is resolved by the platform before any Compose colour exists. -->
+    <color name="graphite_background">#FF07101A</color>
 </resources>

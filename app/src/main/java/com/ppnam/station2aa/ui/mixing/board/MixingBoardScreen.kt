@@ -14,18 +14,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.ppnam.station2aa.data.session.OperatorSession
+import com.ppnam.station2aa.data.session.StationAction
+import com.ppnam.station2aa.data.session.canShow
 import com.ppnam.station2aa.domain.model.ActiveCycle
 import com.ppnam.station2aa.domain.model.Equipment
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.components.DialogFormColumn
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
 import com.ppnam.station2aa.ui.theme.GraphiteBorder
 import com.ppnam.station2aa.ui.theme.GraphiteSurface
+import com.ppnam.station2aa.ui.theme.GraphiteSurfaceVariant
 import com.ppnam.station2aa.ui.theme.SuccessGreen
 import com.ppnam.station2aa.ui.theme.TextMuted
 import com.ppnam.station2aa.ui.theme.TextPrimary
 import com.ppnam.station2aa.ui.theme.WarningOrange
+import com.ppnam.station2aa.ui.util.formatElapsedSince
+import com.ppnam.station2aa.ui.util.formatStationTimestamp
 
 @Composable
 fun MixingBoardScreen(
@@ -50,7 +57,7 @@ fun MixingBoardScreen(
     // --- Dialogs (one at a time, owned by the ViewModel's sheet state) ---
     when (val sheet = board?.sheet) {
         is BoardSheet.StartConfirm -> StartConfirmDialog(sheet, board.selection, viewModel)
-        is BoardSheet.CycleSheet -> CycleSheetDialog(sheet, viewModel)
+        is BoardSheet.CycleSheet -> CycleSheetDialog(sheet, session, viewModel)
         is BoardSheet.ForceCloseDialog -> ForceCloseDialog(sheet, viewModel)
         else -> Unit
     }
@@ -82,7 +89,14 @@ fun MixingBoardScreen(
                 else -> Unit
             }
 
-            SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
+            SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter)) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = GraphiteSurfaceVariant,
+                    contentColor = TextPrimary,
+                    actionColor = AmberPrimary,
+                )
+            }
         }
     }
 }
@@ -240,7 +254,10 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         Column(Modifier.padding(12.dp)) {
                             Text("${cycle.cycleId} on ${cycle.machineCode}",
                                 style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                            Text("JC ${cycle.jobCardNumber} · started ${cycle.startedAtUtc}",
+                            Text(
+                                "JC ${cycle.jobCardNumber} · started " +
+                                    (formatElapsedSince(cycle.startedAtUtc)
+                                        ?: formatStationTimestamp(cycle.startedAtUtc)),
                                 style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         }
                     }
@@ -340,7 +357,8 @@ private fun StartConfirmDialog(
         onDismissRequest = viewModel::dismissSheet,
         title = { Text("Start ${sheet.machine.displayName}", color = TextPrimary) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Up to five dose fields plus the IME — the buttons need the scrollable body.
+            DialogFormColumn {
                 Text(
                     when (selection) {
                         is BoardSelection.Collection -> "Collection ${selection.collectionId} · JC ${selection.jobCardNumber}"
@@ -349,23 +367,43 @@ private fun StartConfirmDialog(
                     },
                     color = TextMuted,
                 )
-                sheet.doseRows?.forEach { row ->
-                    OutlinedTextField(
-                        value = row.doseText,
-                        onValueChange = { viewModel.updateDose(row.materialCode, it) },
-                        label = { Text("${row.materialName} (≤ %.2f kg)".format(row.collectedQty)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AmberPrimary,
-                            focusedLabelColor = AmberPrimary,
-                            cursorColor = AmberPrimary,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                // Directly under the header, ABOVE the dose rows. It used to sit after them, and
+                // a Rajoo sheet carries up to seven scrollable fields while the Start button stays
+                // pinned in view — so tapping Start with a bad dose refused the start and put the
+                // reason somewhere off-screen. From the operator's seat the button simply did
+                // nothing. Same failure as the action buttons that sat under the IME: the message
+                // existed, just not where the person who needed it was looking.
                 sheet.validationError?.let {
                     Text(it, color = DangerRed, style = MaterialTheme.typography.labelMedium)
+                }
+                if (sheet.doseRows != null) {
+                    // A Rajoo start takes at most five dose lines (validateDoses' own rule) — cap
+                    // it here too instead of only rejecting on submit. Once five are filled,
+                    // further still-empty fields disable rather than letting the operator fill in
+                    // a sixth only to have the whole submission bounce.
+                    val filledCount = sheet.doseRows.count { it.doseText.isNotBlank() }
+                    Text(
+                        "$filledCount / 5 doses entered",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    sheet.doseRows.forEach { row ->
+                        val capReached = row.doseText.isBlank() && filledCount >= 5
+                        OutlinedTextField(
+                            value = row.doseText,
+                            onValueChange = { viewModel.updateDose(row.materialCode, it) },
+                            label = { Text("${row.materialName} (≤ %.2f kg)".format(row.collectedQty)) },
+                            singleLine = true,
+                            enabled = !capReached,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = AmberPrimary,
+                                focusedLabelColor = AmberPrimary,
+                                cursorColor = AmberPrimary,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         },
@@ -380,7 +418,11 @@ private fun StartConfirmDialog(
 }
 
 @Composable
-private fun CycleSheetDialog(sheet: BoardSheet.CycleSheet, viewModel: MixingBoardViewModel) {
+private fun CycleSheetDialog(
+    sheet: BoardSheet.CycleSheet,
+    session: OperatorSession?,
+    viewModel: MixingBoardViewModel,
+) {
     val cycle: ActiveCycle = sheet.cycle
     AlertDialog(
         onDismissRequest = viewModel::dismissSheet,
@@ -392,11 +434,31 @@ private fun CycleSheetDialog(sheet: BoardSheet.CycleSheet, viewModel: MixingBoar
                 if (cycle.mixBatchIds.isNotEmpty()) {
                     Text("Mixes: ${cycle.mixBatchIds.joinToString()}", color = TextMuted)
                 }
-                Text("Started ${cycle.startedAtUtc} by ${cycle.startedByOperatorId}", color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(4.dp))
-                TextButton(onClick = viewModel::openForceClose) {
-                    Text("Force close…", color = DangerRed)
+                // Was: "Started 2026-07-23T11:38:28.2733333+00:00 by " — a raw ISO-8601 string no
+                // shop-floor operator can read, followed by "by" and nothing, because the live
+                // backend does not send startedByOperatorId at all on this payload. Formatted
+                // local time now, with the elapsed reading alongside it, and the "by" clause only
+                // appears when there is actually a name to put in it.
+                Text(
+                    buildString {
+                        append("Started ")
+                        append(formatStationTimestamp(cycle.startedAtUtc))
+                        formatElapsedSince(cycle.startedAtUtc)?.let { append(" ($it)") }
+                        if (cycle.startedByOperatorId.isNotBlank()) {
+                            append(" by ${cycle.startedByOperatorId}")
+                        }
+                    },
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                // machine_force_close is an Admin privilege the Operator's allowedActions does
+                // not carry. Display gate only — Station 2 still authorises on the manager
+                // credentials the dialog collects, never on the sender's session.
+                if (session.canShow(StationAction.MACHINE_FORCE_CLOSE)) {
+                    Spacer(Modifier.height(4.dp))
+                    TextButton(onClick = viewModel::openForceClose) {
+                        Text("Force close…", color = DangerRed)
+                    }
                 }
             }
         },
@@ -419,7 +481,10 @@ private fun ForceCloseDialog(sheet: BoardSheet.ForceCloseDialog, viewModel: Mixi
         onDismissRequest = viewModel::dismissSheet,
         title = { Text("Force close ${sheet.cycle.cycleId}", color = TextPrimary) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // DialogFormColumn, not a plain Column: with the IME open the action buttons sat at
+            // y=1167 underneath the keyboard, so taps aimed at "Force close" landed on keys and
+            // typed stray characters into the audit-reason field.
+            DialogFormColumn {
                 Text("Requires Manager/Admin approval; the cycle is released without completing.",
                     color = TextMuted)
                 sheet.validationError?.let {

@@ -366,6 +366,58 @@ class MixingUseCaseTest {
         assertEquals("Job card not found", result.exceptionOrNull()?.message)
     }
 
+    /**
+     * Regression, 2026-07-23: the live backend now words an unknown job card as
+     * "Job card 'N' does not map to a SAP production order." The humaniser only matched the older
+     * "SAP production order lookup failed" / "no stored local BOM snapshot" phrasings, so this
+     * reached the operator verbatim — engineer-speak about SAP for someone holding a paper card.
+     */
+    @Test
+    fun `lookupJob humanises every known not-found phrasing Station 2 has used`() = runTest {
+        val phrasings = listOf(
+            "SAP production order lookup failed and no stored local BOM snapshot is available",
+            "No stored local BOM snapshot is available",
+            "Job card '999999999' does not map to a SAP production order.",
+        )
+        for (reason in phrasings) {
+            whenever(
+                mockMqtt.request(
+                    eq("job_card_load_requested"), eq("bom_loaded"), any(), any(),
+                    eq(BomLoadedResponse::class.java)
+                )
+            ).thenReturn(
+                MqttOutcome.Rejected(BomLoadedResponse(), null, reason, NextAction.SCAN_JOB_CARD)
+            )
+
+            val result = useCase.lookupJob("999999999")
+
+            assertEquals(
+                "That job card number wasn't found. Check the number on the card and try again.",
+                result.exceptionOrNull()?.message,
+            )
+        }
+    }
+
+    /** An unrecognised reason must still reach the operator intact, not be flattened away. */
+    @Test
+    fun `lookupJob passes an unrecognised rejection reason through verbatim`() = runTest {
+        whenever(
+            mockMqtt.request(
+                eq("job_card_load_requested"), eq("bom_loaded"), any(), any(),
+                eq(BomLoadedResponse::class.java)
+            )
+        ).thenReturn(
+            MqttOutcome.Rejected(
+                BomLoadedResponse(), null,
+                "Collection is already routed to a mixer.", NextAction.NONE,
+            )
+        )
+
+        val result = useCase.lookupJob("510019068")
+
+        assertEquals("Collection is already routed to a mixer.", result.exceptionOrNull()?.message)
+    }
+
     @Test
     fun `lookupJob returns failure on no response`() = runTest {
         whenever(

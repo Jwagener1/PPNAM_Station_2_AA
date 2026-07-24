@@ -19,7 +19,6 @@ class SettingsRepository @Inject constructor(
 ) {
     private object Keys {
         val DEVICE_ID               = stringPreferencesKey("device_id")
-        val SCANNER_ID              = intPreferencesKey("scanner_id")
         val MQTT_HOST               = stringPreferencesKey("mqtt_host")
         val MQTT_PORT               = intPreferencesKey("mqtt_port")
         val MQTT_USE_WEBSOCKET      = booleanPreferencesKey("mqtt_use_websocket")
@@ -32,14 +31,13 @@ class SettingsRepository @Inject constructor(
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
         AppSettings(
             deviceId              = prefs[Keys.DEVICE_ID]            ?: "handheld_1",
-            scannerId            = prefs[Keys.SCANNER_ID]           ?: 1,
             mqttHost             = prefs[Keys.MQTT_HOST]            ?: "mqtt.sysone.co.za",
-            mqttPort             = prefs[Keys.MQTT_PORT]            ?: 8884,
+            mqttPort             = prefs[Keys.MQTT_PORT]            ?: 443,
             mqttUseWebSocket     = prefs[Keys.MQTT_USE_WEBSOCKET]   ?: true,
             mqttUseTls           = prefs[Keys.MQTT_USE_TLS]         ?: true,
             mqttUsername         = prefs[Keys.MQTT_USERNAME]        ?: "admin",
             mqttPassword         = prefs[Keys.MQTT_PASSWORD]        ?: "admin",
-            requestTimeoutMs     = prefs[Keys.REQUEST_TIMEOUT_MS]   ?: 10_000L
+            requestTimeoutMs     = prefs[Keys.REQUEST_TIMEOUT_MS]   ?: 20_000L
         )
     }
 
@@ -48,7 +46,6 @@ class SettingsRepository @Inject constructor(
     suspend fun save(settings: AppSettings) {
         context.dataStore.edit { prefs ->
             prefs[Keys.DEVICE_ID]           = settings.deviceId
-            prefs[Keys.SCANNER_ID]          = settings.scannerId
             prefs[Keys.MQTT_HOST]           = settings.mqttHost
             prefs[Keys.MQTT_PORT]           = settings.mqttPort
             prefs[Keys.MQTT_USE_WEBSOCKET]  = settings.mqttUseWebSocket

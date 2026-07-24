@@ -39,6 +39,7 @@ data class PalletLookupResultResponse(
     val remainingBags: Double = 0.0,
     val unit: String? = null,
     val localLocation: String? = null,
-    val palletState: String = "",
+    /** Null for a not-found pallet — Station 2 omits every descriptive field in that case. */
+    val palletState: String? = null,
     val blocked: Boolean = false,
 )

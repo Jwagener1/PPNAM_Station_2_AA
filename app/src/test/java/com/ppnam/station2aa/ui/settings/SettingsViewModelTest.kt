@@ -1,9 +1,11 @@
 package com.ppnam.station2aa.ui.settings
 
+import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.settings.SettingsRepository
 import com.ppnam.station2aa.domain.model.AppSettings
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
+import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -21,6 +23,8 @@ class SettingsViewModelTest {
 
     private lateinit var mockSettingsRepository: SettingsRepository
     private lateinit var mockMqttRepository: MqttRepository
+    private lateinit var mockAuthUseCase: AuthUseCase
+    private lateinit var mockSessionHolder: OperatorSessionHolder
     private lateinit var viewModel: SettingsViewModel
 
     @Before
@@ -28,6 +32,9 @@ class SettingsViewModelTest {
         Dispatchers.setMain(testDispatcher)
         mockSettingsRepository = mock()
         mockMqttRepository = mock()
+        mockAuthUseCase = mock()
+        mockSessionHolder = mock()
+        whenever(mockSessionHolder.session).thenReturn(MutableStateFlow(null))
 
         whenever(mockSettingsRepository.settingsFlow).thenReturn(flowOf(AppSettings()))
         runBlocking { whenever(mockSettingsRepository.current()).thenReturn(AppSettings()) }
@@ -36,7 +43,9 @@ class SettingsViewModelTest {
         whenever(mockMqttRepository.stationOnline).thenReturn(MutableStateFlow(true))
         whenever(mockMqttRepository.clockSkewMillis).thenReturn(MutableStateFlow<Long?>(null))
 
-        viewModel = SettingsViewModel(mockSettingsRepository, mockMqttRepository)
+        viewModel = SettingsViewModel(
+            mockSettingsRepository, mockMqttRepository, mockAuthUseCase, mockSessionHolder
+        )
     }
 
     @After

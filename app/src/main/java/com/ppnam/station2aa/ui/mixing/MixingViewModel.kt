@@ -15,7 +15,7 @@ import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.AuthUseCase
 import com.ppnam.station2aa.domain.usecase.MixingUseCase
 import com.ppnam.station2aa.ui.components.ConnectionStatus
-import com.ppnam.station2aa.ui.components.resolveConnectionStatus
+import com.ppnam.station2aa.ui.components.connectionStatusFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -32,12 +32,53 @@ sealed class MixingUiState {
      * [selectedLineNumber] is the tap-line-to-arm target (SP3 Task 6): the BOM line whose
      * itemCode becomes requestedMaterialCode on the next ordinary pallet scan. Null means no line
      * is armed.
+     *
+     * [pendingLineNumber] is the line whose request is in flight, or null when nothing is. It
+     * replaces flipping the whole screen to [Loading] for every scan: at 2.5–7.6 s of backend
+     * latency per scan, a six-line BOM meant ~30 s staring at a spinner with no way to see what
+     * had already been collected. The list stays rendered and scrollable; only the one line
+     * being submitted shows as busy, and the scan guard treats a pending request exactly as it
+     * treated Loading.
+     *
+     * [pendingLabel] describes a request with no line to attach to (a waiver approval, a
+     * recovery). Non-null implies the screen is busy just as [pendingLineNumber] does — use
+     * [isBusy] rather than testing either field.
      */
-    data class OrderLoaded(val order: ProductionOrder, val selectedLineNumber: Int? = null) : MixingUiState()
-    data class EnteringBagDetails(val palletTag: String) : MixingUiState()
+    data class OrderLoaded(
+        val order: ProductionOrder,
+        val selectedLineNumber: Int? = null,
+        val pendingLineNumber: Int? = null,
+        val pendingLabel: String? = null,
+    ) : MixingUiState() {
+        val isBusy: Boolean get() = pendingLineNumber != null || pendingLabel != null
+    }
+
+    /**
+     * Bag entry for a scanned pallet.
+     *
+     * Carries the armed line, not just the pallet: the dialog previously opened for ANY scan
+     * regardless of arming and then discarded the entry on confirm, and it showed the operator no
+     * idea how many bags were still required — they had to remember it from the card behind the
+     * dialog. Both facts now travel with the state, and the dialog cannot open without a line.
+     */
+    data class EnteringBagDetails(
+        val palletTag: String,
+        val lineNumber: Int,
+        val materialCode: String,
+        val materialName: String,
+        val remainingBags: Double?,
+        val bagSize: String?,
+    ) : MixingUiState()
 
     /** Direct-weight entry for a bulk line (SP3 gap 1) — the bag picker never opens for bulk. */
-    data class EnteringQuantityDetails(val palletTag: String) : MixingUiState()
+    data class EnteringQuantityDetails(
+        val palletTag: String,
+        val lineNumber: Int,
+        val materialCode: String,
+        val materialName: String,
+        val remainingQty: Double,
+        val uom: String,
+    ) : MixingUiState()
 
     /**
      * v3 has no exception id or approval token — approval is an inline resubmit of the pending scan
@@ -93,13 +134,11 @@ class MixingViewModel @Inject constructor(
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
 
-    val connectionStatus: StateFlow<ConnectionStatus> = combine(
+    val connectionStatus: StateFlow<ConnectionStatus> = connectionStatusFlow(
         mqttRepository.connectionState,
         mqttRepository.stationOnline,
         mqttRepository.clockSkewMillis,
-    ) { state, stationOnline, skew ->
-        resolveConnectionStatus(state, stationOnline, skew)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConnectionStatus.Offline)
 
     val session: StateFlow<OperatorSession?> = sessionHolder.session
 
@@ -112,6 +151,15 @@ class MixingViewModel @Inject constructor(
             _logoutEvent.send(Unit)
         }
     }
+
+    /**
+     * The over-collection allowance Station 2 last reported, in whole bags, or null before any
+     * scan result has arrived. Display only — the server applies it, the handheld just tells the
+     * operator it exists. Without it the only workable rule at the pallet ("always round up",
+     * because under-collection has no tolerance at all) was undocumented anywhere in the UI.
+     */
+    private val _overCollectionToleranceBags = MutableStateFlow<Double?>(null)
+    val overCollectionToleranceBags: StateFlow<Double?> = _overCollectionToleranceBags.asStateFlow()
 
     private val _activeJobs = MutableStateFlow<List<ActiveJobCardSummary>>(emptyList())
     val activeJobs: StateFlow<List<ActiveJobCardSummary>> = _activeJobs.asStateFlow()
@@ -135,7 +183,11 @@ class MixingViewModel @Inject constructor(
     /** Tap-line-to-arm target. ViewModel-only, like [pendingScan]/[pendingApproval] below — not Room. */
     private var armedLineNumber: Int? = null
 
-    private fun orderLoadedState(order: ProductionOrder) = MixingUiState.OrderLoaded(order, armedLineNumber)
+    private fun orderLoadedState(
+        order: ProductionOrder,
+        pendingLineNumber: Int? = null,
+        pendingLabel: String? = null,
+    ) = MixingUiState.OrderLoaded(order, armedLineNumber, pendingLineNumber, pendingLabel)
 
     fun lookupJob(orderNo: String, collectionId: String = "") {
         viewModelScope.launch {
@@ -195,6 +247,9 @@ class MixingViewModel @Inject constructor(
     private var approvalJob: Job? = null
     private var waiverJob: Job? = null
 
+    /** Same discipline as [approvalJob]/[waiverJob] — see [confirmPalletRecovery]. */
+    private var recoveryJob: Job? = null
+
     /** Fail-closed: refuse to put a blank credential or a blank audit trail entry on the wire. */
     private fun blankCredentialsMessage(managerUsername: String, managerPassword: String, auditReason: String): String? =
         when {
@@ -220,28 +275,55 @@ class MixingViewModel @Inject constructor(
                 //  - Error: ALLOWED — a settled state, not an in-flight request or an open dialog.
                 //    dismissError() is now a real exit too, but rescanning must keep working as a
                 //    second recovery path — Error must never trap the operator behind a dead reader.
-                //  - Loading, Cancelling: BLOCKED — a request/cancel is in flight; a scan here would
-                //    race or clobber it.
+                //  - OrderLoaded with a request in flight, Loading, Cancelling: BLOCKED — a
+                //    request/cancel is in flight; a scan here would race or clobber it.
                 //  - Idle: BLOCKED — nothing loaded to scan against.
                 //  - EnteringBagDetails, EnteringQuantityDetails, IngredientExceptionApproval,
                 //    PalletRecoveryPrompt, ShortBagWaiverNeedsApproval, ShortBagWaiverEntry:
                 //    BLOCKED — each owns the screen with a dialog the operator is mid-interaction
                 //    with; a stray scan must not clobber it.
-                when (_uiState.value) {
+                val state = _uiState.value
+                if (state is MixingUiState.OrderLoaded && state.isBusy) return@collect
+                when (state) {
                     is MixingUiState.OrderLoaded, is MixingUiState.Error -> {
                         val palletTag = when (event) {
                             is ScanEvent.RfidTag -> event.tagId
                             is ScanEvent.Barcode -> event.value
                         }
+                        val order = cachedOrder ?: return@collect
+                        val line = resolveScanTarget(order)
+                        if (line == null) {
+                            // Refuse UP FRONT rather than opening the dialog. The old behaviour
+                            // showed the bag dialog for any scan whether or not a line was armed,
+                            // let the operator pick a bag size and type a count, and only then —
+                            // on Confirm — discarded the whole entry with a snackbar that auto-
+                            // dismissed. Nothing reached the wire and the work was silently lost.
+                            _supervisorError.trySend("Tap the material line you're collecting, then scan the pallet.")
+                            return@collect
+                        }
+                        // Arm whatever we resolved: an unambiguous scan should not also require a
+                        // tap, and the confirm handlers read armedLineNumber.
+                        armedLineNumber = line.lineNumber
                         // A bulk line arms direct-weight entry; arming a bulk line for a
                         // bag scan is impossible by construction (gap 1).
-                        val armedLine = armedLineNumber?.let { ln ->
-                            cachedOrder?.lines?.firstOrNull { it.lineNumber == ln }
-                        }
-                        _uiState.value = if (armedLine != null && !armedLine.isBagged) {
-                            MixingUiState.EnteringQuantityDetails(palletTag)
+                        _uiState.value = if (!line.isBagged) {
+                            MixingUiState.EnteringQuantityDetails(
+                                palletTag = palletTag,
+                                lineNumber = line.lineNumber,
+                                materialCode = line.itemCode,
+                                materialName = line.itemName.ifBlank { line.itemCode },
+                                remainingQty = line.remainingQty,
+                                uom = line.uom,
+                            )
                         } else {
-                            MixingUiState.EnteringBagDetails(palletTag)
+                            MixingUiState.EnteringBagDetails(
+                                palletTag = palletTag,
+                                lineNumber = line.lineNumber,
+                                materialCode = line.itemCode,
+                                materialName = line.itemName.ifBlank { line.itemCode },
+                                remainingBags = line.remainingBags,
+                                bagSize = line.bagSize,
+                            )
                         }
                     }
                     else -> return@collect
@@ -249,6 +331,24 @@ class MixingViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * The line a scan should be attributed to, or null when the operator has to say.
+     *
+     * An explicitly armed line always wins. Failing that, auto-arm — but only when the choice is
+     * unambiguous: exactly one line still needs collecting. Two open lines and the app would be
+     * guessing which material is on the pallet, and guessing wrong books stock against the wrong
+     * BOM line, so it asks instead.
+     *
+     * The fallback to [ProductionOrder.lines] covers a fully-collected order: a single-line job
+     * whose line is already satisfied still has one unambiguous target, and letting the scan
+     * through means Station 2 gets to decide (over-collection tolerance, approval) rather than
+     * the handheld pre-empting it.
+     */
+    private fun resolveScanTarget(order: ProductionOrder) =
+        armedLineNumber?.let { ln -> order.lines.firstOrNull { it.lineNumber == ln } }
+            ?: order.lines.filterNot { it.isSatisfied }.singleOrNull()
+            ?: order.lines.singleOrNull()
 
     fun cancelBagEntry() {
         val order = cachedOrder ?: return
@@ -288,7 +388,9 @@ class MixingViewModel @Inject constructor(
         }
         pendingScan = PendingIngredientScan(palletTag, bagSizeOption, bagCount, null, line.itemCode)
         viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
+            // Inline pending, not MixingUiState.Loading: the list stays on screen and readable
+            // while the request is out. See MixingUiState.OrderLoaded.pendingLineNumber.
+            _uiState.value = orderLoadedState(order, pendingLineNumber = line.lineNumber)
             useCase.scanIngredient(order.collectionId, palletTag, line.itemCode,
                 bagSizeOption = bagSizeOption, bagCount = bagCount)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
@@ -320,7 +422,7 @@ class MixingViewModel @Inject constructor(
         }
         pendingScan = PendingIngredientScan(palletTag, null, null, quantity, line.itemCode)
         viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
+            _uiState.value = orderLoadedState(order, pendingLineNumber = line.lineNumber)
             useCase.scanIngredient(order.collectionId, palletTag, line.itemCode, quantity = quantity)
                 .onSuccess { outcome -> handleScanOutcome(order, outcome) }
                 .onFailure { e -> _uiState.value = MixingUiState.Error(e.message ?: "Scan failed") }
@@ -348,7 +450,14 @@ class MixingViewModel @Inject constructor(
             return
         }
         approvalJob = viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
+            // The approval dialog is gone the moment this fires, so the operator lands back on
+            // the line list with that line marked pending rather than on a blank spinner.
+            _uiState.value = orderLoadedState(
+                order,
+                pendingLineNumber = order.lines
+                    .firstOrNull { it.itemCode == approval.requestedMaterialCode }?.lineNumber,
+                pendingLabel = "Submitting approval…",
+            )
             useCase.scanIngredient(
                 approval.collectionId,
                 approval.palletRfidTag,
@@ -424,7 +533,12 @@ class MixingViewModel @Inject constructor(
             return
         }
         waiverJob = viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
+            _uiState.value = orderLoadedState(
+                order,
+                pendingLineNumber = order.lines
+                    .firstOrNull { it.itemCode == requestedMaterialCode }?.lineNumber,
+                pendingLabel = "Submitting waiver…",
+            )
             useCase.waiveShortBags(
                 order.collectionId,
                 requestedMaterialCode,
@@ -464,10 +578,19 @@ class MixingViewModel @Inject constructor(
         _uiState.value = orderLoadedState(order)
     }
 
+    /**
+     * Ignores re-entry while [recoveryJob] is already running — otherwise a fast double-tap on
+     * "Recover" fires two concurrent recoverHolding+scanIngredient sequences for the same pallet,
+     * each a fresh, independently-processed scan Station 2 has no way to dedupe, double-crediting
+     * the collected quantity. Sets Loading synchronously (same discipline as every other confirm
+     * action in this file) so the prompt's dialog unmounts before a second tap can land.
+     */
     fun confirmPalletRecovery() {
+        if (recoveryJob?.isActive == true) return
         val order = cachedOrder ?: return
         val scan = pendingScan ?: return
-        viewModelScope.launch {
+        recoveryJob = viewModelScope.launch {
+            _uiState.value = orderLoadedState(order, pendingLabel = "Recovering pallet…")
             useCase.recoverHolding(order.collectionId, scan.palletRfidTag)
                 .onSuccess { retryPendingScan(order) }
                 .onFailure { e ->
@@ -479,6 +602,11 @@ class MixingViewModel @Inject constructor(
     }
 
     fun dismissPalletRecovery() {
+        // Kill any in-flight recovery too — mirrors cancelManagerApproval so a late response
+        // landing after the operator has dismissed the prompt cannot silently overwrite whatever
+        // state they've since moved to.
+        recoveryJob?.cancel()
+        recoveryJob = null
         pendingScan = null
         val order = cachedOrder ?: return
         _uiState.value = orderLoadedState(order)
@@ -495,6 +623,7 @@ class MixingViewModel @Inject constructor(
                 cachedOrder = updatedOrder
                 pendingScan = null
                 pendingApproval = null
+                outcome.overCollectionToleranceBags?.let { _overCollectionToleranceBags.value = it }
                 // Decision: an armed line survives a successful scan and stays armed until it is
                 // fully satisfied, or the operator arms a different line — repeated bags against
                 // the same material are the common case, so re-arming after every scan would be
@@ -544,7 +673,12 @@ class MixingViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _uiState.value = MixingUiState.Loading
+            _uiState.value = orderLoadedState(
+                order,
+                pendingLineNumber = order.lines
+                    .firstOrNull { it.itemCode == scan.requestedMaterialCode }?.lineNumber,
+                pendingLabel = "Retrying scan…",
+            )
             useCase.scanIngredient(
                 order.collectionId, scan.palletRfidTag, scan.requestedMaterialCode,
                 bagSizeOption = scan.bagSizeOption, bagCount = scan.bagCount,

@@ -49,7 +49,7 @@ class MqttSessionExpiryTest {
         com.google.gson.JsonParser
             .parseString(String(published[index].second)).asJsonObject.get("messageId").asString
 
-    private suspend fun CoroutineScope.requestAndRespond(errorCode: String?) {
+    private suspend fun CoroutineScope.requestAndRespond(errorCode: String?, operatorSessionId: String = "session-abc") {
         val call = async {
             repo.request("a_requested", "test_result", EmptyPayload, null, TestBody::class.java)
         }
@@ -58,18 +58,52 @@ class MqttSessionExpiryTest {
         val codeJson = errorCode?.let { "\"$it\"" } ?: "null"
         repo.handleIncomingResponse(
             "PPNAM/handheld_1/res/test_result",
-            """{"inResponseToMessageId":"$id","accepted":false,"errorCode":$codeJson,"reason":"x"}""".toByteArray()
+            """{"inResponseToMessageId":"$id","operatorSessionId":"$operatorSessionId","accepted":false,"errorCode":$codeJson,"reason":"x"}""".toByteArray()
         )
         call.await()
     }
 
     @Test
-    fun `a session_required rejection clears the local session`() = runTest {
+    fun `a session_required rejection for the current session clears it`() = runTest {
         assertNotNull(sessionHolder.session.value)
 
-        requestAndRespond("session_required")
+        requestAndRespond("session_required", operatorSessionId = "session-abc")
 
-        assertNull("session_required must clear the session", sessionHolder.session.value)
+        assertNull("session_required for our own session must clear it", sessionHolder.session.value)
+    }
+
+    @Test
+    fun `a session_required rejection for a DIFFERENT, already-superseded session leaves the current one intact`() = runTest {
+        // Regression: a late reply to a request built under an OLD session (e.g. the operator
+        // logged out and back in before the retried request's response finally arrived) rejects
+        // with session_required for that old session — not the current one. Clearing the CURRENT
+        // session on this would spuriously log the operator out mid-action even though Station 2
+        // never said anything was wrong with their live session.
+        assertNotNull(sessionHolder.session.value)
+
+        requestAndRespond("session_required", operatorSessionId = "session-OLD-and-superseded")
+
+        assertNotNull(
+            "a rejection about a different session must not clear the current one",
+            sessionHolder.session.value,
+        )
+    }
+
+    @Test
+    fun `a session_required rejection with no operatorSessionId leaves the current session intact`() = runTest {
+        // Without a session id to match against, we can't confirm the rejection is about the
+        // session we currently believe is active — safer to leave it alone than guess.
+        val call = async {
+            repo.request("a_requested", "test_result", EmptyPayload, null, TestBody::class.java)
+        }
+        while (published.isEmpty()) yield()
+        repo.handleIncomingResponse(
+            "PPNAM/handheld_1/res/test_result",
+            """{"inResponseToMessageId":"${messageIdOf(0)}","accepted":false,"errorCode":"session_required","reason":"x"}""".toByteArray()
+        )
+        call.await()
+
+        assertNotNull(sessionHolder.session.value)
     }
 
     @Test
