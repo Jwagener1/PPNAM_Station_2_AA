@@ -1,5 +1,7 @@
 package com.ppnam.station2aa.domain.usecase
 
+import com.ppnam.station2aa.data.auth.ManagerAuthorization
+import com.ppnam.station2aa.data.mqtt.dto.ReadyCollectionDto
 import com.ppnam.station2aa.data.mqtt.ErrorCode
 import com.ppnam.station2aa.data.mqtt.FailureKind
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
@@ -26,12 +28,18 @@ import org.mockito.kotlin.*
 class MixingBoardUseCaseTest {
 
     private lateinit var mockMqtt: MqttRepository
+    private lateinit var mockManagerAuthorization: ManagerAuthorization
     private lateinit var useCase: MixingBoardUseCase
 
     @Before
-    fun setup() {
+    fun setup() = runTest {
         mockMqtt = mock()
-        useCase = MixingBoardUseCase(mockMqtt)
+        mockManagerAuthorization = mock()
+        // 4.1: force-close first exchanges the manager's credentials for a token scoped to that
+        // exact cycle. Default to success so the force-close tests stay about the cycle message.
+        whenever(mockManagerAuthorization.authorize(any(), any(), any(), any()))
+            .thenReturn(Result.success("auth-token-1"))
+        useCase = MixingBoardUseCase(mockMqtt, mockManagerAuthorization)
     }
 
     @Test
@@ -61,24 +69,49 @@ class MixingBoardUseCaseTest {
     }
 
     @Test
-    fun `fetchReadyCollections keeps only ReadyForMixing`() = runTest {
-        val response = ActiveJobCardsListResponse(jobs = listOf(
-            ActiveJobCardSummary(jobCardNumber = "510019068", collectionId = "COL_1",
-                productName = "HD Film", status = "ReadyForMixing"),
-            ActiveJobCardSummary(jobCardNumber = "510019068", collectionId = "COL_2",
-                productName = "HD Film", status = "Collecting"),
-            ActiveJobCardSummary(jobCardNumber = "510018531", collectionId = "COL_3",
-                productName = "LD Film", status = "Mixing"),
-        ))
+    fun `fetchReadyCollections reads the mixing overview, not the active-jobs list`() = runTest {
+        // 4.1 moved this. Filtering active_job_cards_list to status == "ReadyForMixing" cannot
+        // work any more: a collection with a saved plan is "MixingPlanned", so that filter would
+        // hide exactly the collections that still have mixers to scan — and the list carries no
+        // plan data to tell the operator which those are.
+        val response = MixingOverviewResponse(
+            readyCollections = listOf(
+                ReadyCollectionDto(
+                    collectionId = "COL_1", jobCardNumber = "510019068", productName = "HD Film",
+                    status = "ReadyForMixing", validMixerCodes = listOf("MXR-01", "MXR-02"),
+                    nextAction = "save_mixer_plan_in_station_2",
+                ),
+                ReadyCollectionDto(
+                    collectionId = "COL_2", jobCardNumber = "510018531", productName = "LD Film",
+                    status = "MixingPlanned", mixPlanId = "MPL_45", mixPlanStatus = "Saved",
+                    plannedMixerCount = 2, startedMixerCount = 1, remainingMixerCount = 1,
+                    plannedMixerCodes = listOf("JAN-MIX-01", "MXR-02"),
+                    startedMixerCodes = listOf("JAN-MIX-01"),
+                    remainingMixerCodes = listOf("MXR-02"),
+                    nextAction = "scan_reserved_mixer:MXR-02",
+                ),
+            )
+        )
         whenever(mockMqtt.request(
-            eq("active_job_cards_requested"), eq("active_job_cards_list"), any(), anyOrNull(),
-            eq(ActiveJobCardsListResponse::class.java)
+            eq("mixing_overview_requested"), eq("mixing_overview_result"), any(), anyOrNull(),
+            eq(MixingOverviewResponse::class.java)
         )).thenReturn(MqttOutcome.Accepted(response, NextAction.NONE))
 
         val ready = useCase.fetchReadyCollections().getOrThrow()
 
-        assertEquals(listOf("COL_1"), ready.map { it.collectionId })
-        assertEquals("510019068", ready.single().jobCardNumber)
+        assertEquals(listOf("COL_1", "COL_2"), ready.map { it.collectionId })
+
+        // An unplanned collection can't be scanned yet — the plan is saved at the desk.
+        val unplanned = ready.first()
+        assertFalse(unplanned.hasSavedPlan)
+        assertTrue(unplanned.needsPlan)
+
+        // A planned one names exactly which mixers are left.
+        val planned = ready[1]
+        assertTrue(planned.hasSavedPlan)
+        assertEquals("MPL_45", planned.mixPlanId)
+        assertEquals(listOf("MXR-02"), planned.remainingMixerCodes)
+        assertEquals(1, planned.remainingMixerCount)
     }
 
     @Test

@@ -48,6 +48,41 @@ data class BomLineResponse(
     val uomCode: String = "",
     val unit: String = "",
     val warehouse: String = "",
+
+    // ---- 4.1 §9: variable bag sizes ---------------------------------------------------------
+
+    /**
+     * True when the collectable pallets for this material come in SEVERAL bag sizes. Then
+     * [bagSize] and [expectedBags] are both null — there is no single right answer to show — and
+     * [bagSizeOptions] lists the choices.
+     *
+     * This is the contract-level fix for backend issue B1: previously one bag size was asserted
+     * even when the pallets disagreed with it, so the operator was given a bag count computed at a
+     * weight the pallet did not have.
+     */
+    val bagSizeIsVariable: Boolean = false,
+    val bagSizeOptions: List<String> = emptyList(),
+
+    // ---- 4.1 §9: credited vs captured -------------------------------------------------------
+
+    /**
+     * The quantity credited against the requirement — this is what drives progress, and what
+     * [collectedQuantity] has always meant.
+     */
+    val creditedQuantity: Double? = null,
+    /** The physical quantity actually taken from stock. Differs from credited on an in-tolerance
+     * over-collection: the operator moves the whole bag, the line is credited only what it needed. */
+    val capturedQuantity: Double? = null,
+    /** `capturedQuantity - creditedQuantity`, signed. Backend issue B7: this was recorded but
+     * never exposed, so an over-collection was invisible to the operator who caused it. */
+    val varianceQuantity: Double? = null,
+    val hasVariance: Boolean = false,
+
+    /** Typed identity of the captured line. */
+    val ingredientItemId: String? = null,
+    /** Present ONLY when this line consumed a prior approval — backend issue B11 was it being
+     * returned when no approval was involved. */
+    val consumedApprovalId: String? = null,
 )
 
 data class CollectionSummaryResponse(
@@ -114,22 +149,68 @@ data class ActiveJobCardSummary(
         }
 }
 
-data class ActiveJobCardsListResponse(
-    val jobs: List<ActiveJobCardSummary> = emptyList()
+/**
+ * `active_job_cards_requested` — contract v4.1 keyset paging.
+ *
+ * 4.0 returned the whole queue in one message, which was backend issue B6: it grows without bound
+ * as collections accumulate. 4.1 pages it, ordered by `startedAtUtc DESC, collectionId DESC`.
+ *
+ * Every field is optional; Gson omits nulls, and the contract requires absence rather than null
+ * for an unused option. Omitting [pageSize] takes Station 2's default of 25 (max 100).
+ */
+data class ActiveJobCardsPayload(
+    val pageSize: Int? = null,
+    val continuationToken: String? = null,
+    val statuses: List<String>? = null,
+    /** Matched against job-card number and collection ID. */
+    val search: String? = null,
 )
 
 /**
- * `ingredient_collection_cancel_requested`. A privileged action: manager credentials travel inline
- * and are checked against the APPROVER's account, never the sender's session — so they are required
- * even when the sender is themselves a Manager.
+ * `active_job_cards_list`.
+ *
+ * [snapshotRevision] is the version this page was read at. An `active_job_cards_invalidated` push
+ * carries a new revision, which is the signal to drop [nextContinuationToken] and re-request page
+ * one — a token from an older revision is answered with `page_cursor_stale`.
+ *
+ * Note 4.1 removed the equipment roster from this message; equipment comes from
+ * `mixing_overview_requested` only.
+ */
+data class ActiveJobCardsListResponse(
+    val jobs: List<ActiveJobCardSummary> = emptyList(),
+    val totalCount: Int? = null,
+    val hasMore: Boolean = false,
+    val nextContinuationToken: String? = null,
+    val snapshotRevision: String? = null,
+)
+
+/**
+ * `active_job_cards_invalidated` — a 4.1 server push carrying NO `inResponseToMessageId`, since it
+ * answers no request.
+ *
+ * The contract is emphatic that this "is never permission for a workflow mutation" and is not a
+ * replacement list: it means the collection queue changed, so discard the cursor and ask for page
+ * one again.
+ */
+data class ActiveJobCardsInvalidatedResponse(
+    val snapshotRevision: String? = null,
+)
+
+/**
+ * `ingredient_collection_cancel_requested`. A privileged action.
+ *
+ * 4.1: the manager's password no longer travels here. They prove it in a SCRAM exchange scoped to
+ * `IngredientCollection:<collectionId>` / `ingredient_collection_cancel`, and the resulting
+ * single-use [authorizationToken] is what this message carries. Authorization is still checked
+ * against the APPROVER's account, never the sender's session — so it is required even when the
+ * sender is themselves a Manager.
  *
  * `auditReason` is the operator's justification, written to the audit trail. It is not the same
  * field as a response's `reason`, which is why Station 2 rejected something.
  */
 data class IngredientCollectionCancelPayload(
     val collectionId: String,
-    val managerUsername: String,
-    val managerPassword: String,
+    val authorizationToken: String,
     val auditReason: String,
 )
 

@@ -5,6 +5,7 @@ import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.data.session.canShow
+import com.ppnam.station2aa.domain.model.ActiveJobsPage
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
@@ -319,7 +320,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     quantity = null,
                     reason = "Wrong material",
@@ -364,7 +365,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     quantity = null,
                     reason = "Wrong material",
@@ -418,7 +419,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     quantity = null,
                     reason = "Wrong material",
@@ -465,7 +466,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     quantity = null,
                     reason = "Wrong material",
@@ -501,7 +502,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     quantity = null,
                     reason = "Wrong material",
@@ -541,7 +542,7 @@ class MixingViewModelTest {
             whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
                 Result.success(
                     IngredientScanOutcome.NeedsManagerApproval(
-                        collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                        collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                         requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                         quantity = null,
                         reason = "Wrong material",
@@ -607,7 +608,7 @@ class MixingViewModelTest {
             whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
                 Result.success(
                     IngredientScanOutcome.NeedsManagerApproval(
-                        collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                        collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                         requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                         quantity = null,
                         reason = "Wrong material",
@@ -1138,7 +1139,8 @@ class MixingViewModelTest {
                 jobCardNumber = "510019068", productName = "Layer Mash", status = "Open"
             )
         )
-        whenever(mockUseCase.fetchActiveJobCards()).thenReturn(Result.success(jobs))
+        whenever(mockUseCase.fetchActiveJobCards(any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(ActiveJobsPage(jobs = jobs)))
 
         viewModel.loadActiveJobs()
         advanceUntilIdle()
@@ -1149,7 +1151,8 @@ class MixingViewModelTest {
 
     @Test
     fun `loadActiveJobs sets activeJobsError on failure and leaves list untouched`() = runTest {
-        whenever(mockUseCase.fetchActiveJobCards()).thenReturn(Result.failure(Exception("Not connected to Station 2")))
+        whenever(mockUseCase.fetchActiveJobCards(any(), anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.failure(Exception("Not connected to Station 2")))
 
         viewModel.loadActiveJobs()
         advanceUntilIdle()
@@ -1193,7 +1196,7 @@ class MixingViewModelTest {
         whenever(mockUseCase.scanIngredient("COL_000001", "EPC:300833", "MAT-001", bagSizeOption = "full", bagCount = 2.0)).thenReturn(
             Result.success(
                 IngredientScanOutcome.NeedsManagerApproval(
-                    collectionId = "COL_000001", palletRfidTag = "EPC:300833",
+                    collectionId = "COL_000001", sourceBarcode = "EPC:300833",
                     requestedMaterialCode = "MAT-001", bagSizeOption = "full", bagCount = 2.0,
                     quantity = null,
                     reason = "Wrong material",
@@ -1370,7 +1373,7 @@ class MixingViewModelTest {
         viewModel.selectLine(0)
         whenever(mockUseCase.scanIngredient(any(), any(), any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(IngredientScanOutcome.NeedsManagerApproval(
-                collectionId = "COL_1", palletRfidTag = "EPC:1",
+                collectionId = "COL_1", sourceBarcode = "EPC:1",
                 requestedMaterialCode = "MAT-BULK",
                 bagSizeOption = null, bagCount = null, quantity = 42.5,
                 reason = "over-collection")))

@@ -1,6 +1,7 @@
 package com.ppnam.station2aa.domain.usecase
 
 import com.ppnam.station2aa.data.local.BomCacheDao
+import com.ppnam.station2aa.data.auth.ManagerAuthorization
 import com.ppnam.station2aa.data.mqtt.FailureKind
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.NextAction
@@ -27,6 +28,7 @@ class MixingUseCaseTest {
     private lateinit var mockMqtt: MqttRepository
     private lateinit var mockBomCacheDao: BomCacheDao
     private lateinit var mockPalletUseCase: PalletUseCase
+    private lateinit var mockManagerAuthorization: ManagerAuthorization
     private lateinit var useCase: MixingUseCase
 
     @Before
@@ -34,7 +36,13 @@ class MixingUseCaseTest {
         mockMqtt = mock()
         mockBomCacheDao = mock()
         mockPalletUseCase = mock()
-        useCase = MixingUseCase(mockMqtt, mockBomCacheDao, mockPalletUseCase)
+        mockManagerAuthorization = mock()
+        // 4.1: every privileged action first exchanges the manager's credentials for a scoped
+        // single-use token. Default to a successful authorization so the tests that are about
+        // the workflow message stay about the workflow message.
+        whenever(mockManagerAuthorization.authorize(any(), any(), any(), any()))
+            .thenReturn(Result.success("auth-token-1"))
+        useCase = MixingUseCase(mockMqtt, mockBomCacheDao, mockPalletUseCase, mockManagerAuthorization)
     }
 
     // --- lookupJob ---
@@ -500,8 +508,8 @@ class MixingUseCaseTest {
             eq("ingredient_collection_cancel_requested"), eq("ingredient_collection_cancel_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelPayload &&
-                    collectionId == "COL_000001" && managerUsername == "Manager1" &&
-                    managerPassword == "5678" && auditReason == "reason"
+                    collectionId == "COL_000001" && authorizationToken == "auth-token-1" &&
+                    auditReason == "reason"
             },
             any(), eq(IngredientCollectionCancelResultResponse::class.java),
         )
@@ -567,9 +575,9 @@ class MixingUseCaseTest {
         val result = useCase.fetchActiveJobCards()
 
         assertTrue(result.isSuccess)
-        assertEquals(1, result.getOrThrow().size)
-        assertEquals("510019068", result.getOrThrow().first().jobCardNumber)
-        assertEquals("Layer Mash", result.getOrThrow().first().productName)
+        assertEquals(1, result.getOrThrow().jobs.size)
+        assertEquals("510019068", result.getOrThrow().jobs.first().jobCardNumber)
+        assertEquals("Layer Mash", result.getOrThrow().jobs.first().productName)
     }
 
     @Test
@@ -700,7 +708,7 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `scanIngredient sends collectionId, palletRfidTag, bagSizeOption and bagCount in the request`() = runTest {
+    fun `scanIngredient sends collectionId, sourceBarcode, bagSizeOption and bagCount in the request`() = runTest {
         whenever(
             mockMqtt.request(
                 eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
@@ -714,7 +722,7 @@ class MixingUseCaseTest {
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload &&
-                    collectionId == "COL_000001" && palletRfidTag == "EPC:300833" &&
+                    collectionId == "COL_000001" && sourceBarcode == "EPC:300833" &&
                     bagSizeOption == "full" && bagCount == 2.0
             },
             eq("COL_000001"), eq(IngredientScanResultResponse::class.java),
@@ -737,7 +745,7 @@ class MixingUseCaseTest {
         val needs = outcome as IngredientScanOutcome.NeedsManagerApproval
         // Without these, the retry cannot rebuild the scan.
         assertEquals("COL_000123", needs.collectionId)
-        assertEquals("TAG-1", needs.palletRfidTag)
+        assertEquals("TAG-1", needs.sourceBarcode)
         assertEquals("1600000301", needs.requestedMaterialCode)
         assertEquals("1/2", needs.bagSizeOption)
         assertEquals(3.0, needs.bagCount!!, 0.001)
@@ -745,12 +753,12 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `an approved retry sends the original scan plus credentials`() = runTest {
+    fun `an approved retry sends the original scan plus a scoped authorization token`() = runTest {
         whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
             .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(collectionId = "COL_000123"), NextAction.SCAN_INGREDIENT))
 
         useCase.scanIngredient(
-            collectionId = "COL_000123", palletRfidTag = "TAG-1",
+            collectionId = "COL_000123", sourceBarcode = "TAG-1",
             bagSizeOption = "1/2", bagCount = 3.0, requestedMaterialCode = "1600000301",
             managerUsername = "manager1", managerPassword = "secret",
             auditReason = "Approved additional bag after verified spillage.",
@@ -760,8 +768,8 @@ class MixingUseCaseTest {
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload &&
-                    palletRfidTag == "TAG-1" && bagSizeOption == "1/2" && bagCount == 3.0 &&
-                    managerUsername == "manager1" && managerPassword == "secret" &&
+                    sourceBarcode == "TAG-1" && bagSizeOption == "1/2" && bagCount == 3.0 &&
+                    authorizationToken == "auth-token-1" &&
                     auditReason == "Approved additional bag after verified spillage."
             },
             eq("COL_000123"), eq(IngredientScanResultResponse::class.java),
@@ -769,8 +777,9 @@ class MixingUseCaseTest {
     }
 
     @Test
-    fun `an ordinary scan omits the credential fields entirely`() = runTest {
+    fun `an ordinary scan omits the authorization field entirely`() = runTest {
         // The contract forbids sending null or "" as a stand-in for absence; Gson omits nulls.
+        // An unapproved first scan must also not trigger a manager exchange at all.
         whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
             .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(), NextAction.SCAN_INGREDIENT))
 
@@ -780,7 +789,7 @@ class MixingUseCaseTest {
             eq("ingredient_scan_requested"), eq("ingredient_scan_result"),
             argThat<Any> {
                 this is com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload &&
-                    managerUsername == null && managerPassword == null && auditReason == null
+                    authorizationToken == null && auditReason == null
             },
             any(), eq(IngredientScanResultResponse::class.java),
         )
@@ -860,7 +869,7 @@ class MixingUseCaseTest {
     // --- waiveShortBags ---
 
     @Test
-    fun `a waiver sends credentials on its first submission and carries no pallet`() = runTest {
+    fun `a waiver sends an authorization token on its first submission and carries no pallet`() = runTest {
         // Not a reject-then-retry: there is no scan to fail first.
         whenever(mockMqtt.request(eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(), eq(IngredientScanResultResponse::class.java)))
             .thenReturn(MqttOutcome.Accepted(IngredientScanResultResponse(collectionId = "COL_000123"), NextAction.SCAN_INGREDIENT))
@@ -878,7 +887,7 @@ class MixingUseCaseTest {
                     collectionId == "COL_000123" &&
                     requestedMaterialCode == "1600000301" &&
                     shortBagCount == 1.0 &&
-                    managerUsername == "manager1" && managerPassword == "secret" &&
+                    authorizationToken == "auth-token-1" &&
                     auditReason == "One damaged bag unavailable."
             },
             eq("COL_000123"), eq(IngredientScanResultResponse::class.java),

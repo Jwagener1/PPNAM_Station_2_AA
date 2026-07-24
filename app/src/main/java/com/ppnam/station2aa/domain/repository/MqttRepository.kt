@@ -1,6 +1,7 @@
 package com.ppnam.station2aa.domain.repository
 
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
+import com.ppnam.station2aa.data.mqtt.dto.ResponseEnvelope
 import com.ppnam.station2aa.domain.model.AppSettings
 import kotlinx.coroutines.flow.StateFlow
 
@@ -37,6 +38,16 @@ interface MqttRepository {
         correlationKey: String?,
         responseClass: Class<T>,
     ): MqttOutcome<T>
+    /**
+     * Registers the single handler for contract v4.1's uncorrelated server pushes — responses that
+     * carry no `inResponseToMessageId` because they answer no request, currently
+     * `active_job_cards_invalidated`.
+     *
+     * The transport deliberately does not interpret them. The contract is explicit that an
+     * invalidation is "never permission for a workflow mutation": it is a hint to discard the
+     * stale cursor and re-request page one, and only the layer owning that cursor can do so.
+     */
+    fun setServerPushHandler(handler: (topic: String, envelope: ResponseEnvelope, raw: String) -> Unit)
     suspend fun connect()
     fun disconnect()
     suspend fun reconnectWith(settings: AppSettings): Result<Unit>

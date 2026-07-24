@@ -2,12 +2,16 @@ package com.ppnam.station2aa.ui.mixing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.ppnam.station2aa.data.mqtt.MqttTopics
 import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsInvalidatedResponse
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
+import com.ppnam.station2aa.domain.model.ActiveJobsPage
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
@@ -129,6 +133,8 @@ class MixingViewModel @Inject constructor(
     private val sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
 
+    private val gson = Gson()
+
     private val _uiState = MutableStateFlow<MixingUiState>(MixingUiState.Idle)
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()
 
@@ -144,6 +150,24 @@ class MixingViewModel @Inject constructor(
 
     private val _logoutEvent = Channel<Unit>(Channel.BUFFERED)
     val logoutEvent: Flow<Unit> = _logoutEvent.receiveAsFlow()
+
+    init {
+        // 4.1: Station 2 pushes `active_job_cards_invalidated` after a collection mutation. It is
+        // a hint, not a list and — the contract is explicit — "never permission for a workflow
+        // mutation", so the only thing done with it is discarding the cursor and re-reading page
+        // one. Guarded on the revision actually changing so a redundant push costs nothing.
+        mqttRepository.setServerPushHandler { topic, envelope, raw ->
+            if (MqttTopics.responseTypeOf(topic) != "active_job_cards_invalidated") return@setServerPushHandler
+            val revision = runCatching {
+                gson.fromJson(raw, ActiveJobCardsInvalidatedResponse::class.java)?.snapshotRevision
+            }.getOrNull()
+            if (revision != null && revision == activeJobsRevision) return@setServerPushHandler
+            // Only reload when something is actually displaying the queue; otherwise just drop the
+            // cursor so the next open starts clean.
+            activeJobsToken = null
+            if (_activeJobs.value.isNotEmpty()) loadActiveJobs()
+        }
+    }
 
     fun logout() {
         viewModelScope.launch {
@@ -166,6 +190,20 @@ class MixingViewModel @Inject constructor(
 
     private val _activeJobsError = MutableStateFlow<String?>(null)
     val activeJobsError: StateFlow<String?> = _activeJobsError.asStateFlow()
+
+    /** Whether another page of the 4.1-paged active-jobs queue can be requested. */
+    private val _activeJobsHasMore = MutableStateFlow(false)
+    val activeJobsHasMore: StateFlow<Boolean> = _activeJobsHasMore.asStateFlow()
+
+    /** Total rows across all pages, when Station 2 supplies one — null means "not told". */
+    private val _activeJobsTotal = MutableStateFlow<Int?>(null)
+    val activeJobsTotal: StateFlow<Int?> = _activeJobsTotal.asStateFlow()
+
+    // Paging cursor state. Private: a continuation token is meaningless outside this class and
+    // must never be rendered.
+    private var activeJobsToken: String? = null
+    private var activeJobsRevision: String? = null
+    private var activeJobsJob: Job? = null
 
     private val _navigationEvent = Channel<String>(Channel.BUFFERED)
     val navigationEvent: Flow<String> = _navigationEvent.receiveAsFlow()
@@ -206,19 +244,77 @@ class MixingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Loads the FIRST page of the active collection queue, discarding anything already held.
+     *
+     * 4.1 pages this list, so "load" and "load more" are genuinely different operations: merging a
+     * fresh page-one response into an older accumulated list would duplicate rows and resurrect
+     * collections that have since left the queue. The contract says as much — Android must replace
+     * its displayed list rather than merge rows from an older response.
+     */
     fun loadActiveJobs() {
-        viewModelScope.launch {
-            useCase.fetchActiveJobCards()
-                .onSuccess { jobs ->
-                    _activeJobs.value = jobs
+        activeJobsJob?.cancel()
+        activeJobsJob = viewModelScope.launch {
+            useCase.fetchActiveJobCards(pageSize = ActiveJobsPage.DEFAULT_PAGE_SIZE)
+                .onSuccess { page ->
+                    if (page.cursorStale) {
+                        // Can't happen on a first-page request (we sent no cursor), but if Station 2
+                        // says the cursor is stale the honest state is "empty, try again" rather
+                        // than pretending we have a page.
+                        _activeJobs.value = emptyList()
+                    } else {
+                        _activeJobs.value = page.jobs
+                    }
+                    activeJobsToken = page.nextContinuationToken
+                    activeJobsRevision = page.snapshotRevision
+                    _activeJobsHasMore.value = page.canLoadMore
+                    _activeJobsTotal.value = page.totalCount
                     _activeJobsError.value = null
                 }
                 .onFailure { e -> _activeJobsError.value = e.message ?: "Could not load active jobs" }
         }
     }
 
+    /**
+     * Appends the next page. No-op when there is nothing more or a load is already in flight.
+     *
+     * A `page_cursor_stale` answer means the queue moved under us, so the accumulated pages are no
+     * longer a coherent snapshot — the only correct recovery is to start again from page one.
+     */
+    fun loadMoreActiveJobs() {
+        val token = activeJobsToken
+        if (token.isNullOrBlank() || activeJobsJob?.isActive == true) return
+        activeJobsJob = viewModelScope.launch {
+            useCase.fetchActiveJobCards(
+                pageSize = ActiveJobsPage.DEFAULT_PAGE_SIZE,
+                continuationToken = token,
+            )
+                .onSuccess { page ->
+                    if (page.cursorStale) {
+                        loadActiveJobs()
+                        return@onSuccess
+                    }
+                    // Guard against a duplicate response re-appending the same rows: collectionId
+                    // identifies a row, NOT jobCardNumber — several concurrent collections per job
+                    // card is intended behaviour.
+                    val seen = _activeJobs.value.mapTo(mutableSetOf()) { it.collectionId }
+                    _activeJobs.value = _activeJobs.value + page.jobs.filter { seen.add(it.collectionId) }
+                    activeJobsToken = page.nextContinuationToken
+                    activeJobsRevision = page.snapshotRevision
+                    _activeJobsHasMore.value = page.canLoadMore
+                    _activeJobsTotal.value = page.totalCount
+                    _activeJobsError.value = null
+                }
+                .onFailure { e -> _activeJobsError.value = e.message ?: "Could not load more jobs" }
+        }
+    }
+
     private data class PendingIngredientScan(
-        val palletRfidTag: String,
+        /**
+         * 4.1's canonical `sourceBarcode`: a pallet RFID tag OR a Station 3 master-batch label.
+         * Not named for pallets any more, because it is no longer always one.
+         */
+        val sourceBarcode: String,
         val bagSizeOption: String?,
         val bagCount: Double?,
         val quantity: Double?,
@@ -460,7 +556,7 @@ class MixingViewModel @Inject constructor(
             )
             useCase.scanIngredient(
                 approval.collectionId,
-                approval.palletRfidTag,
+                approval.sourceBarcode,
                 approval.requestedMaterialCode,
                 bagSizeOption = approval.bagSizeOption,
                 bagCount = approval.bagCount,
@@ -591,7 +687,10 @@ class MixingViewModel @Inject constructor(
         val scan = pendingScan ?: return
         recoveryJob = viewModelScope.launch {
             _uiState.value = orderLoadedState(order, pendingLabel = "Recovering pallet…")
-            useCase.recoverHolding(order.collectionId, scan.palletRfidTag)
+            // Recovery is a pallet operation and is only ever offered after Station 2 rejected a
+            // scan with recover_holding, which it does only for a pallet — so the source barcode
+            // here is a pallet RFID tag.
+            useCase.recoverHolding(order.collectionId, scan.sourceBarcode)
                 .onSuccess { retryPendingScan(order) }
                 .onFailure { e ->
                     pendingScan = null
@@ -644,7 +743,7 @@ class MixingViewModel @Inject constructor(
             }
             is IngredientScanOutcome.NeedsRecovery -> {
                 pendingApproval = null
-                _uiState.value = MixingUiState.PalletRecoveryPrompt(pendingScan?.palletRfidTag ?: "")
+                _uiState.value = MixingUiState.PalletRecoveryPrompt(pendingScan?.sourceBarcode ?: "")
             }
             is IngredientScanOutcome.Rejected -> {
                 pendingScan = null
@@ -680,7 +779,7 @@ class MixingViewModel @Inject constructor(
                 pendingLabel = "Retrying scan…",
             )
             useCase.scanIngredient(
-                order.collectionId, scan.palletRfidTag, scan.requestedMaterialCode,
+                order.collectionId, scan.sourceBarcode, scan.requestedMaterialCode,
                 bagSizeOption = scan.bagSizeOption, bagCount = scan.bagCount,
                 quantity = scan.quantity,
             )

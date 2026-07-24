@@ -12,14 +12,37 @@ from state import iso, utc_now
 SAP_STATUS_NAMES = {"boposPlanned": "Planned", "boposReleased": "Released"}
 
 
+DEFAULT_PAGE_SIZE = 25
+MAX_PAGE_SIZE = 100
+
+
 def active_list(world, log, req, session):
-    jobs = []
+    """4.1 keyset paging, ordered by startedAtUtc DESC, collectionId DESC.
+
+    4.0 returned the whole queue in one message, which grows without bound as collections
+    accumulate (backend issue B6). The continuation token carries the snapshot revision so a
+    cursor minted against an older revision can be rejected with `page_cursor_stale` rather than
+    silently returning rows from a queue that has moved.
+    """
+    page_size = req.get("pageSize") or DEFAULT_PAGE_SIZE
+    if not isinstance(page_size, int) or page_size < 1 or page_size > MAX_PAGE_SIZE:
+        raise Rejection("validation_failed",
+                        f"pageSize must be between 1 and {MAX_PAGE_SIZE}.")
+    statuses = req.get("statuses")
+    search = (req.get("search") or "").strip().casefold()
+
+    rows = []
     for col in world.collections.values():
         status = col["status"]
         if status == "Cancelled":
             continue
+        if statuses and status not in statuses:
+            continue
+        if search and search not in col["collectionId"].casefold() \
+                and search not in str(col["jobCardNumber"]).casefold():
+            continue
         collected, remaining = collection_progress(col)
-        jobs.append({
+        rows.append({
             "collectionId": col["collectionId"],
             "jobCardNumber": col["jobCardNumber"],
             "productionOrderDocumentNumber": col["productionOrderDocumentNumber"],
@@ -29,8 +52,41 @@ def active_list(world, log, req, session):
             "remainingQuantity": remaining,
             "claimedByMixBatchId": col["claimedByMixBatchId"],
         })
-    log.ok(f"active job cards: {len(jobs)} non-terminal collection(s)")
-    return build_response(world, req, response_extras={"jobs": jobs})
+
+    # startedAtUtc DESC, collectionId DESC. Collection ids are monotonic here, so ordering by id
+    # alone reproduces the contract's order without needing a start timestamp on every row.
+    rows.sort(key=lambda r: r["collectionId"], reverse=True)
+
+    revision = world.active_jobs_revision()
+    token = req.get("continuationToken")
+    start = 0
+    if token:
+        token_revision, _, token_after = str(token).partition("|")
+        if token_revision != revision:
+            log.warn(f"active job cards: continuation token is from revision "
+                     f"{token_revision}, current is {revision} -> page_cursor_stale")
+            raise Rejection("page_cursor_stale",
+                            "The collection queue changed; request the first page again.",
+                            next_action="refresh_active_jobs")
+        start = next((i for i, r in enumerate(rows) if r["collectionId"] == token_after), -1) + 1
+        if start == 0:
+            raise Rejection("page_cursor_stale",
+                            "The collection queue changed; request the first page again.",
+                            next_action="refresh_active_jobs")
+
+    page = rows[start:start + page_size]
+    has_more = start + page_size < len(rows)
+    next_token = f"{revision}|{page[-1]['collectionId']}" if (has_more and page) else None
+
+    log.ok(f"active job cards: page of {len(page)} of {len(rows)} collection(s), "
+           f"hasMore={has_more}, revision={revision}")
+    return build_response(world, req, response_extras={
+        "jobs": page,
+        "totalCount": len(rows),
+        "hasMore": has_more,
+        "nextContinuationToken": next_token,
+        "snapshotRevision": revision,
+    })
 
 
 def open_sap_list(world, log, req, session):

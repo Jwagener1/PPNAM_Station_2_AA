@@ -123,10 +123,19 @@ def _waiver(world, log, req, session, col):
 
 # ---------------------------------------------------------- ordinary scan ----
 def _ordinary_scan(world, log, req, session, col):
-    tag = req.get("palletRfidTag")
+    # 4.1: `sourceBarcode` is canonical because a source may now be a Station 3 master-batch
+    # label rather than a pallet. The legacy `palletRfidTag` is still accepted from older
+    # handhelds, but sending BOTH with different values is rejected — silently preferring one
+    # would let a handheld believe it captured a source it did not.
+    source = req.get("sourceBarcode")
+    legacy = req.get("palletRfidTag")
+    if source and legacy and source.strip().casefold() != legacy.strip().casefold():
+        return _reject(world, req, col, "conflicting_source_barcodes",
+                       "sourceBarcode and palletRfidTag identify different sources.")
+    tag = source or legacy
     if not tag:
-        return _reject(world, req, col, "validation_failed",
-                       "palletRfidTag is required on an ingredient scan.")
+        return _reject(world, req, col, "source_barcode_required",
+                       "sourceBarcode is required on an ingredient scan.")
     pallet = world.pallets.get(tag)
     if not pallet:
         return _reject(world, req, col, "not_found", f"Pallet tag '{tag}' is not known.")

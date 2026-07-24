@@ -1,12 +1,14 @@
 package com.ppnam.station2aa.domain.usecase
 
+import com.ppnam.station2aa.data.auth.ScramExchange
 import com.ppnam.station2aa.data.mqtt.ErrorCode
 import com.ppnam.station2aa.data.mqtt.FailureKind
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.BadgeLoginPayload
-import com.ppnam.station2aa.data.mqtt.dto.CredentialsLoginPayload
 import com.ppnam.station2aa.data.mqtt.dto.OperatorContextResponse
+import com.ppnam.station2aa.data.mqtt.dto.ScramProofResponse
+import com.ppnam.station2aa.data.mqtt.dto.ScramPurpose
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.SessionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
@@ -22,16 +24,30 @@ import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 class AuthUseCaseTest {
 
     private lateinit var mqtt: MqttRepository
+    private lateinit var scramExchange: ScramExchange
     private lateinit var sessionHolder: OperatorSessionHolder
     private lateinit var useCase: AuthUseCase
 
-    private val accepted = OperatorContextResponse(
+    /** What a successful SCRAM login proof returns. */
+    private val provedLogin = ScramProofResponse(
+        serverSignature = "verified-by-ScramExchange",
+        operatorSessionId = "session-id",
+        operatorId = "OP-001",
+        username = "operator1",
+        displayName = "Operator One",
+        role = "Operator",
+        allowedActions = listOf("scan_ingredient", "start_machine_cycle"),
+        allowedTabs = listOf("collect", "mixing"),
+    )
+
+    private val acceptedBadge = OperatorContextResponse(
         operatorSessionId = "session-id",
         operatorId = "OP-001",
         username = "operator1",
@@ -44,38 +60,52 @@ class AuthUseCaseTest {
     @Before
     fun setup() {
         mqtt = mock()
+        scramExchange = mock()
         sessionHolder = OperatorSessionHolder()
-        useCase = AuthUseCase(mqtt, sessionHolder)
+        useCase = AuthUseCase(mqtt, sessionHolder, scramExchange)
     }
 
-    private suspend fun stub(outcome: MqttOutcome<OperatorContextResponse>) {
+    private suspend fun stubScram(result: Result<ScramProofResponse>) {
+        whenever(scramExchange.authenticate(any(), any(), any(), any(), any())).thenReturn(result)
+    }
+
+    private suspend fun stubBadge(outcome: MqttOutcome<OperatorContextResponse>) {
         whenever(
             mqtt.request(any(), any(), any(), anyOrNull(), eq(OperatorContextResponse::class.java))
         ).thenReturn(outcome)
     }
 
     @Test
-    fun `credentials login uses the single v3 login topic`() = runTest {
-        stub(MqttOutcome.Accepted(accepted, NextAction.NONE))
+    fun `a credentials login runs a SCRAM exchange with the login purpose`() = runTest {
+        stubScram(Result.success(provedLogin))
 
         useCase.login(LoginMethod.Credentials("operator1", "secret"))
 
-        verify(mqtt).request(
-            eq("login_requested"),
-            eq("operator_context"),
-            argThat<Any> {
-                this is CredentialsLoginPayload && username == "operator1" && password == "secret"
-            },
-            eq(null),
-            eq(OperatorContextResponse::class.java),
+        verify(scramExchange).authenticate(
+            eq("operator1"),
+            eq("secret"),
+            eq(ScramPurpose.LOGIN),
+            // Scope fields are empty for a login — they only bind a manager action's token.
+            eq(""),
+            eq(""),
         )
     }
 
     @Test
-    fun `badge login uses the same v3 login topic with a badge payload`() = runTest {
-        // v2 had two topics (reader_login_requested / login_tag_scanned). v3 has one, distinguished
-        // only by which authentication field is supplied.
-        stub(MqttOutcome.Accepted(accepted, NextAction.NONE))
+    fun `a credentials login never publishes the password on login_requested`() = runTest {
+        // Schema 4.1 rejects ANY message containing a `password` property. The whole point of the
+        // cutover is that this request no longer happens for a credentials login.
+        stubScram(Result.success(provedLogin))
+
+        useCase.login(LoginMethod.Credentials("operator1", "secret"))
+
+        verify(mqtt, never()).request(eq("login_requested"), any(), any(), anyOrNull(), any<Class<Any>>())
+    }
+
+    @Test
+    fun `badge login still uses the single login topic with a badge payload`() = runTest {
+        // A badge carries no secret, so it survives the 4.1 cutover unchanged.
+        stubBadge(MqttOutcome.Accepted(acceptedBadge, NextAction.NONE))
 
         useCase.login(LoginMethod.Badge("BADGE001"))
 
@@ -90,7 +120,7 @@ class AuthUseCaseTest {
 
     @Test
     fun `a successful login stores the session`() = runTest {
-        stub(MqttOutcome.Accepted(accepted, NextAction.NONE))
+        stubScram(Result.success(provedLogin))
 
         val session = useCase.login(LoginMethod.Credentials("operator1", "secret")).getOrThrow()
 
@@ -104,8 +134,18 @@ class AuthUseCaseTest {
     }
 
     @Test
-    fun `an accepted login with no session id is still a failure`() = runTest {
-        stub(MqttOutcome.Accepted(accepted.copy(operatorSessionId = ""), NextAction.NONE))
+    fun `a badge login stores the session too`() = runTest {
+        stubBadge(MqttOutcome.Accepted(acceptedBadge, NextAction.NONE))
+
+        val session = useCase.login(LoginMethod.Badge("BADGE001")).getOrThrow()
+
+        assertEquals("session-id", session.operatorSessionId)
+        assertEquals("session-id", sessionHolder.session.value?.operatorSessionId)
+    }
+
+    @Test
+    fun `a proved login with no session id is still a failure`() = runTest {
+        stubScram(Result.success(provedLogin.copy(operatorSessionId = "")))
 
         val result = useCase.login(LoginMethod.Credentials("operator1", "secret"))
 
@@ -114,15 +154,8 @@ class AuthUseCaseTest {
     }
 
     @Test
-    fun `a rejected login fails with the operator-readable reason and stores no session`() = runTest {
-        stub(
-            MqttOutcome.Rejected(
-                body = OperatorContextResponse(),
-                errorCode = ErrorCode.PERMISSION_DENIED,
-                reason = "Incorrect username or password.",
-                nextAction = NextAction.LOGIN,
-            )
-        )
+    fun `a failed SCRAM exchange fails the login and stores no session`() = runTest {
+        stubScram(Result.failure(Exception("Incorrect username or password.")))
 
         val result = useCase.login(LoginMethod.Credentials("operator1", "wrong"))
 
@@ -132,20 +165,38 @@ class AuthUseCaseTest {
     }
 
     @Test
-    fun `a timeout fails with a connection message`() = runTest {
-        stub(MqttOutcome.NoResponse(FailureKind.Timeout))
+    fun `a rejected badge login fails with the operator-readable reason`() = runTest {
+        stubBadge(
+            MqttOutcome.Rejected(
+                body = OperatorContextResponse(),
+                errorCode = ErrorCode.PERMISSION_DENIED,
+                reason = "Badge not recognised.",
+                nextAction = NextAction.LOGIN,
+            )
+        )
 
-        val result = useCase.login(LoginMethod.Credentials("operator1", "secret"))
+        val result = useCase.login(LoginMethod.Badge("BADGE-BAD"))
+
+        assertTrue(result.isFailure)
+        assertEquals("Badge not recognised.", result.exceptionOrNull()?.message)
+        assertNull(sessionHolder.session.value)
+    }
+
+    @Test
+    fun `a timeout during badge login fails with a connection message`() = runTest {
+        stubBadge(MqttOutcome.NoResponse(FailureKind.Timeout))
+
+        val result = useCase.login(LoginMethod.Badge("BADGE001"))
 
         assertTrue(result.isFailure)
         assertEquals("Station 2 did not respond", result.exceptionOrNull()?.message)
     }
 
     @Test
-    fun `being disconnected fails with a connection message`() = runTest {
-        stub(MqttOutcome.NoResponse(FailureKind.NotConnected))
+    fun `being disconnected during badge login fails with a connection message`() = runTest {
+        stubBadge(MqttOutcome.NoResponse(FailureKind.NotConnected))
 
-        val result = useCase.login(LoginMethod.Credentials("operator1", "secret"))
+        val result = useCase.login(LoginMethod.Badge("BADGE001"))
 
         assertTrue(result.isFailure)
         assertEquals("Not connected to Station 2", result.exceptionOrNull()?.message)
@@ -153,10 +204,9 @@ class AuthUseCaseTest {
 
     @Test
     fun `a successful login carries session state and expiry`() = runTest {
-        stub(
-            MqttOutcome.Accepted(
-                accepted.copy(sessionState = "Active", sessionExpiresAtUtc = "2026-07-17T00:00:01Z"),
-                NextAction.NONE,
+        stubScram(
+            Result.success(
+                provedLogin.copy(sessionState = "Active", sessionExpiresAtUtc = "2026-07-17T00:00:01Z")
             )
         )
 
@@ -170,7 +220,7 @@ class AuthUseCaseTest {
     fun `a login answered with a Closed session is a failure`() = runTest {
         // Accepting a session Station 2 has already closed would strand the operator in a UI that
         // rejects every action.
-        stub(MqttOutcome.Accepted(accepted.copy(sessionState = "Closed"), NextAction.LOGIN))
+        stubScram(Result.success(provedLogin.copy(sessionState = "Closed")))
 
         val result = useCase.login(LoginMethod.Credentials("operator1", "secret"))
 
@@ -180,7 +230,7 @@ class AuthUseCaseTest {
 
     @Test
     fun `an unparseable expiry does not fail the login`() = runTest {
-        stub(MqttOutcome.Accepted(accepted.copy(sessionExpiresAtUtc = "not-a-timestamp"), NextAction.NONE))
+        stubScram(Result.success(provedLogin.copy(sessionExpiresAtUtc = "not-a-timestamp")))
 
         val session = useCase.login(LoginMethod.Credentials("operator1", "secret")).getOrThrow()
 
@@ -197,7 +247,7 @@ class AuthUseCaseTest {
                 role = "Operator",
             )
         )
-        stub(MqttOutcome.Accepted(OperatorContextResponse(), NextAction.LOGIN))
+        stubBadge(MqttOutcome.Accepted(OperatorContextResponse(), NextAction.LOGIN))
 
         val result = useCase.logout()
 
@@ -222,7 +272,7 @@ class AuthUseCaseTest {
                 role = "Operator",
             )
         )
-        stub(MqttOutcome.NoResponse(FailureKind.Timeout))
+        stubBadge(MqttOutcome.NoResponse(FailureKind.Timeout))
 
         val result = useCase.logout()
 

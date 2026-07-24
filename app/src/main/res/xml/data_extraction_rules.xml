@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31) backup and device-transfer rules.
+
+  Schema 4.1 handoff §5 requires the encrypted MQTT broker credential to be excluded from Android
+  backup. Two reasons it matters even though the ciphertext is useless without its key:
+
+    - the Keystore key is non-exportable and is never backed up, so a restored credential record
+      could never be decrypted — it would only ever present as a corrupt credential;
+    - each handheld must have its OWN broker credential bound to its own client ID, so carrying one
+      device's credential onto another is precisely the sharing the handoff prohibits.
+
+  A restored handheld must be re-provisioned, which is exactly what excluding this achieves.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="ppnam_secure_credentials.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="ppnam_secure_credentials.xml" />
+    </device-transfer>
+</data-extraction-rules>

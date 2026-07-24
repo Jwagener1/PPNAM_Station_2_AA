@@ -1,7 +1,7 @@
 # Station 2 Backend Simulator
 
-Mimics the Station 2 WPF backend over MQTT (RFID contract **v4.0**, schema
-`4.0`) so the Android app can be tested end-to-end without the real backend.
+Mimics the Station 2 WPF backend over MQTT (RFID contract **v4.1**, schema
+`4.1`) so the Android app can be tested end-to-end without the real backend.
 Every message, validation step, business decision, and state change is
 logged, so when the app misbehaves the logs are a second source of truth for
 diagnosis.

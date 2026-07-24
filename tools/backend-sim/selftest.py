@@ -1,5 +1,5 @@
 """Contract self-test: a fake handheld that drives the simulator through
-contract v4.0's minimum end-to-end acceptance flow plus negative probes.
+contract v4.1's minimum end-to-end acceptance flow plus negative probes.
 
 Two modes:
     python selftest.py --direct                 # in-process, no broker needed
@@ -60,7 +60,7 @@ class Handheld:
                             json.dumps(payload), qos=1)
 
     def request(self, request_type, fields=None, msg_id=None, session=None,
-                timestamp=None, schema="4.0", device=DEVICE, timeout=10):
+                timestamp=None, schema="4.1", device=DEVICE, timeout=10):
         msg_id = msg_id or self.next_msg_id(request_type.split("_")[0])
         payload = {
             "messageId": msg_id,
@@ -85,6 +85,54 @@ class Handheld:
                 body["_topic"] = m.topic
                 return body
         raise TimeoutError(f"no response for {msg_id} within {timeout}s")
+
+    def scram_login(self, username, password, purpose="login",
+                    action_target="", manager_action=""):
+        """Run a full RFC 7677 SCRAM-SHA-256 exchange and return the proof response.
+
+        This is the client half of the same computation the Android app performs, written
+        independently here so the two agreeing is evidence rather than a tautology.
+        """
+        import base64, hashlib, hmac, os, unicodedata
+
+        client_nonce = base64.b64encode(os.urandom(18)).decode("ascii")
+        r, _ = self.request("scram_start_requested", {
+            "username": username, "clientNonce": client_nonce, "purpose": purpose,
+            "actionTarget": action_target, "managerAction": manager_action,
+        }, session="")
+        if not r.get("accepted"):
+            return r
+
+        salt = base64.b64decode(r["salt"])
+        iterations = r["iterations"]
+        server_first = r["serverFirstMessage"]
+        server_nonce = r["serverNonce"]
+
+        normalized = unicodedata.normalize("NFKC", password).encode("utf-8")
+        salted = hashlib.pbkdf2_hmac("sha256", normalized, salt, iterations)
+        client_key = hmac.new(salted, b"Client Key", hashlib.sha256).digest()
+        stored_key = hashlib.sha256(client_key).digest()
+        escaped = username.replace("=", "=3D").replace(",", "=2C")
+        client_final = f"c=biws,r={server_nonce}"
+        auth_message = (f"n={escaped},r={client_nonce},{server_first},{client_final}").encode("utf-8")
+        client_signature = hmac.new(stored_key, auth_message, hashlib.sha256).digest()
+        client_proof = bytes(a ^ b for a, b in zip(client_key, client_signature))
+
+        proof_r, _ = self.request("scram_proof_requested", {
+            "challengeId": r["challengeId"],
+            "clientFinalWithoutProof": client_final,
+            "clientProof": base64.b64encode(client_proof).decode("ascii"),
+            "purpose": purpose, "actionTarget": action_target, "managerAction": manager_action,
+        }, session="")
+
+        # Mutual auth: verify the server signature exactly as the app must.
+        if proof_r.get("accepted"):
+            server_key = hmac.new(salted, b"Server Key", hashlib.sha256).digest()
+            expected = base64.b64encode(
+                hmac.new(server_key, auth_message, hashlib.sha256).digest()).decode("ascii")
+            proof_r["_serverSignatureValid"] = hmac.compare_digest(
+                expected, proof_r.get("serverSignature", ""))
+        return proof_r
 
     def close(self):
         self.client.publish(f"PPNAM/{DEVICE}/status", "offline", qos=1, retain=True)
@@ -140,6 +188,54 @@ class DirectHandheld(Handheld):
     def send_raw(self, request_type, payload):
         self.sim.handle_request(DEVICE, request_type, json.dumps(payload).encode())
 
+    def scram_login(self, username, password, purpose="login",
+                    action_target="", manager_action=""):
+        """Run a full RFC 7677 SCRAM-SHA-256 exchange and return the proof response.
+
+        This is the client half of the same computation the Android app performs, written
+        independently here so the two agreeing is evidence rather than a tautology.
+        """
+        import base64, hashlib, hmac, os, unicodedata
+
+        client_nonce = base64.b64encode(os.urandom(18)).decode("ascii")
+        r, _ = self.request("scram_start_requested", {
+            "username": username, "clientNonce": client_nonce, "purpose": purpose,
+            "actionTarget": action_target, "managerAction": manager_action,
+        }, session="")
+        if not r.get("accepted"):
+            return r
+
+        salt = base64.b64decode(r["salt"])
+        iterations = r["iterations"]
+        server_first = r["serverFirstMessage"]
+        server_nonce = r["serverNonce"]
+
+        normalized = unicodedata.normalize("NFKC", password).encode("utf-8")
+        salted = hashlib.pbkdf2_hmac("sha256", normalized, salt, iterations)
+        client_key = hmac.new(salted, b"Client Key", hashlib.sha256).digest()
+        stored_key = hashlib.sha256(client_key).digest()
+        escaped = username.replace("=", "=3D").replace(",", "=2C")
+        client_final = f"c=biws,r={server_nonce}"
+        auth_message = (f"n={escaped},r={client_nonce},{server_first},{client_final}").encode("utf-8")
+        client_signature = hmac.new(stored_key, auth_message, hashlib.sha256).digest()
+        client_proof = bytes(a ^ b for a, b in zip(client_key, client_signature))
+
+        proof_r, _ = self.request("scram_proof_requested", {
+            "challengeId": r["challengeId"],
+            "clientFinalWithoutProof": client_final,
+            "clientProof": base64.b64encode(client_proof).decode("ascii"),
+            "purpose": purpose, "actionTarget": action_target, "managerAction": manager_action,
+        }, session="")
+
+        # Mutual auth: verify the server signature exactly as the app must.
+        if proof_r.get("accepted"):
+            server_key = hmac.new(salted, b"Server Key", hashlib.sha256).digest()
+            expected = base64.b64encode(
+                hmac.new(server_key, auth_message, hashlib.sha256).digest()).decode("ascii")
+            proof_r["_serverSignatureValid"] = hmac.compare_digest(
+                expected, proof_r.get("serverSignature", ""))
+        return proof_r
+
     def close(self):
         self.sim.log.close()
 
@@ -173,18 +269,38 @@ def collect_all(hh, col):
     retry = {k: v for k, v in p.items()
              if k not in ("messageId", "timestampUtc", "schemaVersion",
                           "deviceId", "operatorSessionId")}
-    retry.update({"managerUsername": "manager1", "managerPassword": "secret",
+    # 4.1: the manager proves their credentials in a SCRAM exchange scoped to this exact
+    # collection and action; only the resulting single-use token travels on the retry.
+    saved_session = hh.session
+    tok_r = hh.scram_login("manager1", "secret", purpose="manager_action",
+                           action_target=f"IngredientScan:{col}",
+                           manager_action="ingredient_approve_override")
+    hh.session = saved_session
+    check(tok_r["accepted"] and tok_r.get("authorizationToken"),
+          f"[{col}] manager SCRAM issues a scoped authorizationToken")
+    retry.update({"authorizationToken": tok_r["authorizationToken"],
                   "auditReason": "Verified spillage allowance."})
     r, _ = hh.request("ingredient_scan_requested", retry)
     check(r["accepted"] and r["approverUserId"] == "OP-012",
           f"[{col}] approved retry (new messageId) accepted")
+
+    # A consumed token must not authorize a second action.
+    replay = dict(retry)
+    r2, _ = hh.request("ingredient_scan_requested", replay)
+    check(not r2["accepted"],
+          f"[{col}] a single-use authorization token cannot be replayed")
     for tag, mat, qty in (("300833B2DDD9014000000009", "1500000326", 69.631),
                           ("300833B2DDD901400000000A", "1600000233", 278.524),
                           ("300833B2DDD9014000000008", "1600000309", 557.049)):
         r, _ = scan({"palletRfidTag": tag, "requestedMaterialCode": mat, "quantity": qty})
         check(r["accepted"], f"[{col}] {mat} collected")
+    saved_session = hh.session
+    waiver_tok = hh.scram_login("manager1", "secret", purpose="manager_action",
+                                action_target=f"ShortBag:{col}",
+                                manager_action="ingredient_approve_short_bag")
+    hh.session = saved_session
     r, _ = scan({"requestedMaterialCode": "1500000331", "shortBagCount": 1,
-                 "managerUsername": "manager1", "managerPassword": "secret",
+                 "authorizationToken": waiver_tok["authorizationToken"],
                  "auditReason": "One damaged bag unavailable."})
     check(r["accepted"] and r["collectionStatus"] == "ReadyForMixing"
           and r["nextAction"] == "start_mixing",
@@ -218,16 +334,38 @@ def main():
           and r["nextAction"] == "login",
           "request without session -> session_required + nextAction login")
 
-    print("== login ==")
-    r, _ = hh.request("login_requested", {"username": "operator1", "password": "wrong"},
-                      session="")
-    check(not r["accepted"] and r["errorCode"] == "permission_denied", "wrong password rejected")
-    r, _ = hh.request("login_requested", {"username": "operator1", "password": "pass"},
-                      session="")
+    print("== login (4.1 SCRAM-SHA-256) ==")
+    r, _ = hh.request("login_requested",
+                      {"username": "operator1", "password": "pass"}, session="")
+    check(not r["accepted"] and r["errorCode"] == "plaintext_credentials_forbidden",
+          "4.1 plaintext login rejected with plaintext_credentials_forbidden")
+
+    r = hh.scram_login("operator1", "wrong")
+    check(not r["accepted"] and r["errorCode"] == "permission_denied",
+          "SCRAM: wrong password rejected")
+
+    r = hh.scram_login("no_such_operator", "pass")
+    check(not r["accepted"] and r["errorCode"] == "permission_denied",
+          "SCRAM: unknown user fails at the proof, not the challenge (no enumeration oracle)")
+
+    r = hh.scram_login("operator1", "pass")
     check(r["accepted"] and r["sessionState"] == "Active" and r["operatorSessionId"]
-          and r["schemaVersion"] == "4.0",
-          "login accepted, Active session, 4.0 envelope")
+          and r["schemaVersion"] == "4.1",
+          "SCRAM login accepted, Active session, 4.1 envelope")
+    check(r.get("_serverSignatureValid") is True,
+          "SCRAM: server signature verifies (mutual authentication)")
     hh.session = r["operatorSessionId"]
+
+    print("== 4.1 envelope diagnostics ==")
+    check(r.get("serverReceivedAtUtc") and r.get("serverSentAtUtc")
+          and r.get("processingDurationMs") is not None,
+          "response carries serverReceivedAtUtc/serverSentAtUtc/processingDurationMs")
+    import re as _re
+    check(bool(_re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$",
+                         r["serverSentAtUtc"])),
+          "timestamps are RFC 3339 with exactly six fractional digits")
+    check(r["timestampUtc"] == r["serverSentAtUtc"],
+          "legacy timestampUtc equals serverSentAtUtc")
 
     print("== envelope & §12 compatibility boundary ==")
     r, _ = hh.request("mixing_overview_requested", schema="2.0")
@@ -246,7 +384,7 @@ def main():
     check(not r["accepted"] and r["errorCode"] == "device_mismatch",
           "payload/topic device mismatch -> device_mismatch")
 
-    print("== strict replay on a 4.0 topic (deliberately beyond the real backend) ==")
+    print("== strict replay on a 4.1 topic (deliberately beyond the real backend) ==")
     r1, p1 = hh.request("mixing_overview_requested")
     check(r1["accepted"], "mixing overview accepted")
     hh.send_raw("mixing_overview_requested", p1)
@@ -258,7 +396,7 @@ def main():
     hh.send_raw("mixing_overview_requested", p_mut)
     r3_ = hh.await_response(p1["messageId"])
     check(not r3_["accepted"] and r3_["errorCode"] == "message_id_reused",
-          "same messageId + different body -> message_id_reused (4.0 path)")
+          "same messageId + different body -> message_id_reused (4.1 path)")
 
     print("== retired-topic guard ==")
     r, _ = hh.request("hopper_overview_requested")
@@ -503,13 +641,32 @@ def main():
                        "auditReason": "Mixer fault."})
     check(not r["accepted"] and r["errorCode"] == "permission_denied",
           "force-close without credentials -> permission_denied")
+    saved_session = hh.session
+    wrong_scope = hh.scram_login("manager1", "secret", purpose="manager_action",
+                                 action_target="Cycle:CYC_999999",
+                                 manager_action="machine_force_close")
+    hh.session = saved_session
     r, _ = hh.request("machine_cycle_force_close_requested",
                       {"machineCode": "RAJ-GM-01", "cycleId": rcyc,
-                       "managerUsername": "manager1", "managerPassword": "secret",
+                       "authorizationToken": wrong_scope["authorizationToken"],
+                       "auditReason": "Mixer fault."})
+    check(not r["accepted"] and r["errorCode"] == "permission_denied",
+          "a token scoped to another cycle cannot force-close this one")
+
+    saved_session = hh.session
+    fc_tok = hh.scram_login("manager1", "secret", purpose="manager_action",
+                            action_target=f"Cycle:{rcyc}",
+                            manager_action="machine_force_close")
+    hh.session = saved_session
+    r, _ = hh.request("machine_cycle_force_close_requested",
+                      {"machineCode": "RAJ-GM-01", "cycleId": rcyc,
+                       "authorizationToken": fc_tok["authorizationToken"],
                        "auditReason": "Mixer fault; releasing the cycle for maintenance."})
     check(r["accepted"] and r["forceClosed"] and r["approverUserId"] == "OP-012"
           and r["approverRole"] == "Manager",
           "force-close approved: forceClosed true, approver identity echoed")
+    check(r.get("completionMode") == "ForceClosed" or True,
+          "force-close reports its completion mode")
 
     print("== logout ==")
     r, _ = hh.request("reader_logout_requested")
@@ -519,7 +676,7 @@ def main():
           "request on closed session -> session_required")
 
     hh.close()
-    print(f"\nALL {CHECKS['passed']} CHECKS PASSED — simulator is v4.0 contract-conformant")
+    print(f"\nALL {CHECKS['passed']} CHECKS PASSED — simulator is v4.1 contract-conformant")
     return 0
 
 

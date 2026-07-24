@@ -108,27 +108,59 @@ internal fun machineTabOf(machine: Equipment): MachineTab =
 internal fun computeHighlightedMachines(overview: AreaOverview, selection: BoardSelection): Set<String> =
     when (selection) {
         is BoardSelection.None -> emptySet()
-        // Same predicate as the Collections tab, deliberately — a collection must never
-        // highlight a machine the tab it lands on doesn't show.
-        is BoardSelection.Collection -> overview.equipment
-            .filter { machineTabOf(it) == MachineTab.Collections && it.isEnabled && it.status == "Available" }
-            .map { it.machineCode }
-            .toSet()
+
+        // 4.1: a collection's mixers are RESERVED by its saved plan, so "enabled and Available"
+        // is exactly the wrong predicate — a reserved mixer's status is `Reserved`, which would
+        // highlight none of the machines this operator should scan, while happily highlighting
+        // mixers reserved by somebody else's collection.
+        //
+        // The plan's own remainingMixerCodes is the answer, intersected with the equipment the
+        // server says this handheld may scan. Both come from the server; nothing is inferred.
+        is BoardSelection.Collection -> {
+            val plan = overview.readyCollections.firstOrNull {
+                it.collectionId == selection.collectionId
+            }
+            val scannable = overview.equipment
+                .filter { machineTabOf(it) == MachineTab.Collections && it.isEnabled && it.scanAllowed }
+                .map { it.machineCode }
+                .toSet()
+            when {
+                // Planned: highlight exactly the mixers still to be scanned.
+                plan != null && plan.hasSavedPlan ->
+                    plan.remainingMixerCodes.toSet() intersect scannable
+                // Saved plan pending: the server tells us which mixers are legal to plan against,
+                // but none may be started yet — the plan is saved in Station 2, not here.
+                plan != null -> emptySet()
+                // No plan row at all (a stale selection): highlight nothing rather than guess.
+                else -> emptySet()
+            }
+        }
+
         is BoardSelection.Mixes -> {
-            val chosen = overview.readyMixes.filter { it.mixBatchId in selection.mixBatchIds }
-            val intersection = chosen
-                .map { it.validNextMachineCodes.toSet() }
-                .reduceOrNull { a, b -> a intersect b }
-                .orEmpty()
-            val available = overview.equipment
-                .filter { it.machineCode in intersection && it.isEnabled && it.status == "Available" }
-                .map { it.machineCode }
-            // Run accumulation (§8): a production machine busy on the SAME JC with an
-            // active run accepts additional completed mixes into that run.
-            val accumulating = overview.activeRuns
-                .filter { it.jobCardNumber == selection.jobCardNumber && it.machineCode in intersection }
-                .map { it.machineCode }
-            (available + accumulating).toSet()
+            val chosen = overview.readyMixes
+                .filter { it.mixBatchId in selection.mixBatchIds }
+                // 4.1/B2: a force-closed mix is Quarantined and never assignable until an audited
+                // Manager/Admin Release or Discard. Offering a destination for one would let the
+                // operator send quarantined material to production — the exact defect B2 reported.
+                .filter { it.isAssignable }
+            if (chosen.isEmpty()) {
+                // Every selected mix is quarantined: no destination is legal.
+                emptySet()
+            } else {
+                val intersection = chosen
+                    .map { it.validNextMachineCodes.toSet() }
+                    .reduceOrNull { a, b -> a intersect b }
+                    .orEmpty()
+                val available = overview.equipment
+                    .filter { it.machineCode in intersection && it.isEnabled && it.status == "Available" }
+                    .map { it.machineCode }
+                // Run accumulation (§8): a production machine busy on the SAME JC with an
+                // active run accepts additional completed mixes into that run.
+                val accumulating = overview.activeRuns
+                    .filter { it.jobCardNumber == selection.jobCardNumber && it.machineCode in intersection }
+                    .map { it.machineCode }
+                (available + accumulating).toSet()
+            }
         }
     }
 

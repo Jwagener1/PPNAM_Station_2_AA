@@ -11,7 +11,12 @@ class RequestEnvelopeTest {
 
     private val gson = Gson()
 
-    private data class LoginPayload(val username: String, val password: String)
+    /**
+     * A stand-in message body. Deliberately NOT a login payload with a password: schema 4.1
+     * rejects any message carrying a `password` property, so using one as the generic example
+     * would model a request the app can no longer legally send.
+     */
+    private data class ScanPayload(val collectionId: String, val sourceBarcode: String)
 
     private fun build(payload: Any, correlationKey: String? = null): String =
         RequestEnvelope.build(
@@ -26,27 +31,27 @@ class RequestEnvelopeTest {
 
     @Test
     fun `envelope and payload are merged into one flat object`() {
-        val json = JsonParser.parseString(build(LoginPayload("operator1", "secret"))).asJsonObject
+        val json = JsonParser.parseString(build(ScanPayload("COL_000123", "TAG-1"))).asJsonObject
 
         assertEquals("login-0001", json.get("messageId").asString)
-        assertEquals("4.0", json.get("schemaVersion").asString)
+        assertEquals("4.1", json.get("schemaVersion").asString)
         assertEquals("handheld_1", json.get("deviceId").asString)
         assertEquals("", json.get("operatorSessionId").asString)
         assertEquals("2026-07-16T08:00:00Z", json.get("timestampUtc").asString)
-        assertEquals("operator1", json.get("username").asString)
-        assertEquals("secret", json.get("password").asString)
+        assertEquals("COL_000123", json.get("collectionId").asString)
+        assertEquals("TAG-1", json.get("sourceBarcode").asString)
     }
 
     @Test
     fun `an absent correlationKey is omitted rather than sent as null`() {
-        val json = JsonParser.parseString(build(LoginPayload("operator1", "secret"))).asJsonObject
+        val json = JsonParser.parseString(build(ScanPayload("COL_000123", "TAG-1"))).asJsonObject
         assertFalse(json.has("correlationKey"))
     }
 
     @Test
     fun `a supplied correlationKey is included`() {
         val json = JsonParser.parseString(
-            build(LoginPayload("operator1", "secret"), correlationKey = "COL_000123")
+            build(ScanPayload("COL_000123", "TAG-1"), correlationKey = "COL_000123")
         ).asJsonObject
         assertEquals("COL_000123", json.get("correlationKey").asString)
     }
@@ -54,7 +59,7 @@ class RequestEnvelopeTest {
     @Test
     fun `a blank correlationKey is omitted rather than sent as empty string`() {
         val json = JsonParser.parseString(
-            build(LoginPayload("operator1", "secret"), correlationKey = "")
+            build(ScanPayload("COL_000123", "TAG-1"), correlationKey = "")
         ).asJsonObject
         assertFalse(json.has("correlationKey"))
     }
@@ -62,7 +67,7 @@ class RequestEnvelopeTest {
     @Test
     fun `a whitespace-only correlationKey is omitted rather than sent`() {
         val json = JsonParser.parseString(
-            build(LoginPayload("operator1", "secret"), correlationKey = "   ")
+            build(ScanPayload("COL_000123", "TAG-1"), correlationKey = "   ")
         ).asJsonObject
         assertFalse(json.has("correlationKey"))
     }
@@ -72,7 +77,7 @@ class RequestEnvelopeTest {
         val json = JsonParser.parseString(build(EmptyPayload)).asJsonObject
 
         assertEquals("login-0001", json.get("messageId").asString)
-        assertEquals("4.0", json.get("schemaVersion").asString)
+        assertEquals("4.1", json.get("schemaVersion").asString)
         assertEquals(5, json.entrySet().size)
     }
 

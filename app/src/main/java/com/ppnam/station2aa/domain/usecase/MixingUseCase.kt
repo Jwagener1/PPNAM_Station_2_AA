@@ -1,13 +1,15 @@
 package com.ppnam.station2aa.domain.usecase
 
 import com.google.gson.Gson
+import com.ppnam.station2aa.data.auth.ManagerAuthorization
 import com.ppnam.station2aa.data.local.BomCacheDao
 import com.ppnam.station2aa.data.local.BomCacheEntity
 import com.ppnam.station2aa.data.mqtt.EmptyPayload
+import com.ppnam.station2aa.data.mqtt.ErrorCode
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.NextAction
-import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsPayload
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
@@ -16,7 +18,9 @@ import com.ppnam.station2aa.data.mqtt.dto.IngredientCollectionCancelResultRespon
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanPayload
 import com.ppnam.station2aa.data.mqtt.dto.IngredientScanResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.JobCardLoadPayload
+import com.ppnam.station2aa.data.mqtt.dto.ManagerAction
 import com.ppnam.station2aa.data.mqtt.dto.ShortBagWaiverPayload
+import com.ppnam.station2aa.domain.model.ActiveJobsPage
 import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.domain.model.IngredientScanOutcome
 import com.ppnam.station2aa.domain.model.ProductionOrder
@@ -30,6 +34,7 @@ class MixingUseCase @Inject constructor(
     private val mqttRepository: MqttRepository,
     private val bomCacheDao: BomCacheDao,
     private val palletUseCase: PalletUseCase,
+    private val managerAuthorization: ManagerAuthorization,
 ) {
     private val gson = Gson()
 
@@ -135,18 +140,52 @@ class MixingUseCase @Inject constructor(
         remainingBags = remainingBags,
     )
 
-    suspend fun fetchActiveJobCards(): Result<List<ActiveJobCardSummary>> =
+    /**
+     * Fetches one page of the active collection queue (4.1 keyset paging).
+     *
+     * 4.0 returned the entire queue in one message, which grows without bound as collections
+     * accumulate — backend issue B6. 4.1 pages it by `startedAtUtc DESC, collectionId DESC`.
+     *
+     * @param continuationToken null for the first page. A token from a superseded snapshot is
+     *   rejected with `page_cursor_stale`, which is reported here as [ActiveJobsPage.cursorStale]
+     *   rather than a failure: the caller's correct response is to re-request page one, not to show
+     *   the operator an error about a cursor they know nothing about.
+     */
+    suspend fun fetchActiveJobCards(
+        pageSize: Int? = null,
+        continuationToken: String? = null,
+        statuses: List<String>? = null,
+        search: String? = null,
+    ): Result<ActiveJobsPage> =
         when (
             val outcome = mqttRepository.request(
                 requestType = "active_job_cards_requested",
                 responseType = "active_job_cards_list",
-                payload = EmptyPayload,
+                payload = ActiveJobCardsPayload(
+                    pageSize = pageSize,
+                    continuationToken = continuationToken,
+                    statuses = statuses?.takeIf { it.isNotEmpty() },
+                    search = search?.takeIf { it.isNotBlank() },
+                ),
                 correlationKey = null,
                 responseClass = ActiveJobCardsListResponse::class.java,
             )
         ) {
-            is MqttOutcome.Accepted -> Result.success(outcome.body.jobs)
-            is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Could not load active jobs"))
+            is MqttOutcome.Accepted -> Result.success(
+                ActiveJobsPage(
+                    jobs = outcome.body.jobs,
+                    totalCount = outcome.body.totalCount,
+                    hasMore = outcome.body.hasMore,
+                    nextContinuationToken = outcome.body.nextContinuationToken,
+                    snapshotRevision = outcome.body.snapshotRevision,
+                )
+            )
+            is MqttOutcome.Rejected ->
+                if (outcome.errorCode == ErrorCode.PAGE_CURSOR_STALE) {
+                    Result.success(ActiveJobsPage.CURSOR_STALE)
+                } else {
+                    Result.failure(Exception(outcome.reason ?: "Could not load active jobs"))
+                }
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
 
@@ -162,15 +201,23 @@ class MixingUseCase @Inject constructor(
         reason: String,
         managerUsername: String,
         managerPassword: String,
-    ): Result<IngredientCollectionCancelResultResponse> =
-        when (
+    ): Result<IngredientCollectionCancelResultResponse> {
+        // 4.1: prove the manager's credentials in a scoped SCRAM exchange first; only the
+        // resulting single-use token travels on the cancel itself.
+        val token = managerAuthorization.authorize(
+            managerUsername = managerUsername,
+            managerPassword = managerPassword,
+            action = ManagerAction.CancelCollection,
+            targetId = collectionId,
+        ).getOrElse { return Result.failure(it) }
+
+        return when (
             val outcome = mqttRepository.request(
                 requestType = "ingredient_collection_cancel_requested",
                 responseType = "ingredient_collection_cancel_result",
                 payload = IngredientCollectionCancelPayload(
                     collectionId = collectionId,
-                    managerUsername = managerUsername,
-                    managerPassword = managerPassword,
+                    authorizationToken = token,
                     auditReason = reason,
                 ),
                 correlationKey = collectionId.ifBlank { jobCardNumber },
@@ -181,10 +228,15 @@ class MixingUseCase @Inject constructor(
             is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Cancel rejected"))
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
+    }
 
+    /**
+     * @param sourceBarcode the pallet RFID tag or Station 3 master-batch label. 4.1 made this one
+     *   canonical field because a source is no longer necessarily a pallet.
+     */
     suspend fun scanIngredient(
         collectionId: String,
-        palletRfidTag: String,
+        sourceBarcode: String,
         requestedMaterialCode: String,
         bagSizeOption: String? = null,
         bagCount: Double? = null,
@@ -204,18 +256,32 @@ class MixingUseCase @Inject constructor(
             return Result.failure(IllegalArgumentException(
                 "A bag scan needs both bagSizeOption and bagCount."))
         }
+
+        // 4.1: an override is authorized by a scoped, single-use token rather than by a password
+        // riding along on the scan. Only exchanged when the caller actually supplied manager
+        // credentials — an ordinary first scan carries no authorization at all.
+        val authorizationToken = if (!managerUsername.isNullOrBlank() && !managerPassword.isNullOrBlank()) {
+            managerAuthorization.authorize(
+                managerUsername = managerUsername,
+                managerPassword = managerPassword,
+                action = ManagerAction.ApproveOverride,
+                targetId = collectionId,
+            ).getOrElse { return Result.failure(it) }
+        } else {
+            null
+        }
+
         val outcome = mqttRepository.request(
             requestType = "ingredient_scan_requested",
             responseType = "ingredient_scan_result",
             payload = IngredientScanPayload(
                 collectionId = collectionId,
-                palletRfidTag = palletRfidTag,
+                sourceBarcode = sourceBarcode,
                 requestedMaterialCode = requestedMaterialCode,
                 bagSizeOption = bagSizeOption,
                 bagCount = bagCount,
                 quantity = quantity,
-                managerUsername = managerUsername,
-                managerPassword = managerPassword,
+                authorizationToken = authorizationToken,
                 auditReason = auditReason,
             ),
             correlationKey = collectionId,
@@ -243,7 +309,7 @@ class MixingUseCase @Inject constructor(
                     outcome.body.requiresManagerApproval -> IngredientScanOutcome.NeedsManagerApproval(
                         // Rebuilt from the REQUEST — the response doesn't echo these back.
                         collectionId = collectionId,
-                        palletRfidTag = palletRfidTag,
+                        sourceBarcode = sourceBarcode,
                         requestedMaterialCode = requestedMaterialCode,
                         bagSizeOption = bagSizeOption,
                         bagCount = bagCount,
@@ -273,6 +339,15 @@ class MixingUseCase @Inject constructor(
         managerPassword: String,
         auditReason: String,
     ): Result<IngredientScanOutcome> {
+        // Scoped to `ingredient_approve_short_bag` — a DIFFERENT action id from an override's
+        // `ingredient_approve_override`, so a token minted for one cannot authorize the other.
+        val token = managerAuthorization.authorize(
+            managerUsername = managerUsername,
+            managerPassword = managerPassword,
+            action = ManagerAction.ApproveShortBag,
+            targetId = collectionId,
+        ).getOrElse { return Result.failure(it) }
+
         val outcome = mqttRepository.request(
             requestType = "ingredient_scan_requested",
             responseType = "ingredient_scan_result",
@@ -280,8 +355,7 @@ class MixingUseCase @Inject constructor(
                 collectionId = collectionId,
                 requestedMaterialCode = requestedMaterialCode,
                 shortBagCount = shortBagCount,
-                managerUsername = managerUsername,
-                managerPassword = managerPassword,
+                authorizationToken = token,
                 auditReason = auditReason,
             ),
             correlationKey = collectionId,

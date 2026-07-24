@@ -57,6 +57,8 @@ def _mix_payload(world, mix):
         "plannedDestinationMachineCode": mix["plannedDestinationMachineCode"],
         "validNextMachineCodes": nexts,
         "nextStepDescription": f"Start one of: {', '.join(nexts)}." if nexts else "",
+        # 4.1 / backend issue B2: a force-closed cycle used to still yield a usable mix.
+        "completionMode": mix.get("completionMode", "Normal"),
     }
 
 
@@ -110,6 +112,80 @@ def area_overview(world, area=None, po=None):
         "activeRuns": [_run_payload(world, r) for r in world.runs.values()
                        if r["active"] and in_scope(world.equipment[r["machineCode"]]["mixingArea"])
                        and po_ok(r["productionOrderDocumentNumber"])],
+        # 4.1: the overview is now authoritative for which collections can start a mixer.
+        # Filtering active_job_cards_list to "ReadyForMixing" cannot work any more, because a
+        # planned collection's status is "MixingPlanned" and that list carries no plan data.
+        "readyCollections": [_ready_collection_payload(world, c, area)
+                             for c in world.collections.values()
+                             if c["status"] in ("ReadyForMixing", "MixingPlanned")
+                             and c["claimedByMixBatchId"] is None
+                             and po_ok(c["productionOrderDocumentNumber"])],
+        "mixDestinations": [_destination_payload(world, d) for d in world.mix_destinations],
+    }
+
+
+def _ready_collection_payload(world, col, area=None):
+    """One readyCollections[] row, including its saved mixer plan when there is one."""
+    plan = world.mix_plans.get(col["collectionId"])
+    if not plan:
+        # No plan saved yet: the operator must save one in Station 2 (WPF) before any mixer
+        # scan. validMixerCodes is scoped to enabled, unreserved mixers in the requested area.
+        reserved = {code for p in world.mix_plans.values()
+                    for code in p["remainingMixerCodes"]}
+        valid = [e["machineCode"] for e in world.equipment.values()
+                 if e["equipmentRole"] == "Mixer" and e["isEnabled"]
+                 and (area is None or e["mixingArea"] == area)
+                 and e["machineCode"] not in reserved]
+        return {
+            "collectionId": col["collectionId"],
+            "jobCardNumber": col["jobCardNumber"],
+            "productionOrderDocumentNumber": col["productionOrderDocumentNumber"],
+            "productCode": col.get("productCode", ""),
+            "productName": col["productName"],
+            "status": col["status"],
+            "mixPlanId": None,
+            "mixPlanStatus": None,
+            "plannedMixerCount": 0,
+            "startedMixerCount": 0,
+            "remainingMixerCount": 0,
+            "plannedMixerCodes": [],
+            "startedMixerCodes": [],
+            "remainingMixerCodes": [],
+            "mixerPlanItems": [],
+            "validMixerCodes": valid,
+            "nextAction": "save_mixer_plan_in_station_2",
+        }
+
+    remaining = plan["remainingMixerCodes"]
+    return {
+        "collectionId": col["collectionId"],
+        "jobCardNumber": col["jobCardNumber"],
+        "productionOrderDocumentNumber": col["productionOrderDocumentNumber"],
+        "productCode": col.get("productCode", ""),
+        "productName": col["productName"],
+        "status": col["status"],
+        "mixPlanId": plan["mixPlanId"],
+        "mixPlanStatus": plan["status"],
+        "plannedMixerCount": len(plan["plannedMixerCodes"]),
+        "startedMixerCount": len(plan["startedMixerCodes"]),
+        "remainingMixerCount": len(remaining),
+        "plannedMixerCodes": list(plan["plannedMixerCodes"]),
+        "startedMixerCodes": list(plan["startedMixerCodes"]),
+        "remainingMixerCodes": list(remaining),
+        "mixerPlanItems": [dict(i) for i in plan["items"]],
+        "validMixerCodes": list(remaining),
+        "nextAction": ("scan_reserved_mixer:" + ",".join(remaining)) if remaining
+                      else "select_collection_mix_or_machine",
+    }
+
+
+def _destination_payload(world, d):
+    return {
+        "mixBatchId": d["mixBatchId"],
+        "machineCode": d["machineCode"],
+        "productionRunId": d["productionRunId"],
+        "linkStatus": d["linkStatus"],
+        "runStatus": d["runStatus"],
     }
 
 
@@ -455,12 +531,18 @@ def _apply_finish(world, log, eq, cycle, forced):
         mix = world.mix_batches.get(cycle["mixBatchIds"][0])
         if mix:
             if forced:
-                mix["status"] = "Cancelled"
+                # 4.1 / backend issue B2: a force-close no longer simply voids the mix. It
+                # produces a BLOCKED, Quarantined mix that is never assignable until an audited
+                # Manager/Admin Release or Discard — the material physically exists and has to be
+                # accounted for, which "Cancelled" quietly hid.
+                mix["status"] = "Quarantined"
+                mix["completionMode"] = "ForceClosed"
                 col = world.collections.get(cycle["collectionId"])
                 if col:
                     col["claimedByMixBatchId"] = None
                     col["status"] = "ReadyForMixing"
-                    log.transition(f"force-close voided {mix['mixBatchId']}; collection "
+                    log.transition(f"force-close quarantined {mix['mixBatchId']} "
+                                   f"(completionMode=ForceClosed, not assignable); collection "
                                    f"{col['collectionId']} released back to ReadyForMixing")
             else:
                 mix["status"] = "ReadyForProduction"
@@ -515,12 +597,92 @@ def finish(world, log, req, session):
                            correlation=cycle["cycleId"])
 
 
+def assign_destinations(world, log, req, session):
+    """`mix_destination_assignment_requested` -> `mix_destination_assignment_result` (4.1).
+
+    One completed mix to one or more distinct compatible production machines. Validation is
+    ATOMIC: one invalid machine rejects the whole request rather than partially assigning, so
+    there is never a half-assigned mix to unwind.
+    """
+    mix_id = req.get("mixBatchId")
+    codes = req.get("machineCodes") or []
+    if not mix_id:
+        raise Rejection("validation_failed", "mixBatchId is required.")
+    if not codes:
+        raise Rejection("validation_failed", "At least one machineCode is required.")
+    if len(set(codes)) != len(codes):
+        raise Rejection("validation_failed", "machineCodes must be distinct.")
+
+    mix = world.mix_batches.get(mix_id)
+    if not mix:
+        raise Rejection("not_found", f"Mix '{mix_id}' was not found.")
+
+    # 4.1 / backend issue B2: a force-closed mix is quarantined and never assignable until an
+    # audited Manager/Admin Release or Discard.
+    if mix.get("completionMode") == "ForceClosed" or mix["status"] == "Quarantined":
+        log.fail(f"destination assignment: {mix_id} is quarantined")
+        raise Rejection("state_conflict",
+                        f"Mix {mix_id} is quarantined after a force-close and cannot be "
+                        f"assigned until it is released or discarded.")
+    if mix["status"] not in ("ReadyForProduction", "ReadyForTransfer"):
+        raise Rejection("state_conflict",
+                        f"Mix {mix_id} is {mix['status']}; it is not ready for a destination.")
+
+    valid = set(valid_next_machine_codes(world, mix))
+    assigned = []
+    for code in codes:
+        eq = world.equipment.get(code)
+        if not eq or not eq["isEnabled"]:
+            raise Rejection("unknown_or_disabled_equipment",
+                            f"'{code}' is not a known, enabled machine.")
+        if code not in valid:
+            raise Rejection("invalid_planned_destination",
+                            f"'{code}' is not a valid route for mix {mix_id}.")
+        busy = next((r for r in world.runs.values()
+                     if r["active"] and r["machineCode"] == code
+                     and str(r["productionOrderDocumentNumber"]) != str(
+                         mix["productionOrderDocumentNumber"])), None)
+        if busy:
+            raise Rejection("destination_busy",
+                            f"'{code}' is busy on another job card.")
+
+    # Everything validated — only now mutate.
+    for code in codes:
+        run_id = world.next_id("RUN")
+        world.runs[run_id] = {
+            "productionRunId": run_id,
+            "machineCode": code,
+            "productionOrderDocumentNumber": mix["productionOrderDocumentNumber"],
+            "mixBatchIds": [mix_id],
+            "startedAtUtc": iso(utc_now()),
+            "active": True,
+        }
+        world.mix_destinations.append({
+            "mixBatchId": mix_id,
+            "machineCode": code,
+            "productionRunId": run_id,
+            "linkStatus": "Active",
+            "runStatus": "Running",
+        })
+        assigned.append({"machineCode": code, "productionRunId": run_id})
+        log.transition(f"mix {mix_id} -> {code} as run {run_id}")
+
+    log.ok(f"destination assignment: {mix_id} -> {len(assigned)} machine(s)")
+    return build_response(world, req, correlation=mix_id, response_extras={
+        "mixBatchId": mix_id,
+        "assignedDestinations": assigned,
+        "areaStatus": area_overview(world, mix["mixingArea"],
+                                    mix["productionOrderDocumentNumber"]),
+    })
+
+
 def force_close(world, log, req, session):
     eq, cycle, rej = _resolve(world, log, req)
     if rej:
         return rej
     try:
-        approver = approve(world, log, req, "machine_force_close")
+        approver = approve(world, log, req, "machine_force_close",
+                           target_id=cycle["cycleId"])
     except Rejection as r:
         return _machine_result(world, req, accepted=False, error_code=r.error_code,
                                reason=r.reason, next_action=r.next_action, eq=eq,

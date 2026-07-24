@@ -15,6 +15,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import java.time.Instant
+import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -49,6 +50,12 @@ class MqttRepositoryImpl @Inject constructor(
 
         // Beyond this the device clock is a plausible cause of blanket message_expired rejections.
         internal const val CLOCK_SKEW_WARN_MS = 30_000L
+
+        // How many response messageIds to remember for QoS-1 duplicate suppression. Bounded so a
+        // long shift cannot grow it without limit; generous enough that a duplicate can never
+        // realistically arrive after its original has aged out (broker redelivery is seconds, and
+        // a busy shift is nowhere near 512 responses inside that window).
+        internal const val SEEN_RESPONSE_CAPACITY = 512
     }
 
     private val gson = Gson()
@@ -76,6 +83,37 @@ class MqttRepositoryImpl @Inject constructor(
     // share one response topic (login_requested and reader_logout_requested both answer on
     // operator_context), so neither key nor topic can discriminate.
     private val pending = ConcurrentHashMap<String, CompletableDeferred<String>>()
+
+    // 4.1 §7: "Android must deduplicate responses by response messageId... receiving the same
+    // response messageId must never repeat navigation, sounds, dialogs, or local side effects."
+    //
+    // Correlation alone does not give us this. The side effects that run BEFORE correlation —
+    // clock-skew sampling, the upgradeRequired latch, and above all the session_required clear —
+    // fire for every response including duplicates, and 4.1's uncorrelated invalidation pushes
+    // carry no inResponseToMessageId to correlate on at all. So duplicate suppression has to key
+    // on the response's own messageId, ahead of everything else.
+    //
+    // Access is guarded by the map itself: HiveMQ delivers callbacks on its own event-loop
+    // threads, so two duplicates can genuinely race here.
+    private val seenResponseIds = Collections.synchronizedMap(
+        object : LinkedHashMap<String, Boolean>(64, 0.75f, false) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>) =
+                size > SEEN_RESPONSE_CAPACITY
+        }
+    )
+
+    /** True the first time this response messageId is seen, false for every duplicate after it. */
+    private fun claimResponseId(messageId: String): Boolean =
+        seenResponseIds.put(messageId, true) == null
+
+    // Uncorrelated 4.1 server pushes (active_job_cards_invalidated). Set by the data layer that
+    // owns the active-jobs cursor; the transport does not know what a page is.
+    @Volatile
+    private var serverPushHandler: ((String, ResponseEnvelope, String) -> Unit)? = null
+
+    override fun setServerPushHandler(handler: (topic: String, envelope: ResponseEnvelope, raw: String) -> Unit) {
+        serverPushHandler = handler
+    }
 
     // Test seam. Production path publishes workflow messages at QoS 1, not retained, per contract.
     @VisibleForTesting
@@ -354,7 +392,7 @@ class MqttRepositoryImpl @Inject constructor(
             messageId = messageId,
             deviceId = currentDeviceId,
             operatorSessionId = sessionHolder.currentSessionIdOrEmpty(),
-            timestampUtc = nowFn().toString(),
+            timestampUtc = MqttSchema.formatTimestamp(nowFn()),
             correlationKey = correlationKey,
         )
         val topic = MqttTopics.request(currentDeviceId, requestType)
@@ -413,7 +451,10 @@ class MqttRepositoryImpl @Inject constructor(
             MqttOutcome.Rejected(
                 body = body,
                 errorCode = code,
-                reason = envelope.reason,
+                // 4.1's canonical errorMessage, falling back to the rollout `reason` mirror.
+                reason = envelope.displayMessage,
+                exceptionId = envelope.exceptionId,
+                fieldErrors = envelope.fieldErrors.orEmpty(),
                 nextAction = nextAction,
             )
         }
@@ -452,7 +493,16 @@ class MqttRepositoryImpl @Inject constructor(
             Log.w(TAG, "Dropping unparseable response on $topic", e)
             return
         }
-        recordClockSkew(envelope?.timestampUtc ?: "")
+        // 4.1 §7 duplicate suppression, ahead of every side effect below. A QoS-1 redelivery
+        // carries the same response messageId as the original; nothing after this point may run
+        // twice for it. A response with no messageId at all can't be deduplicated, so it is
+        // allowed through rather than silently dropped.
+        val responseMessageId = envelope?.messageId
+        if (!responseMessageId.isNullOrBlank() && !claimResponseId(responseMessageId)) {
+            Log.i(TAG, "Suppressing duplicate response on $topic (messageId=$responseMessageId)")
+            return
+        }
+        recordClockSkew(envelope?.serverSentAtUtc?.takeIf { it.isNotBlank() } ?: envelope?.timestampUtc ?: "")
         if (envelope?.errorCode == ErrorCode.CLIENT_UPGRADE_REQUIRED.raw) {
             _upgradeRequired.value = true
         }
@@ -475,7 +525,18 @@ class MqttRepositoryImpl @Inject constructor(
         }
         val id = envelope?.inResponseToMessageId
         if (id.isNullOrBlank()) {
-            Log.w(TAG, "Dropping response on $topic with no inResponseToMessageId")
+            // 4.1 introduced legitimate uncorrelated server pushes. active_job_cards_invalidated
+            // is not a reply to anything, so "no inResponseToMessageId" is no longer proof that a
+            // message is junk. Hand it to whoever registered for pushes; only drop it if nobody
+            // owns it. The contract is emphatic that an invalidation is a hint to re-request page
+            // one — "never permission for a workflow mutation" — so the transport deliberately
+            // does not act on it itself.
+            val handler = serverPushHandler
+            if (handler != null && envelope != null) {
+                handler(topic, envelope, raw)
+            } else {
+                Log.w(TAG, "Dropping response on $topic with no inResponseToMessageId")
+            }
             return
         }
         val waiter = pending.remove(id)

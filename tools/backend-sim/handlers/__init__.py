@@ -2,7 +2,7 @@
 res/{type} leaf. RETIRED_REQUEST_TYPES lists every v3 production mutation the
 contract retired — sim.py answers those on res/workflow_upgrade_required."""
 
-from handlers import auth, ingredients, jobcards, mixing, pallets
+from handlers import auth, ingredients, jobcards, mixing, pallets, scram
 
 
 def _scan_reject(world):
@@ -12,6 +12,17 @@ def _scan_reject(world):
 
 
 REGISTRY = {
+    # Contract v4.1 SCRAM-SHA-256. Both legs are "login-like" in the envelope sense: they run
+    # before a session exists, so operatorSessionId is legitimately "" on them.
+    "scram_start_requested": {
+        "handler": scram.scram_start, "response": "scram_challenge",
+        "is_login": True, "mutating": False, "reject_extras": None},
+    "scram_proof_requested": {
+        "handler": scram.scram_proof, "response": "operator_context",
+        "is_login": True, "mutating": True, "reject_extras": None},
+    "mix_destination_assignment_requested": {
+        "handler": mixing.assign_destinations, "response": "mix_destination_assignment_result",
+        "is_login": False, "mutating": True, "reject_extras": None},
     "login_requested": {
         "handler": auth.login, "response": "operator_context",
         "is_login": True, "mutating": True, "reject_extras": None},

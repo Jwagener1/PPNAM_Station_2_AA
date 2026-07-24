@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and below (API < 31) backup rules. Same intent as data_extraction_rules.xml, which
+  supersedes this file on API 31+ — both are declared because the platform picks by version.
+
+  See data_extraction_rules.xml for why the credential record must never leave the device it was
+  provisioned on.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="ppnam_secure_credentials.xml" />
+</full-backup-content>

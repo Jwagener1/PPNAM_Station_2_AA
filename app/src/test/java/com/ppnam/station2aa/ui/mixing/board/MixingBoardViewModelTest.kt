@@ -42,18 +42,43 @@ class MixingBoardViewModelTest {
         code: String, role: String = "Mixer", status: String = "Available",
         area: MixingArea? = MixingArea.Main, enabled: Boolean = true,
         currentCycleId: String? = null, currentJc: String? = null,
+        // 4.1: scanAllowed is decided by the server and is NOT the same as isAvailable — a mixer
+        // reserved by the collection in hand is unavailable to everyone else yet is exactly what
+        // this operator should scan. Defaults to the available case so existing fixtures read the
+        // same; the reserved case sets it explicitly.
+        scanAllowed: Boolean = enabled && status == "Available",
+        mixPlanId: String? = null, reservationCollectionId: String? = null,
     ) = Equipment(
         machineCode = code, displayName = code, area = area, role = role,
         isEnabled = enabled, isAvailable = enabled && status == "Available", status = status,
         productLayer = null, currentCycleId = currentCycleId, currentJobCardNumber = currentJc,
         currentMixBatchIds = emptyList(), validDestinationMachineCodes = emptyList(),
         routeDescription = "",
+        mixPlanId = mixPlanId, reservationCollectionId = reservationCollectionId,
+        scanAllowed = scanAllowed,
     )
 
-    private fun readyMix(id: String, jc: String = "510019068", validNext: List<String>) = ReadyMix(
+    private fun readyMix(
+        id: String, jc: String = "510019068", validNext: List<String>,
+        status: String = "ReadyForProduction", completionMode: String? = null,
+        isAssignable: Boolean = true,
+    ) = ReadyMix(
         mixBatchId = id, collectionId = "COL_$id", area = MixingArea.Main, jobCardNumber = jc,
-        mixerCode = "MXR-01", mixerDisplayName = "Main Mixer 1", status = "ReadyForProduction",
+        mixerCode = "MXR-01", mixerDisplayName = "Main Mixer 1", status = status,
         validNextMachineCodes = validNext, nextStepDescription = "",
+        completionMode = completionMode, isAssignable = isAssignable,
+    )
+
+    /** A collection with a saved 4.1 mixer plan reserving [remaining]. */
+    private fun plannedCollection(
+        id: String = "COL_1", jc: String = "510019068", remaining: List<String> = listOf("MXR-01"),
+    ) = ReadyCollection(
+        collectionId = id, jobCardNumber = jc, productName = "HD Film",
+        status = "MixingPlanned", mixPlanId = "MPL_1", mixPlanStatus = "Saved",
+        plannedMixerCount = remaining.size, startedMixerCount = 0,
+        remainingMixerCount = remaining.size,
+        plannedMixerCodes = remaining, remainingMixerCodes = remaining,
+        nextAction = "scan_reserved_mixer:" + remaining.joinToString(","),
     )
 
     private val mainOverview = AreaOverview(
@@ -68,9 +93,10 @@ class MixingBoardViewModelTest {
             productionRunId = null, startedAtUtc = "2026-07-21T08:00:00Z", startedByOperatorId = "OP-001")),
         readyMixes = listOf(readyMix("MIX_1", validNext = listOf("EXT-03", "EXT-04"))),
         activeRuns = emptyList(),
+        readyCollections = listOf(plannedCollection()),
     )
 
-    private val readyCollections = listOf(ReadyCollection("COL_1", "510019068", "HD Film"))
+    private val readyCollections = listOf(plannedCollection())
 
     @Before
     fun setup() {
@@ -179,16 +205,88 @@ class MixingBoardViewModelTest {
     }
 
     @Test
-    fun `computeHighlightedMachines for a collection highlights only enabled available mixers`() {
-        val overview = mainOverview.copy(equipment = listOf(
-            equipment("MXR-01"),
-            equipment("MXR-02", status = "InUse"),
-            equipment("MXR-05", enabled = false, status = "Disabled"),
-            equipment("EXT-03", role = "ProductionMachine"),
-        ))
+    fun `computeHighlightedMachines for a planned collection highlights its remaining reserved mixers`() {
+        // 4.1: the mixers belonging to this collection are RESERVED by its plan, so their status
+        // is "Reserved", not "Available" — the pre-4.1 rule would have highlighted none of them.
+        val overview = mainOverview.copy(
+            equipment = listOf(
+                equipment("MXR-01", status = "Reserved", scanAllowed = true,
+                    mixPlanId = "MPL_1", reservationCollectionId = "COL_1"),
+                equipment("MXR-02", status = "Reserved", scanAllowed = true,
+                    mixPlanId = "MPL_1", reservationCollectionId = "COL_1"),
+                // Reserved by somebody ELSE's collection: not scannable here.
+                equipment("MXR-03", status = "Reserved", scanAllowed = false,
+                    mixPlanId = "MPL_2", reservationCollectionId = "COL_9"),
+                equipment("MXR-05", enabled = false, status = "Disabled"),
+                equipment("EXT-03", role = "ProductionMachine"),
+            ),
+            // MXR-01 already started; only MXR-02 is left to scan.
+            readyCollections = listOf(plannedCollection(remaining = listOf("MXR-02"))),
+        )
+
         val highlights = computeHighlightedMachines(
             overview, BoardSelection.Collection("COL_1", "510019068"))
-        assertEquals(setOf("MXR-01"), highlights)
+
+        assertEquals(setOf("MXR-02"), highlights)
+    }
+
+    @Test
+    fun `a collection with no saved plan highlights nothing`() {
+        // The plan is saved in Station 2, not on the handheld. Highlighting a mixer the operator
+        // cannot legally start would just earn them a `mixer_plan_required` rejection.
+        val overview = mainOverview.copy(
+            equipment = listOf(equipment("MXR-01"), equipment("MXR-02")),
+            readyCollections = listOf(
+                ReadyCollection(
+                    collectionId = "COL_1", jobCardNumber = "510019068", productName = "HD Film",
+                    status = "ReadyForMixing",
+                    validMixerCodes = listOf("MXR-01", "MXR-02"),
+                    nextAction = "save_mixer_plan_in_station_2",
+                )
+            ),
+        )
+
+        val highlights = computeHighlightedMachines(
+            overview, BoardSelection.Collection("COL_1", "510019068"))
+
+        assertTrue(highlights.isEmpty())
+    }
+
+    @Test
+    fun `a quarantined force-closed mix offers no destination at all`() {
+        // Backend issue B2: a force-closed cycle still yielded a usable mix. 4.1 quarantines it,
+        // and it stays unassignable until an audited Manager/Admin Release or Discard — which the
+        // operator cannot do from the handheld.
+        val overview = mainOverview.copy(
+            readyMixes = listOf(
+                readyMix("MIX_Q", validNext = listOf("EXT-03", "EXT-04"),
+                    status = "Quarantined", completionMode = "ForceClosed", isAssignable = false)
+            )
+        )
+
+        val highlights = computeHighlightedMachines(
+            overview, BoardSelection.Mixes(listOf("MIX_Q"), "510019068"))
+
+        assertTrue("a quarantined mix must not be routable to production", highlights.isEmpty())
+    }
+
+    @Test
+    fun `a quarantined mix mixed into a selection cannot widen the destinations`() {
+        // The intersection must be taken over assignable mixes only. If the quarantined one were
+        // left in, its validNextMachineCodes would participate in the intersection and could even
+        // narrow or widen the legal set based on material nobody may use.
+        val overview = mainOverview.copy(
+            readyMixes = listOf(
+                readyMix("MIX_1", validNext = listOf("EXT-03")),
+                readyMix("MIX_Q", validNext = listOf("EXT-03", "EXT-04"),
+                    status = "Quarantined", completionMode = "ForceClosed", isAssignable = false),
+            )
+        )
+
+        val highlights = computeHighlightedMachines(
+            overview, BoardSelection.Mixes(listOf("MIX_1", "MIX_Q"), "510019068"))
+
+        assertEquals(setOf("EXT-03"), highlights)
     }
 
     @Test

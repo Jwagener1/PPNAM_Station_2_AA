@@ -18,13 +18,14 @@ sealed class IngredientScanOutcome {
     ) : IngredientScanOutcome()
 
     /**
-     * Station 2 rejected the scan pending manager approval. Carries the whole original scan, because
-     * v3's approval is a RESUBMIT of it with credentials attached — there is no approval token to
-     * carry instead.
+     * Station 2 rejected the scan pending manager approval. Carries the whole original scan,
+     * because approval is a RESUBMIT of it — in 4.1 with a scoped single-use authorizationToken
+     * attached rather than v3's inline credentials, but still the same scan sent again.
      */
     data class NeedsManagerApproval(
         val collectionId: String,
-        val palletRfidTag: String,
+        /** Pallet RFID or Station 3 master-batch label — 4.1's canonical `sourceBarcode`. */
+        val sourceBarcode: String,
         val requestedMaterialCode: String,
         val bagSizeOption: String?,
         val bagCount: Double?,

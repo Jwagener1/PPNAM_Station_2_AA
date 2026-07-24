@@ -80,7 +80,9 @@ class MqttTopicsTest {
     }
 
     @Test
-    fun `schema version is exactly 4 point 0`() {
-        assertEquals("4.0", MqttSchema.VERSION)
+    fun `schema version is exactly 4 point 1`() {
+        // Not cosmetic: 4.1 is a hard auth cutover. Station 2 rejects any 4.1 message containing a
+        // `password`/`managerPassword` property, so this constant and SCRAM must move together.
+        assertEquals("4.1", MqttSchema.VERSION)
     }
 }

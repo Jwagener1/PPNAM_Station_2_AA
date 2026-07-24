@@ -1,4 +1,4 @@
-"""Common JSON envelope handling for contract v4.0: the contract's validation order, the
+"""Common JSON envelope handling for contract v4.1: the contract's validation order, the
 response envelope builder, and the privileged-action approval helper.
 
 Validation order (RFID_MQTT_CONTRACT.md):
@@ -14,7 +14,16 @@ Validation order (RFID_MQTT_CONTRACT.md):
 
 from state import World, utc_now, iso, parse_iso
 
-SCHEMA_VERSION = "4.0"
+SCHEMA_VERSION = "4.1"
+
+# Schema 4.0 remains temporarily acceptable, mirroring Station 2's
+# AllowSchema40Compatibility / AllowSchema40PlaintextAuthentication settings.
+COMPAT_SCHEMA_VERSION = "4.0"
+ALLOW_SCHEMA_40 = True
+ALLOW_SCHEMA_40_PLAINTEXT_AUTH = True
+
+# 4.1 forbids plaintext credentials in ANY message, whatever its type.
+PLAINTEXT_CREDENTIAL_FIELDS = ("password", "managerPassword")
 
 # Contract §12: during cutover, schema 3.0 is temporarily accepted ONLY for the
 # capture actions below. Every other request requires exactly 4.0.
@@ -50,21 +59,40 @@ class Replay(Exception):
 
 
 def build_response(world, req, response_extras=None, accepted=True, error_code=None,
-                   reason=None, next_action="", session_id=None, correlation=None):
-    """Assemble the full response envelope around handler-provided fields."""
+                   reason=None, next_action="", session_id=None, correlation=None,
+                   received_at=None, exception_id=None, field_errors=None):
+    """Assemble the full response envelope around handler-provided fields.
+
+    4.1 adds the diagnostic block: canonical `errorMessage` (with `reason` kept as the
+    documented rollout mirror), optional `exceptionId`/`fieldErrors`, and the
+    serverReceivedAtUtc/serverSentAtUtc/processingDurationMs timing triple. Legacy
+    `timestampUtc` is defined as equal to `serverSentAtUtc`.
+    """
+    sent_at = utc_now()
+    received = received_at or sent_at
     resp = {
         "messageId": world.next_response_id(),
         "inResponseToMessageId": req.get("messageId"),
         "schemaVersion": SCHEMA_VERSION,
         "deviceId": req.get("deviceId"),
         "operatorSessionId": session_id if session_id is not None else req.get("operatorSessionId", ""),
-        "timestampUtc": iso(utc_now()),
+        "timestampUtc": iso(sent_at),
+        "serverReceivedAtUtc": iso(received),
+        "serverSentAtUtc": iso(sent_at),
+        "processingDurationMs": int((sent_at - received).total_seconds() * 1000),
         "correlationKey": correlation if correlation is not None else req.get("correlationKey"),
         "accepted": accepted,
+        # `reason` mirrors `errorMessage` during rollout — backend issue B9 was text landing in
+        # one with the other absent, so the simulator always sends both or neither.
         "reason": reason,
+        "errorMessage": reason,
         "errorCode": error_code,
         "nextAction": next_action,
     }
+    if exception_id is not None:
+        resp["exceptionId"] = exception_id
+    if field_errors:
+        resp["fieldErrors"] = field_errors
     if response_extras:
         resp.update(response_extras)
     return resp
@@ -119,6 +147,8 @@ def validate(world, log, topic_device, request_type, payload_bytes, is_login, ct
 
     # -- step 3: schema / topic device / configured device / timestamp ----
     allowed = {SCHEMA_VERSION}
+    if ALLOW_SCHEMA_40:
+        allowed.add(COMPAT_SCHEMA_VERSION)
     if request_type in V3_COMPAT_ACTIONS:
         allowed.add("3.0")
     if req["schemaVersion"] not in allowed:
@@ -126,7 +156,24 @@ def validate(world, log, topic_device, request_type, payload_bytes, is_login, ct
                  f"allowed {sorted(allowed)}")
         raise Rejection("unsupported_schema",
                         f"schemaVersion must be '{SCHEMA_VERSION}' "
-                        f"(3.0 is accepted only for capture actions during cutover).")
+                        f"(4.0 is temporary compatibility; 3.0 only for capture actions).")
+
+    # -- step 3b: 4.1 forbids plaintext credentials anywhere in the object ----
+    # Deliberately checked on EVERY message, not just the auth ones: the contract's rule is
+    # about the property existing at all, and a stray managerPassword on a workflow message is
+    # exactly the leak this is meant to stop.
+    present = [f for f in PLAINTEXT_CREDENTIAL_FIELDS if f in req and req[f] not in (None, "")]
+    if present:
+        if req["schemaVersion"] == SCHEMA_VERSION:
+            log.fail(f"step 3 credentials: schema 4.1 message carries {present}")
+            raise Rejection("plaintext_credentials_forbidden",
+                            f"Schema 4.1 rejects plaintext credential field(s): {', '.join(present)}.")
+        if not ALLOW_SCHEMA_40_PLAINTEXT_AUTH:
+            log.fail(f"step 3 credentials: 4.0 plaintext auth disabled, message carries {present}")
+            raise Rejection("plaintext_credentials_forbidden",
+                            "Schema 4.0 plaintext authentication is disabled on this server.")
+        log.warn(f"step 3 credentials: accepting 4.0 plaintext {present} "
+                 f"(AllowSchema40PlaintextAuthentication is on)")
     if req["deviceId"] != topic_device:
         log.fail(f"step 3 device: payload deviceId '{req['deviceId']}' != topic device '{topic_device}'")
         raise Rejection("device_mismatch", "Payload deviceId differs from the MQTT topic.")
@@ -163,10 +210,35 @@ def validate(world, log, topic_device, request_type, payload_bytes, is_login, ct
     return req, session
 
 
-def approve(world, log, req, action_id):
+def approve(world, log, req, action_id, target_id=None):
     """Step 5 for privileged actions. Returns approver fields for the response.
-    Raises Rejection(permission_denied) when the approval fails, and a
-    requiresManagerApproval rejection when credentials are absent."""
+
+    4.1: the caller sends a single-use `authorizationToken` minted by a scoped SCRAM
+    manager_action exchange. The token is bound to one device, one actionTarget and one
+    managerAction, and is consumed here. Schema 4.0's inline managerUsername/managerPassword
+    remains accepted while the compatibility flag is on.
+    """
+    token = req.get("authorizationToken")
+    if token:
+        approver, err = world.consume_authorization_token(
+            token, req.get("deviceId"), action_id, target_id)
+        if not approver:
+            log.fail(f"step 5 permission: authorization token rejected: {err}")
+            raise Rejection("permission_denied", f"Approval failed: {err}.",
+                            next_action="retry_with_manager_approval",
+                            requiresManagerApproval=True)
+        if not req.get("auditReason"):
+            log.fail("step 5 permission: privileged action missing auditReason")
+            raise Rejection("validation_failed", "A privileged action requires an auditReason.")
+        log.ok(f"step 5 permission: '{action_id}' authorized by token for "
+               f"{approver['operatorId']} ({approver['displayName']}, role {approver['role']}); "
+               f"auditReason: {req['auditReason']!r}")
+        return {
+            "approverUserId": approver["operatorId"],
+            "approverDisplayName": approver["displayName"],
+            "approverRole": approver["role"],
+        }
+
     username = req.get("managerUsername")
     password = req.get("managerPassword")
     if not username or not password:

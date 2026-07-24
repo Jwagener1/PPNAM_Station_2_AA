@@ -28,10 +28,24 @@ class AppSettingsTest {
     }
 
     @Test
-    fun `default credentials are admin admin`() {
+    fun `there are no default broker credentials`() {
+        // This test used to assert admin/admin. The Schema 4.1 handoff blocks production on the
+        // absence of exactly that — shared handheld credentials, source-code credentials and APK
+        // constants must all be gone, and each handheld needs its own credential bound to its own
+        // client ID. A default here IS an APK constant: it ships to every device inside the app.
         val s = AppSettings()
-        assertEquals("admin", s.mqttUsername)
-        assertEquals("admin", s.mqttPassword)
+
+        assertEquals("", s.mqttUsername)
+        assertEquals("", s.mqttPassword)
+        assertFalse("an unprovisioned handheld must not claim to have a credential", s.hasBrokerCredential)
+    }
+
+    @Test
+    fun `a handheld reports provisioned only when both parts are present`() {
+        assertFalse(AppSettings(mqttUsername = "station2-hh-01").hasBrokerCredential)
+        assertFalse(AppSettings(mqttPassword = "secret").hasBrokerCredential)
+        assertFalse(AppSettings(mqttUsername = "  ", mqttPassword = "secret").hasBrokerCredential)
+        assertTrue(AppSettings(mqttUsername = "station2-hh-01", mqttPassword = "secret").hasBrokerCredential)
     }
 
     @Test

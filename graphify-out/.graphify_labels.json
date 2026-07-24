@@ -173,5 +173,21 @@
   "171": "FINDINGS.md",
   "172": "RfidViewModel.kt",
   "173": "UpgradeGateViewModel",
-  "174": "analyze.py"
+  "174": "analyze.py",
+  "175": "RfidViewModelTest",
+  "176": "PalletUseCase",
+  "177": "MixingBoard.kt",
+  "178": ".authenticate",
+  "179": "MqttResponseDeduplicationTest",
+  "180": "MqttSessionExpiryTest",
+  "181": "SettingsRepository",
+  "182": "Replay",
+  "183": "SettingsViewModel.kt",
+  "184": "SettingsViewModelTest",
+  "185": "SettingsViewModel",
+  "186": "make_pallets.py",
+  "187": ".authorize",
+  "188": "PalletStateTest",
+  "189": "MqttClientFactory",
+  "190": "ActiveJobsPage"
 }

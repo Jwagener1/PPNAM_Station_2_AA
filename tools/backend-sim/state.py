@@ -9,6 +9,7 @@ import glob
 import hashlib
 import json
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 
 
@@ -17,9 +18,17 @@ def utc_now():
 
 
 def iso(dt):
+    """Contract v4.1: UTC RFC 3339 with EXACTLY six fractional digits and 'Z'.
+
+    strftime has no microsecond-only directive that also handles the zero case the way we need
+    (%f is 6 digits, but only via the datetime's own microsecond field), so this formats the
+    seconds and the fraction separately rather than relying on isoformat(), which drops the
+    fractional part entirely when microsecond == 0 — the same trap Instant.toString() has on the
+    Android side.
+    """
     if dt is None:
         return None
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return "%s.%06dZ" % (dt.strftime("%Y-%m-%dT%H:%M:%S"), dt.microsecond)
 
 
 def parse_iso(s):
@@ -93,7 +102,14 @@ class World:
         self.runs = {}              # RUN_ -> production run dict
         self.replay = {}            # (device, reqType, messageId) -> {"hash", "topic", "response"}
         self.known_devices = set()  # auto-registered handheld ids
-        self._counters = {"COL": 0, "MIX": 0, "CYC": 0, "RUN": 0, "RSP": 0}
+        # 4.1 SCRAM: in-flight challenges and issued single-use manager tokens.
+        self.scram_challenges = {}  # challengeId -> challenge dict
+        self.auth_tokens = {}       # token -> {operator, deviceId, managerAction, actionTarget, ...}
+        # 4.1 cross-area mixer plans. Keyed by collectionId; saved in Station 2 (WPF), never by
+        # the handheld — the simulator seeds/creates them the same way.
+        self.mix_plans = {}         # collectionId -> plan dict
+        self.mix_destinations = []  # durable mix -> production machine links, including history
+        self._counters = {"COL": 0, "MIX": 0, "CYC": 0, "RUN": 0, "RSP": 0, "CHL": 0, "TOK": 0}
 
     # ---- ids ------------------------------------------------------------
     def next_id(self, kind):
@@ -103,6 +119,74 @@ class World:
     def next_response_id(self):
         self._counters["RSP"] += 1
         return f"S2-{self._counters['RSP']:06d}"
+
+    def active_jobs_revision(self):
+        """A snapshot revision for the active-collection queue (4.1 paging).
+
+        Derived from the collections' identities and statuses rather than a mutation counter, so
+        it changes exactly when a page's contents could have changed and stays stable when
+        nothing relevant moved.
+        """
+        material = ";".join(
+            f"{c['collectionId']}:{c['status']}"
+            for c in sorted(self.collections.values(), key=lambda c: c["collectionId"])
+        )
+        return hashlib.sha256(material.encode("utf-8")).hexdigest()[:12]
+
+    def next_challenge_id(self):
+        self._counters["CHL"] += 1
+        return f"CHL_{self._counters['CHL']:06d}"
+
+    # ---- 4.1 manager authorization tokens --------------------------------
+    def issue_authorization_token(self, operator, device_id, manager_action, action_target,
+                                  ttl_seconds=60):
+        """Mint a single-use token scoped to one device, one action and one target."""
+        self._counters["TOK"] += 1
+        token = f"AUTH_{self._counters['TOK']:06d}_{secrets.token_urlsafe(18)}"
+        record = {
+            "token": token,
+            "operatorId": operator["operatorId"],
+            "deviceId": device_id,
+            "managerAction": manager_action,
+            "actionTarget": action_target,
+            "expiresAt": utc_now() + timedelta(seconds=ttl_seconds),
+            "used": False,
+        }
+        self.auth_tokens[token] = record
+        return record
+
+    def consume_authorization_token(self, token, device_id, manager_action, target_id=None):
+        """Validate and CONSUME a manager authorization token.
+
+        Every bound property is checked, not just the token's existence: the contract's guarantee
+        is that a token "cannot be reused, moved to another device, target, or manager action",
+        and a check that only proves the token was once valid delivers none of that.
+
+        Returns (approver_or_None, reason_or_None).
+        """
+        record = self.auth_tokens.get(token)
+        if not record:
+            return None, "authorization token is unknown"
+        if record["used"]:
+            return None, "authorization token was already used"
+        if utc_now() > record["expiresAt"]:
+            return None, "authorization token has expired"
+        if record["deviceId"] != device_id:
+            return None, "authorization token was issued to another device"
+        if record["managerAction"] != manager_action:
+            return None, (f"authorization token is scoped to '{record['managerAction']}', "
+                          f"not '{manager_action}'")
+        if target_id is not None:
+            expected = record["actionTarget"].split(":", 1)[-1] if ":" in record["actionTarget"] \
+                else record["actionTarget"]
+            if expected != target_id:
+                return None, (f"authorization token is scoped to target '{record['actionTarget']}', "
+                              f"not '{target_id}'")
+        record["used"] = True
+        approver = self.operator_by_id(record["operatorId"])
+        if not approver:
+            return None, "the approving operator no longer exists"
+        return approver, None
 
     # ---- mixing areas ----------------------------------------------------
     def equipment_in_area(self, area):

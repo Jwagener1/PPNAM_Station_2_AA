@@ -24,8 +24,13 @@ sealed interface MqttOutcome<out T> {
     data class Rejected<T>(
         val body: T,
         val errorCode: ErrorCode?,
+        /** 4.1's canonical `errorMessage`, falling back to the rollout `reason` mirror. */
         val reason: String?,
         val nextAction: NextAction,
+        /** Station 2's id for the logged exception. Worth showing when support has to trace it. */
+        val exceptionId: String? = null,
+        /** Field-level validation detail keyed by request property name; empty when not supplied. */
+        val fieldErrors: Map<String, String> = emptyMap(),
     ) : MqttOutcome<T>
 
     data class NoResponse(val kind: FailureKind) : MqttOutcome<Nothing>
