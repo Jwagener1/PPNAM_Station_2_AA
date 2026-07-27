@@ -60,6 +60,11 @@ value class ErrorCode(val raw: String) {
         val MIX_CYCLE_NOT_ACTIVE = ErrorCode("mix_cycle_not_active")
         val DESTINATION_ASSIGNMENT_LOCKED = ErrorCode("destination_assignment_locked")
 
+        // v4.1 strict two-phase Mixing: a production-machine machine_cycle_start is rejected with
+        // this — the app must resend the finished mixes and codes via
+        // mix_destination_assignment_requested (§1/§8). Only that request may commit a destination.
+        val DESTINATION_ASSIGNMENT_REQUIRED = ErrorCode("destination_assignment_required")
+
         // v4.1 Station 3 master-batch capture.
         val STATION3_UNAVAILABLE = ErrorCode("station3_unavailable")
         val MASTER_BATCH_LABEL_INVALID = ErrorCode("master_batch_label_invalid")

@@ -5,7 +5,9 @@ import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.ActiveCycle
 import com.ppnam.station2aa.domain.model.ActiveRun
 import com.ppnam.station2aa.domain.model.AreaOverview
+import com.ppnam.station2aa.domain.model.AssignedDestination
 import com.ppnam.station2aa.domain.model.Equipment
+import com.ppnam.station2aa.domain.model.MachineCycleOutcome
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.domain.model.ReadyCollection
 import com.ppnam.station2aa.domain.model.ReadyMix
@@ -426,20 +428,56 @@ class MixingBoardViewModelTest {
     }
 
     @Test
-    fun `confirmStart for mixes calls startDownstream with the selected ids`() = runTest {
+    fun `confirmStart for mixes on a production machine assigns destinations`() = runTest {
+        // Strict two-phase (§1/§8): a finished mix reaches a production machine ONLY via
+        // mix_destination_assignment_requested. A production-machine machine_cycle_start is
+        // rejected with destination_assignment_required, so the board must never send one.
         openMainBoard(); advanceUntilIdle()
-        whenever(mockUseCase.startDownstream(any(), any(), any())).thenReturn(
-            com.ppnam.station2aa.domain.model.MachineCycleOutcome.Accepted(
-                action = "Started", machineCode = "EXT-03", cycleId = "RUN_1",
-                mixBatchId = null, productionRunId = "RUN_1",
+        whenever(mockUseCase.assignDestinations(any(), any())).thenReturn(
+            MachineCycleOutcome.Accepted(
+                action = "Assigned", machineCode = "EXT-03", cycleId = null,
+                mixBatchId = "MIX_1", productionRunId = "RUN_1",
                 affectedMixBatchIds = listOf("MIX_1"), alreadyFinished = false,
-                forceClosed = false, approverDisplayName = null, areaStatus = mainOverview))
+                forceClosed = false, approverDisplayName = null, areaStatus = mainOverview,
+                assignedDestinations = listOf(AssignedDestination("EXT-03", "RUN_1"))))
         viewModel.toggleMix("MIX_1")
         viewModel.machineChosen("EXT-03")
         viewModel.confirmStart()
         advanceUntilIdle()
 
-        verify(mockUseCase).startDownstream("EXT-03", "510019068", listOf("MIX_1"))
+        verify(mockUseCase).assignDestinations(listOf("MIX_1"), listOf("EXT-03"))
+        verify(mockUseCase, never()).startDownstream(any(), any(), any())
+    }
+
+    @Test
+    fun `confirmStart for mixes on a JANDI drum starts a transfer cycle`() = runTest {
+        // The JANDI drum is a Transfer — the one downstream machine that IS a cycle start
+        // (machine_cycle_start with mixBatchIds), never a destination assignment.
+        val drumOverview = AreaOverview(
+            equipment = listOf(equipment("JAN-DRUM-01", role = "Transfer", area = MixingArea.Jandi)),
+            activeCycles = emptyList(),
+            readyMixes = listOf(readyMix("MIX_7", validNext = listOf("JAN-DRUM-01"))),
+            activeRuns = emptyList(),
+            readyCollections = emptyList(),
+        )
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Jandi), anyOrNull()))
+            .thenReturn(Result.success(drumOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(emptyList()))
+        viewModel.openArea(MixingArea.Jandi); advanceUntilIdle()
+
+        whenever(mockUseCase.startDownstream(any(), any(), any())).thenReturn(
+            MachineCycleOutcome.Accepted(
+                action = "Started", machineCode = "JAN-DRUM-01", cycleId = "CYC_7",
+                mixBatchId = "MIX_7", productionRunId = null,
+                affectedMixBatchIds = listOf("MIX_7"), alreadyFinished = false,
+                forceClosed = false, approverDisplayName = null, areaStatus = drumOverview))
+        viewModel.toggleMix("MIX_7")
+        viewModel.machineChosen("JAN-DRUM-01")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        verify(mockUseCase).startDownstream("JAN-DRUM-01", "510019068", listOf("MIX_7"))
+        verify(mockUseCase, never()).assignDestinations(any(), any())
     }
 
     @Test

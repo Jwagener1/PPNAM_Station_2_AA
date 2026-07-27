@@ -600,36 +600,64 @@ def finish(world, log, req, session):
 def assign_destinations(world, log, req, session):
     """`mix_destination_assignment_requested` -> `mix_destination_assignment_result` (4.1).
 
-    One completed mix to one or more distinct compatible production machines. Validation is
-    ATOMIC: one invalid machine rejects the whole request rather than partially assigning, so
-    there is never a half-assigned mix to unwind.
+    Phase 2 of the strict two-phase Mixing contract: one or more completed same-JC mixes to one or
+    more distinct compatible production machines. This is the ONLY request that may commit a
+    destination — a production-machine `machine_cycle_start_requested` is rejected with
+    `destination_assignment_required` (see `start`).
+
+    Schema 4.1 sends `mixBatchIds[]` (plural); singular `mixBatchId` is accepted as temporary 4.0
+    compatibility. Validation is ATOMIC: one invalid mix or machine rejects the whole request
+    rather than partially assigning, so there is never a half-assigned mix to unwind.
     """
-    mix_id = req.get("mixBatchId")
+    mix_ids = req.get("mixBatchIds")
+    if mix_ids is None:
+        single = req.get("mixBatchId")
+        mix_ids = [single] if single else []
     codes = req.get("machineCodes") or []
-    if not mix_id:
-        raise Rejection("validation_failed", "mixBatchId is required.")
+    if not isinstance(mix_ids, list) or not mix_ids:
+        raise Rejection("validation_failed", "One or more mixBatchIds are required.")
+    if len(set(mix_ids)) != len(mix_ids):
+        raise Rejection("validation_failed", "mixBatchIds must be distinct.")
     if not codes:
         raise Rejection("validation_failed", "At least one machineCode is required.")
     if len(set(codes)) != len(codes):
         raise Rejection("validation_failed", "machineCodes must be distinct.")
 
-    mix = world.mix_batches.get(mix_id)
-    if not mix:
-        raise Rejection("not_found", f"Mix '{mix_id}' was not found.")
+    # Resolve and validate every mix first — same JC, ready, not quarantined, not already assigned.
+    mixes = []
+    po = None
+    for mid in mix_ids:
+        mix = world.mix_batches.get(mid)
+        if not mix:
+            raise Rejection("not_found", f"Mix '{mid}' was not found.")
+        # 4.1 / backend issue B2: a force-closed mix is quarantined and never assignable until an
+        # audited Manager/Admin Release or Discard.
+        if mix.get("completionMode") == "ForceClosed" or mix["status"] == "Quarantined":
+            log.fail(f"destination assignment: {mid} is quarantined")
+            raise Rejection("state_conflict",
+                            f"Mix {mid} is quarantined after a force-close and cannot be "
+                            f"assigned until it is released or discarded.")
+        if mix["status"] not in ("ReadyForProduction", "ReadyForTransfer"):
+            raise Rejection("state_conflict",
+                            f"Mix {mid} is {mix['status']}; it is not ready for a destination.")
+        if mix["assignedToCycleId"]:
+            raise Rejection("source_already_assigned",
+                            f"Mix {mid} is already assigned to {mix['assignedToCycleId']}.")
+        if po is None:
+            po = mix["productionOrderDocumentNumber"]
+        elif mix["productionOrderDocumentNumber"] != po:
+            raise Rejection("job_card_mismatch",
+                            f"Mix {mid} belongs to JC {mix['productionOrderDocumentNumber']}, "
+                            f"not {po}. Every selected mix must share one job card.")
+        mixes.append(mix)
 
-    # 4.1 / backend issue B2: a force-closed mix is quarantined and never assignable until an
-    # audited Manager/Admin Release or Discard.
-    if mix.get("completionMode") == "ForceClosed" or mix["status"] == "Quarantined":
-        log.fail(f"destination assignment: {mix_id} is quarantined")
-        raise Rejection("state_conflict",
-                        f"Mix {mix_id} is quarantined after a force-close and cannot be "
-                        f"assigned until it is released or discarded.")
-    if mix["status"] not in ("ReadyForProduction", "ReadyForTransfer"):
-        raise Rejection("state_conflict",
-                        f"Mix {mix_id} is {mix['status']}; it is not ready for a destination.")
-
-    valid = set(valid_next_machine_codes(world, mix))
-    assigned = []
+    # Every selected code must be a valid route for EVERY selected mix (the intersection), enabled,
+    # and not busy on another job card.
+    valid = None
+    for mix in mixes:
+        routes = set(valid_next_machine_codes(world, mix))
+        valid = routes if valid is None else (valid & routes)
+    valid = valid or set()
     for code in codes:
         eq = world.equipment.get(code)
         if not eq or not eq["isEnabled"]:
@@ -637,42 +665,45 @@ def assign_destinations(world, log, req, session):
                             f"'{code}' is not a known, enabled machine.")
         if code not in valid:
             raise Rejection("invalid_planned_destination",
-                            f"'{code}' is not a valid route for mix {mix_id}.")
+                            f"'{code}' is not a valid route for every selected mix.")
         busy = next((r for r in world.runs.values()
                      if r["active"] and r["machineCode"] == code
-                     and str(r["productionOrderDocumentNumber"]) != str(
-                         mix["productionOrderDocumentNumber"])), None)
+                     and str(r["productionOrderDocumentNumber"]) != str(po)), None)
         if busy:
             raise Rejection("destination_busy",
                             f"'{code}' is busy on another job card.")
 
-    # Everything validated — only now mutate.
+    # Everything validated — only now mutate. One run per machine consuming the whole mix set.
+    assigned = []
     for code in codes:
         run_id = world.next_id("RUN")
         world.runs[run_id] = {
             "productionRunId": run_id,
             "machineCode": code,
-            "productionOrderDocumentNumber": mix["productionOrderDocumentNumber"],
-            "mixBatchIds": [mix_id],
+            "productionOrderDocumentNumber": po,
+            "mixBatchIds": list(mix_ids),
             "startedAtUtc": iso(utc_now()),
             "active": True,
         }
-        world.mix_destinations.append({
-            "mixBatchId": mix_id,
-            "machineCode": code,
-            "productionRunId": run_id,
-            "linkStatus": "Active",
-            "runStatus": "Running",
-        })
+        for mid in mix_ids:
+            # A mix leaves readyMixes once assigned (area_overview filters on this).
+            world.mix_batches[mid]["assignedToCycleId"] = run_id
+            world.mix_destinations.append({
+                "mixBatchId": mid,
+                "machineCode": code,
+                "productionRunId": run_id,
+                "linkStatus": "Active",
+                "runStatus": "Running",
+            })
         assigned.append({"machineCode": code, "productionRunId": run_id})
-        log.transition(f"mix {mix_id} -> {code} as run {run_id}")
+        log.transition(f"mixes {', '.join(mix_ids)} -> {code} as run {run_id}")
 
-    log.ok(f"destination assignment: {mix_id} -> {len(assigned)} machine(s)")
-    return build_response(world, req, correlation=mix_id, response_extras={
-        "mixBatchId": mix_id,
+    log.ok(f"destination assignment: {', '.join(mix_ids)} -> {len(assigned)} machine(s)")
+    return build_response(world, req, correlation=mix_ids[0], response_extras={
+        "mixBatchId": mix_ids[0],
+        "mixBatchIds": list(mix_ids),
         "assignedDestinations": assigned,
-        "areaStatus": area_overview(world, mix["mixingArea"],
-                                    mix["productionOrderDocumentNumber"]),
+        "areaStatus": area_overview(world, mixes[0]["mixingArea"], po),
     })
 
 

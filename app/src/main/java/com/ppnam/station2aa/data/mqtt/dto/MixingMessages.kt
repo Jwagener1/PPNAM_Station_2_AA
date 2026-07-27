@@ -273,12 +273,16 @@ data class MachineCycleForceClosePayload(
 /**
  * `mix_destination_assignment_requested` — 4.1.
  *
- * One completed mix to one or more distinct compatible production machines. No quantity is
- * supplied per destination; the whole set is revalidated atomically, so a single invalid machine
- * rejects the request rather than partially assigning.
+ * One or more completed same-JC mixes to one or more distinct compatible production machines. No
+ * quantity is supplied per destination; the whole set is revalidated atomically, so a single
+ * invalid mix or machine rejects the request rather than partially assigning.
+ *
+ * Schema 4.1 carries `mixBatchIds[]` (plural). The contract keeps a temporary singular `mixBatchId`
+ * as 4.0 compatibility, but a 4.1 build sends the plural form so it can commit several finished
+ * mixes into one production run — which is exactly what the board's multi-mix selection allows.
  */
 data class MixDestinationAssignmentPayload(
-    val mixBatchId: String,
+    val mixBatchIds: List<String>,
     val machineCodes: List<String>,
 )
 
@@ -288,9 +292,14 @@ data class AssignedDestinationDto(
     val productionRunId: String = "",
 )
 
-/** `mix_destination_assignment_result`. */
+/**
+ * `mix_destination_assignment_result`. The atomic result echoes the complete `mixBatchIds[]` and
+ * returns one `{ machineCode, productionRunId }` entry per selected compatible machine. Singular
+ * `mixBatchId` is retained for temporary 4.0 compatibility.
+ */
 data class MixDestinationAssignmentResultResponse(
     val mixBatchId: String = "",
+    val mixBatchIds: List<String> = emptyList(),
     val assignedDestinations: List<AssignedDestinationDto> = emptyList(),
     val areaStatus: MixingOverviewResponse = MixingOverviewResponse(),
 )

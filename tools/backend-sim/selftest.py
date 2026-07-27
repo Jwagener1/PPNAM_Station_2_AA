@@ -564,6 +564,36 @@ def main():
     check(r["accepted"] and sorted(r["affectedMixBatchIds"]) == sorted([mix1, mix2]),
           "run finish consumes both accumulated mixes")
 
+    print("== destination assignment (Phase 2, 4.1 plural) ==")
+    cold = load_collection(hh, job)
+    collect_all(hh, cold)
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "MXR-01", "productionOrderDocumentNumber": job,
+                       "collectionId": cold})
+    check(r["accepted"], "mixer start for the destination-assignment mix")
+    dmix, dcyc = r["mixBatchId"], r["cycleId"]
+    r, _ = hh.request("machine_cycle_finish_requested",
+                      {"machineCode": "MXR-01", "cycleId": dcyc})
+    check(r["accepted"], "mixer finish -> mix ready for a destination")
+    # A production-machine destination is committed ONLY here, with mixBatchIds[] (plural, 4.1).
+    r, _ = hh.request("mix_destination_assignment_requested",
+                      {"mixBatchIds": [dmix], "machineCodes": ["EXT-03"]})
+    check(r["accepted"] and r["mixBatchIds"] == [dmix]
+          and len(r["assignedDestinations"]) == 1
+          and r["assignedDestinations"][0]["machineCode"] == "EXT-03"
+          and r["assignedDestinations"][0]["productionRunId"].startswith("RUN_"),
+          "plural assignment echoes mixBatchIds[] and returns one run per machine")
+    r, _ = hh.request("mixing_overview_requested", {"mixingArea": "MainMixingRoom"})
+    check(all(m["mixBatchId"] != dmix for m in r["readyMixes"]),
+          "an assigned mix leaves readyMixes")
+    check(any(d["mixBatchId"] == dmix and d["machineCode"] == "EXT-03"
+              and d["linkStatus"] == "Active" for d in r["mixDestinations"]),
+          "the destination link appears in mixDestinations")
+    r, _ = hh.request("mix_destination_assignment_requested",
+                      {"mixBatchIds": [dmix], "machineCodes": ["EXT-04"]})
+    check(not r["accepted"] and r["errorCode"] == "source_already_assigned",
+          "re-assigning an already-assigned mix -> source_already_assigned")
+
     print("== JANDI drum gate ==")
     col3 = load_collection(hh, job)
     collect_all(hh, col3)

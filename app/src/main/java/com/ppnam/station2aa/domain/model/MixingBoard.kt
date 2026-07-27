@@ -15,6 +15,18 @@ enum class MixingArea(val wire: String, val display: String) {
     }
 }
 
+/**
+ * The server's three equipment roles (§6). Pass-through strings — unknown roles are tolerated —
+ * but these three drive the two-phase dispatch: a [Mixer] starts from a collection, a [Transfer]
+ * (the JANDI drum) starts a transfer cycle from a finished mix, and a [ProductionMachine] is a
+ * destination that may be committed ONLY via `mix_destination_assignment_requested` (§8).
+ */
+object EquipmentRole {
+    const val MIXER = "Mixer"
+    const val TRANSFER = "Transfer"
+    const val PRODUCTION_MACHINE = "ProductionMachine"
+}
+
 data class Equipment(
     val machineCode: String,
     val displayName: String,
@@ -206,6 +218,12 @@ sealed class MachineCycleOutcome {
         val areaStatus: AreaOverview,
         /** 4.1 plan progress — how much of this collection's mixer plan is left to scan. */
         val planProgress: MixPlanProgress = MixPlanProgress.NONE,
+        /**
+         * 4.1 Phase 2: the `{ machineCode, productionRunId }` pairs from a destination assignment.
+         * Empty for a mixer/drum cycle op; populated only when this outcome came from
+         * `mix_destination_assignment_requested`.
+         */
+        val assignedDestinations: List<AssignedDestination> = emptyList(),
     ) : MachineCycleOutcome()
 
     data class Rejected(

@@ -11,8 +11,11 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.EquipmentDto
+import com.ppnam.station2aa.data.mqtt.dto.AssignedDestinationDto
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleStartPayload
+import com.ppnam.station2aa.data.mqtt.dto.MixDestinationAssignmentPayload
+import com.ppnam.station2aa.data.mqtt.dto.MixDestinationAssignmentResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewPayload
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewResponse
 import com.ppnam.station2aa.domain.model.LayerInput
@@ -188,6 +191,35 @@ class MixingBoardUseCaseTest {
         }.firstValue as MachineCycleStartPayload
         assertEquals(listOf("MIX_1", "MIX_2"), payload.mixBatchIds)
         assertNull(payload.collectionId)
+    }
+
+    @Test
+    fun `assignDestinations sends plural mixBatchIds and maps the result to an accepted outcome`() = runTest {
+        // 4.1 Phase 2: the destination commit carries `mixBatchIds[]` (plural) and returns a
+        // MachineCycleOutcome so the board refreshes from the embedded areaStatus like any cycle op.
+        val response = MixDestinationAssignmentResultResponse(
+            mixBatchIds = listOf("MIX_1", "MIX_2"),
+            assignedDestinations = listOf(AssignedDestinationDto("EXT-03", "RUN_7")),
+            areaStatus = MixingOverviewResponse(equipment = listOf(EquipmentDto(machineCode = "EXT-03"))))
+        whenever(mockMqtt.request(
+            eq("mix_destination_assignment_requested"), eq("mix_destination_assignment_result"),
+            any(), anyOrNull(), eq(MixDestinationAssignmentResultResponse::class.java)))
+            .thenReturn(MqttOutcome.Accepted(response, NextAction.NONE))
+
+        val outcome = useCase.assignDestinations(listOf("MIX_1", "MIX_2"), listOf("EXT-03"))
+
+        val payload = argumentCaptor<Any>().apply {
+            verify(mockMqtt).request(any(), any(), capture(), anyOrNull(),
+                eq(MixDestinationAssignmentResultResponse::class.java))
+        }.firstValue as MixDestinationAssignmentPayload
+        assertEquals(listOf("MIX_1", "MIX_2"), payload.mixBatchIds)
+        assertEquals(listOf("EXT-03"), payload.machineCodes)
+
+        assertTrue(outcome is MachineCycleOutcome.Accepted)
+        val accepted = outcome as MachineCycleOutcome.Accepted
+        assertEquals("EXT-03", accepted.assignedDestinations.single().machineCode)
+        assertEquals("RUN_7", accepted.assignedDestinations.single().productionRunId)
+        assertEquals(1, accepted.areaStatus.equipment.size)
     }
 
     @Test

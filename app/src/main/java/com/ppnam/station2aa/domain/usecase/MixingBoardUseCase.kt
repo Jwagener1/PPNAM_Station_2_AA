@@ -230,51 +230,82 @@ class MixingBoardUseCase @Inject constructor(
             is MqttOutcome.Rejected -> MachineCycleOutcome.Rejected(
                 errorCode = outcome.errorCode,
                 reason = outcome.reason ?: "Machine cycle rejected",
-                areaStatus = outcome.body.areaStatus.toAreaOverview().takeUnless {
-                    // Envelope-level rejections carry no areaStatus; Gson defaults it to
-                    // empty. A real business rejection always embeds equipment (§8).
-                    it.equipment.isEmpty() && it.activeCycles.isEmpty() &&
-                        it.readyMixes.isEmpty() && it.activeRuns.isEmpty()
-                },
+                areaStatus = outcome.body.areaStatus.toAreaOverviewOrNull(),
             )
             is MqttOutcome.NoResponse -> MachineCycleOutcome.Failed(outcome.kind.message())
         }
 
     /**
-     * Assigns one completed mix to one or more compatible production machines (4.1).
-     *
-     * The whole set is revalidated atomically server-side: one invalid machine rejects the request
-     * rather than partially assigning, so there is no partial state to unwind here.
+     * The embedded areaStatus as domain, or null when it is the empty default. An envelope/session
+     * rejection carries no areaStatus (Gson defaults it to empty); a real business rejection always
+     * embeds equipment (§8). Null tells the board to keep its current picture rather than blank it.
      */
-    suspend fun assignDestinations(
-        mixBatchId: String,
-        machineCodes: List<String>,
-    ): Result<List<AssignedDestination>> {
-        val distinct = machineCodes.filter { it.isNotBlank() }.distinct()
-        if (distinct.isEmpty()) {
-            return Result.failure(IllegalArgumentException("Select at least one destination machine"))
+    private fun MixingOverviewResponse.toAreaOverviewOrNull(): AreaOverview? =
+        toAreaOverview().takeUnless {
+            it.equipment.isEmpty() && it.activeCycles.isEmpty() &&
+                it.readyMixes.isEmpty() && it.activeRuns.isEmpty()
         }
 
+    /**
+     * Phase 2 of the strict two-phase Mixing contract (§1/§8): commit one or more completed same-JC
+     * mixes to one or more compatible production machines via `mix_destination_assignment_requested`.
+     *
+     * This is the ONLY request that may start a production destination — a production-machine
+     * `machine_cycle_start_requested` is rejected with `destination_assignment_required`. The whole
+     * set is revalidated atomically server-side: one invalid mix or machine rejects the request
+     * rather than partially assigning, so there is no partial state to unwind here.
+     *
+     * Returns a [MachineCycleOutcome] so the board consumes it exactly like a mixer/drum cycle op:
+     * the accepted result carries the embedded `areaStatus`, and [MachineCycleOutcome.Accepted.assignedDestinations]
+     * names the runs that were started.
+     */
+    suspend fun assignDestinations(
+        mixBatchIds: List<String>,
+        machineCodes: List<String>,
+    ): MachineCycleOutcome {
+        val mixes = mixBatchIds.filter { it.isNotBlank() }.distinct()
+        val machines = machineCodes.filter { it.isNotBlank() }.distinct()
+        if (mixes.isEmpty() || machines.isEmpty()) {
+            // Nothing was sent, so nothing changed server-side — keep the board's current picture.
+            return MachineCycleOutcome.Rejected(
+                errorCode = null,
+                reason = "Select at least one mix and one destination machine.",
+                areaStatus = null,
+            )
+        }
         return when (
             val outcome = mqttRepository.request(
                 requestType = "mix_destination_assignment_requested",
                 responseType = "mix_destination_assignment_result",
-                payload = MixDestinationAssignmentPayload(
-                    mixBatchId = mixBatchId,
-                    machineCodes = distinct,
-                ),
-                correlationKey = mixBatchId,
+                payload = MixDestinationAssignmentPayload(mixBatchIds = mixes, machineCodes = machines),
+                correlationKey = mixes.first(),
                 responseClass = MixDestinationAssignmentResultResponse::class.java,
             )
         ) {
-            is MqttOutcome.Accepted -> Result.success(
-                outcome.body.assignedDestinations.map {
+            is MqttOutcome.Accepted -> {
+                val assigned = outcome.body.assignedDestinations.map {
                     AssignedDestination(it.machineCode, it.productionRunId)
                 }
+                MachineCycleOutcome.Accepted(
+                    action = "Assigned",
+                    machineCode = assigned.firstOrNull()?.machineCode.orEmpty(),
+                    cycleId = null,
+                    mixBatchId = outcome.body.mixBatchIds.firstOrNull() ?: mixes.first(),
+                    productionRunId = assigned.firstOrNull()?.productionRunId,
+                    affectedMixBatchIds = outcome.body.mixBatchIds.ifEmpty { mixes },
+                    alreadyFinished = false,
+                    forceClosed = false,
+                    approverDisplayName = null,
+                    areaStatus = outcome.body.areaStatus.toAreaOverview(),
+                    assignedDestinations = assigned,
+                )
+            }
+            is MqttOutcome.Rejected -> MachineCycleOutcome.Rejected(
+                errorCode = outcome.errorCode,
+                reason = outcome.reason ?: "Destination assignment rejected",
+                areaStatus = outcome.body.areaStatus.toAreaOverviewOrNull(),
             )
-            is MqttOutcome.Rejected ->
-                Result.failure(Exception(outcome.reason ?: "Destination assignment rejected"))
-            is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
+            is MqttOutcome.NoResponse -> MachineCycleOutcome.Failed(outcome.kind.message())
         }
     }
 
