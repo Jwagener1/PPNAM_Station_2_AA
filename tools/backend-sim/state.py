@@ -109,7 +109,8 @@ class World:
         # the handheld — the simulator seeds/creates them the same way.
         self.mix_plans = {}         # collectionId -> plan dict
         self.mix_destinations = []  # durable mix -> production machine links, including history
-        self._counters = {"COL": 0, "MIX": 0, "CYC": 0, "RUN": 0, "RSP": 0, "CHL": 0, "TOK": 0}
+        self._counters = {"COL": 0, "MIX": 0, "CYC": 0, "RUN": 0, "RSP": 0, "CHL": 0, "TOK": 0,
+                          "MPL": 0}
 
     # ---- ids ------------------------------------------------------------
     def next_id(self, kind):
@@ -226,6 +227,50 @@ class World:
                             f"(operator {operator['operatorId']} {operator['displayName']}, "
                             f"expires {session['expiresAtUtc']})")
         return session
+
+    # ---- 4.1 cross-area mixer plans -------------------------------------
+    def save_mix_plan(self, col_id, mixer_codes, plan_status="Saved"):
+        """Model a WPF/Core-saved cross-area mixer plan for one collection (4.1 §7).
+
+        The handheld NEVER saves plans; Station 2 (WPF) does, out of band of the MQTT
+        handheld contract. The simulator seeds them this same way at startup and the
+        selftest calls this directly. Reserves the given mixers and moves the collection
+        to `MixingPlanned`. Returns the plan dict."""
+        col = self.collections.get(col_id)
+        if not col:
+            raise KeyError(f"unknown collection {col_id}")
+        self._counters["MPL"] += 1
+        plan_id = f"MPL_{self._counters['MPL']:06d}"
+        items = []
+        for i, code in enumerate(mixer_codes, start=1):
+            eq = self.equipment.get(code)
+            items.append({
+                "planItemId": f"{plan_id}-{i}",
+                "mixingArea": eq["mixingArea"] if eq else None,
+                "machineCode": code,
+                "mixerDisplayName": eq["displayName"] if eq else code,
+                "fixedDestinationMachineCode": None,
+                "status": "Reserved",
+                "mixBatchId": None,
+                "cycleId": None,
+            })
+        plan = {
+            "mixPlanId": plan_id,
+            "collectionId": col_id,
+            "jobCardNumber": col["jobCardNumber"],
+            "status": plan_status,
+            "plannedMixerCodes": list(mixer_codes),
+            "startedMixerCodes": [],
+            "remainingMixerCodes": list(mixer_codes),
+            "items": items,
+        }
+        self.mix_plans[col_id] = plan
+        col["status"] = "MixingPlanned"
+        if self.log:
+            self.log.transition(f"mix plan {plan_id} saved for collection {col_id} "
+                                f"(job {col['jobCardNumber']}): reserves "
+                                f"{', '.join(mixer_codes)} -> MixingPlanned")
+        return plan
 
     def get_session(self, device_id, session_id):
         """Return the session if valid+usable for this device, resuming a Suspended one.

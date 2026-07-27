@@ -451,6 +451,31 @@ def main():
     check(not r["accepted"] and r["errorCode"] == "invalid_mixing_area",
           "unknown area -> invalid_mixing_area")
 
+    print("== mixer plan gate (4.1 §7) ==")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "MXR-01", "productionOrderDocumentNumber": job,
+                       "collectionId": col1})
+    check(not r["accepted"] and r["errorCode"] == "mixer_plan_required",
+          "ReadyForMixing collection with no saved plan -> mixer_plan_required")
+    # Station 2 (WPF) saves the cross-area mixer plan out of band of the handheld contract; the
+    # simulator/selftest models that save directly on the world.
+    hh.sim.world.save_mix_plan(col1, ["MXR-01"])
+    r, _ = hh.request("mixing_overview_requested", {"mixingArea": "MainMixingRoom"})
+    rc = next(c for c in r["readyCollections"] if c["collectionId"] == col1)
+    check(rc["status"] == "MixingPlanned" and rc["mixPlanId"]
+          and rc["mixPlanStatus"] == "Saved" and rc["remainingMixerCodes"] == ["MXR-01"]
+          and len(rc["mixerPlanItems"]) == 1 and rc["mixerPlanItems"][0]["status"] == "Reserved",
+          "saved plan surfaces in readyCollections as MixingPlanned with its reserved mixer")
+    resm = next(e for e in r["equipment"] if e["machineCode"] == "MXR-01")
+    check(resm["status"] == "Reserved" and resm["scanAllowed"] is True
+          and not resm["isAvailable"] and resm["reservationCollectionId"] == col1,
+          "the reserved mixer is Reserved + scanAllowed + not available in equipment[]")
+    r, _ = hh.request("machine_cycle_start_requested",
+                      {"machineCode": "MXR-03", "productionOrderDocumentNumber": job,
+                       "collectionId": col1})
+    check(not r["accepted"] and r["errorCode"] == "mixer_not_in_plan",
+          "a mixer not reserved by the collection's plan -> mixer_not_in_plan")
+
     print("== mixer start (Main) ==")
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "MXR-01", "productionOrderDocumentNumber": job,
@@ -488,8 +513,8 @@ def main():
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "MXR-02", "productionOrderDocumentNumber": job,
                        "collectionId": col1})
-    check(not r["accepted"] and r["errorCode"] == "source_already_assigned",
-          "second claim of a claimed collection rejected")
+    check(not r["accepted"] and r["errorCode"] == "mixer_not_in_plan",
+          "a mixer outside the plan (col1 reserved only MXR-01, now Started) -> mixer_not_in_plan")
     col2 = load_collection(hh, job)
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "MXR-02", "productionOrderDocumentNumber": job,
@@ -545,6 +570,7 @@ def main():
     check(not r["accepted"] and r["errorCode"] == "job_card_mismatch",
           "mix from another JC -> job_card_mismatch")
     collect_all(hh, col2)
+    hh.sim.world.save_mix_plan(col2, ["MXR-02"])
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "MXR-02", "productionOrderDocumentNumber": job,
                        "collectionId": col2})
@@ -567,6 +593,7 @@ def main():
     print("== destination assignment (Phase 2, 4.1 plural) ==")
     cold = load_collection(hh, job)
     collect_all(hh, cold)
+    hh.sim.world.save_mix_plan(cold, ["MXR-01"])
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "MXR-01", "productionOrderDocumentNumber": job,
                        "collectionId": cold})
@@ -597,6 +624,7 @@ def main():
     print("== JANDI drum gate ==")
     col3 = load_collection(hh, job)
     collect_all(hh, col3)
+    hh.sim.world.save_mix_plan(col3, ["JAN-MIX-01"])
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "JAN-MIX-01", "productionOrderDocumentNumber": job,
                        "collectionId": col3})
@@ -634,6 +662,7 @@ def main():
     print("== JANDI drum gate is per-mix, not global ==")
     col5 = load_collection(hh, job)
     collect_all(hh, col5)
+    hh.sim.world.save_mix_plan(col5, ["JAN-MIX-01"])
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "JAN-MIX-01", "productionOrderDocumentNumber": job,
                        "collectionId": col5})
@@ -652,6 +681,7 @@ def main():
     print("== Rajoo layer inputs + force-close ==")
     col4 = load_collection(hh, job)
     collect_all(hh, col4)
+    hh.sim.world.save_mix_plan(col4, ["RAJ-GM-01"])
     r, _ = hh.request("machine_cycle_start_requested",
                       {"machineCode": "RAJ-GM-01", "productionOrderDocumentNumber": job,
                        "collectionId": col4,

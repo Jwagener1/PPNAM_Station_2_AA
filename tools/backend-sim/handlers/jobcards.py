@@ -232,6 +232,11 @@ def seed_demo_collections(world, log):
             col["status"] = "ReadyForMixing"
         log.transition(f"seed: collection {col_id} for job {job} pre-loaded "
                        f"({'ReadyForMixing, all ingredients collected' if complete else 'Collecting, fresh'})")
+        if complete:
+            # 4.1 §7: a ReadyForMixing collection needs a WPF-saved mixer plan before any mixer
+            # scan. Seed one reserving two Main mixers so the handheld can exercise the plan-
+            # driven mixer start, two-mixer intersection, and destination assignment end-to-end.
+            world.save_mix_plan(col_id, ["MXR-01", "MXR-02"])
 
 
 def resume(world, log, req, session):

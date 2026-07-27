@@ -14,21 +14,40 @@ LEGACY_FIELDS = ("machineCodes", "collectionIds", "preMixId", "preMixIds")
 
 
 # ------------------------------------------------------------ payloads ----
-def _equipment_payload(eq):
+def _reservation_for(world, code):
+    """The (plan, item) reserving this mixer for a collection, if any is still Reserved."""
+    for plan in world.mix_plans.values():
+        for item in plan["items"]:
+            if item["machineCode"] == code and item["status"] == "Reserved":
+                return plan, item
+    return None, None
+
+
+def _equipment_payload(world, eq):
+    # 4.1 §7: a mixer reserved by a collection's saved plan is not generally Available; its status
+    # is `Reserved` and it is scan-allowed for that collection. Android must not infer this locally.
+    plan, item = _reservation_for(world, eq["machineCode"])
+    reserved = item is not None and eq["status"] == "Available"
+    status = "Reserved" if reserved else eq["status"]
     return {
         "mixingArea": eq["mixingArea"],
         "equipmentRole": eq["equipmentRole"],
         "machineCode": eq["machineCode"],
         "displayName": eq["displayName"],
         "isEnabled": eq["isEnabled"],
-        "isAvailable": eq["isEnabled"] and eq["status"] == "Available",
-        "status": eq["status"],
+        "isAvailable": eq["isEnabled"] and status == "Available",
+        "status": status,
         "productLayer": eq["productLayer"],
         "currentCycleId": eq["currentCycleId"],
         "currentProductionOrderDocumentNumber": eq["currentProductionOrderDocumentNumber"],
         "currentMixBatchIds": list(eq["currentMixBatchIds"]),
         "validDestinationMachineCodes": list(eq["validDestinationMachineCodes"]),
         "routeDescription": eq["routeDescription"],
+        "mixPlanId": plan["mixPlanId"] if reserved else None,
+        "planItemStatus": item["status"] if reserved else None,
+        "reservationCollectionId": plan["collectionId"] if reserved else None,
+        "reservationJobCardNumber": plan["jobCardNumber"] if reserved else None,
+        "scanAllowed": reserved,
     }
 
 
@@ -99,7 +118,7 @@ def area_overview(world, area=None, po=None):
     return {
         "mixingArea": area,
         "productionOrderDocumentNumber": po,
-        "equipment": [_equipment_payload(e) for e in world.equipment.values()
+        "equipment": [_equipment_payload(world, e) for e in world.equipment.values()
                       if in_scope(e["mixingArea"])],
         "activeCycles": [_cycle_payload(world, c) for c in world.cycles.values()
                          if c["active"] and in_scope(c["mixingArea"])
@@ -117,11 +136,25 @@ def area_overview(world, area=None, po=None):
         # planned collection's status is "MixingPlanned" and that list carries no plan data.
         "readyCollections": [_ready_collection_payload(world, c, area)
                              for c in world.collections.values()
-                             if c["status"] in ("ReadyForMixing", "MixingPlanned")
-                             and c["claimedByMixBatchId"] is None
+                             if _collection_selectable(world, c)
                              and po_ok(c["productionOrderDocumentNumber"])],
         "mixDestinations": [_destination_payload(world, d) for d in world.mix_destinations],
     }
+
+
+def _collection_selectable(world, col):
+    """A collection appears in readyCollections while it can still start a mixer: an unplanned
+    ReadyForMixing collection, or a MixingPlanned collection with a reservation still remaining.
+    Once every reserved mixer has been started, the collection leaves the board."""
+    if col["claimedByMixBatchId"] is not None:
+        return False
+    status = col["status"]
+    if status == "ReadyForMixing":
+        return True
+    if status == "MixingPlanned":
+        plan = world.mix_plans.get(col["collectionId"])
+        return bool(plan and plan["remainingMixerCodes"])
+    return False
 
 
 def _ready_collection_payload(world, col, area=None):
@@ -287,13 +320,31 @@ def _start_mixer(world, log, req, session, eq, po):
     if col["jobCardNumber"] != str(po):
         return _mreject(world, log, req, eq, "job_card_mismatch",
                         f"Collection {col_id} belongs to JC {col['jobCardNumber']}, not {po}.")
-    if col["status"] != "ReadyForMixing":
+    if col["status"] not in ("ReadyForMixing", "MixingPlanned"):
         if col["claimedByMixBatchId"]:
             return _mreject(world, log, req, eq, "source_already_assigned",
                             f"Collection {col_id} was already claimed by "
                             f"{col['claimedByMixBatchId']}. Each collection is claimed once, ever.")
         return _mreject(world, log, req, eq, "source_not_ready",
                         f"Collection {col_id} is {col['status']}; it must be ReadyForMixing.")
+
+    # 4.1 §7: the mixer must be a Reserved item of this collection's WPF-saved plan. Without a
+    # plan there is nothing to start; a mixer not (or no longer) reserved is not_in_plan.
+    plan = world.mix_plans.get(col_id)
+    if not plan:
+        return _mreject(world, log, req, eq, "mixer_plan_required",
+                        f"Collection {col_id} has no saved mixer plan. Save the collection's "
+                        f"mixer plan in Station 2 before scanning a mixer.",
+                        next_action="save_mixer_plan_in_station_2")
+    plan_item = next((i for i in plan["items"]
+                      if i["machineCode"] == eq["machineCode"] and i["status"] == "Reserved"),
+                     None)
+    if not plan_item:
+        remaining = ", ".join(plan["remainingMixerCodes"]) or "none"
+        return _mreject(world, log, req, eq, "mixer_not_in_plan",
+                        f"{eq['machineCode']} is not a remaining reserved mixer for collection "
+                        f"{col_id}. Scan one of: {remaining}.",
+                        next_action="scan_reserved_mixer")
 
     layer_inputs = None
     if eq["mixingArea"] == "RajooMachineMixing":
@@ -323,11 +374,22 @@ def _start_mixer(world, log, req, session, eq, po):
     }
     world.cycles[cyc_id] = _new_cycle(cyc_id, eq, po, session, req,
                                       collection_id=col_id, mix_batch_ids=[mix_id])
-    col["claimedByMixBatchId"] = mix_id
-    col["status"] = "Mixing"
+    # 4.1 §7: mark ONLY this plan item Started; the collection stays MixingPlanned while another
+    # reservation remains, and leaves the board once none does. It is not single-claimed any more.
+    plan_item["status"] = "Started"
+    plan_item["mixBatchId"] = mix_id
+    plan_item["cycleId"] = cyc_id
+    plan["startedMixerCodes"].append(eq["machineCode"])
+    plan["remainingMixerCodes"] = [c for c in plan["remainingMixerCodes"]
+                                   if c != eq["machineCode"]]
+    plan["status"] = "InProgress" if plan["remainingMixerCodes"] else "Completed"
+    col["status"] = "MixingPlanned"
     _occupy(eq, cyc_id, po, [mix_id])
-    log.transition(f"mixer start: {eq['machineCode']} claimed {col_id} -> {mix_id} / {cyc_id} "
-                   f"(operator {session['operatorId']}, device {req['deviceId']})")
+    log.transition(f"mixer start: {eq['machineCode']} started plan item "
+                   f"{plan_item['planItemId']} of {plan['mixPlanId']} on {col_id} -> "
+                   f"{mix_id} / {cyc_id} (remaining reserved: "
+                   f"{', '.join(plan['remainingMixerCodes']) or 'none'}; operator "
+                   f"{session['operatorId']}, device {req['deviceId']})")
     return _machine_result(world, req, action="Started", eq=eq, cycle_id=cyc_id, po=po,
                            collection_id=col_id, mix_batch_id=mix_id, affected=[mix_id],
                            next_action="scan_same_machine_to_finish", correlation=mix_id)
@@ -538,7 +600,27 @@ def _apply_finish(world, log, eq, cycle, forced):
                 mix["status"] = "Quarantined"
                 mix["completionMode"] = "ForceClosed"
                 col = world.collections.get(cycle["collectionId"])
-                if col:
+                plan = world.mix_plans.get(cycle["collectionId"]) if col else None
+                if plan:
+                    # 4.1 §7: release only this plan item back to Reserved so its mixer can be
+                    # re-scanned; the quarantined mix stays quarantined and never flows downstream.
+                    for it in plan["items"]:
+                        if it["cycleId"] == cycle["cycleId"]:
+                            it["status"] = "Reserved"
+                            it["mixBatchId"] = None
+                            it["cycleId"] = None
+                            code = it["machineCode"]
+                            if code in plan["startedMixerCodes"]:
+                                plan["startedMixerCodes"].remove(code)
+                            if code not in plan["remainingMixerCodes"]:
+                                plan["remainingMixerCodes"].append(code)
+                    plan["status"] = "InProgress" if plan["startedMixerCodes"] else "Saved"
+                    col["status"] = "MixingPlanned"
+                    log.transition(f"force-close quarantined {mix['mixBatchId']} "
+                                   f"(completionMode=ForceClosed, not assignable); plan "
+                                   f"{plan['mixPlanId']} item for cycle {cycle['cycleId']} "
+                                   f"released back to Reserved on collection {col['collectionId']}")
+                elif col:
                     col["claimedByMixBatchId"] = None
                     col["status"] = "ReadyForMixing"
                     log.transition(f"force-close quarantined {mix['mixBatchId']} "
