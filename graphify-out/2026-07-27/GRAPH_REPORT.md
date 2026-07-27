@@ -1,16 +1,16 @@
-# Graph Report - PPNAM_Station_2_AA  (2026-07-27)
+# Graph Report - PPNAM_Station_2_AA  (2026-07-24)
 
 ## Corpus Check
-- 1774 files · ~5,293,714 words
+- 1512 files · ~4,398,263 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2243 nodes · 3395 edges · 195 communities (113 shown, 82 thin omitted)
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 350 edges (avg confidence: 0.79)
+- 2238 nodes · 3374 edges · 191 communities (110 shown, 81 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 344 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `532416cd`
+- Built from commit: `4b2e48a2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -201,22 +201,18 @@
 - PalletStateTest
 - MqttClientFactory
 - ActiveJobsPage
-- MixingBoardViewModel.kt
-- formatElapsedSince
-- sweep2.py
-- MqttClientFactoryTest
 
 ## God Nodes (most connected - your core abstractions)
 1. `MixingViewModelTest` - 75 edges
 2. `MixingViewModel` - 69 edges
 3. `MixingUseCaseTest` - 50 edges
-4. `MixingBoardViewModelTest` - 44 edges
-5. `MqttRepositoryImpl` - 43 edges
-6. `MixingBoardViewModel` - 39 edges
+4. `MqttRepositoryImpl` - 43 edges
+5. `MixingBoardViewModelTest` - 43 edges
+6. `MixingBoardViewModel` - 38 edges
 7. `PPNAM Station 2 — Live Test Findings Log` - 33 edges
-8. `World` - 27 edges
-9. `OperatorSessionHolder` - 26 edges
-10. `Result` - 26 edges
+8. `Result` - 27 edges
+9. `World` - 27 edges
+10. `OperatorSessionHolder` - 26 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `AppNavGraph()` --calls--> `UpgradeRequiredGate()`  [INFERRED]
@@ -233,7 +229,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (195 total, 82 thin omitted)
+## Communities (191 total, 81 thin omitted)
 
 ### Community 0 - "Room DAO Tests"
 Cohesion: 0.10
@@ -248,16 +244,16 @@ Cohesion: 0.06
 Nodes (31): 0.1 Preconditions, 0.2 Harness, 0.3 Regenerating `pallets.json`, 0.3b One-time setup, 0.4 Driving the UI, 0.5 Backends, 0.6 When something fails, §0 How to run (+23 more)
 
 ### Community 3 - "Pre-Mix Hopper Domain Models"
-Cohesion: 0.04
-Nodes (5): BomLine, Boolean, String, MixingViewModelTest, MutableSharedFlow
+Cohesion: 0.05
+Nodes (4): BomLine, Boolean, String, MixingViewModelTest
 
 ### Community 4 - "MQTT Message Envelope & Repository Impl"
 Cohesion: 0.15
 Nodes (12): String, ResponseEnvelope, Boolean, ByteArray, Int, Job, Long, Mqtt5AsyncClient (+4 more)
 
 ### Community 5 - "Mixing ViewModel State Machine"
-Cohesion: 0.13
-Nodes (11): ProductionOrder, Double, Flow, Int, Job, List, StateFlow, String (+3 more)
+Cohesion: 0.09
+Nodes (9): ProductionOrder, Flow, Int, Job, List, StateFlow, Unit, MixingViewModel (+1 more)
 
 ### Community 6 - "Typed MQTT Result & Repository Contract"
 Cohesion: 0.13
@@ -272,7 +268,7 @@ Cohesion: 0.11
 Nodes (18): File Map, Global Constraints, PPNAM Station 2 Android App — Implementation Plan, Self-Review Checklist, Task 10: MixingUseCase & Job Lookup Screen, Task 11: Remaining Mixing Screens (IngredientScan → MixerCode → PreMixComplete), Task 12: Rajoo Flow, Task 13: RFID Recovery (+10 more)
 
 ### Community 9 - "Dashboard & RFID Recovery ViewModels"
-Cohesion: 0.20
+Cohesion: 0.17
 Nodes (9): Error, Idle, Job, StateFlow, String, Loading, Recovering, RfidUiState (+1 more)
 
 ### Community 10 - "Job Cancel & Exception Approval Tests"
@@ -296,12 +292,12 @@ Cohesion: 0.27
 Nodes (4): Any, String, RequestEnvelopeTest, ScanPayload
 
 ### Community 17 - "App Settings Defaults & Tests"
-Cohesion: 0.21
-Nodes (4): AppSettings, Boolean, Unit, AppSettingsTest
+Cohesion: 0.18
+Nodes (4): AppSettings, Boolean, MqttClientFactoryTest, AppSettingsTest
 
 ### Community 18 - "Final MQTT Bugfix Round"
-Cohesion: 0.12
-Nodes (17): ActiveCycleDto, ActiveRunDto, AssignedDestinationDto, CompletionMode, EquipmentDto, EquipmentStatus, Boolean, MixDestinationAssignmentPayload (+9 more)
+Cohesion: 0.11
+Nodes (17): ActiveCycleDto, ActiveRunDto, AssignedDestinationDto, CompletionMode, EquipmentStatus, Boolean, LayerInputDto, MachineCycleFinishPayload (+9 more)
 
 ### Community 19 - "Shared UI Scaffold & Screens"
 Cohesion: 0.15
@@ -312,8 +308,8 @@ Cohesion: 0.16
 Nodes (28): _apply_finish(), area_overview(), _cycle_payload(), _destination_payload(), _equipment_payload(), finish(), _finish_next_action(), force_close() (+20 more)
 
 ### Community 22 - "Shared Scan UI Components"
-Cohesion: 0.20
-Nodes (17): Cancelling, CancelOutcome, Confirmed, EnteringBagDetails, EnteringQuantityDetails, Error, Failed, Idle (+9 more)
+Cohesion: 0.13
+Nodes (20): Cancelling, CancelOutcome, Confirmed, EnteringBagDetails, EnteringQuantityDetails, Error, Failed, Idle (+12 more)
 
 ### Community 23 - "Login & Session Design Docs"
 Cohesion: 0.08
@@ -356,8 +352,8 @@ Cohesion: 0.29
 Nodes (7): Barcode, SharedFlow, RfidTag, ScanEvent, ScanEventBus, SharedFlow, ScanRepository
 
 ### Community 33 - "MixingViewModel.kt"
-Cohesion: 0.12
-Nodes (8): ActiveJobCardsPayload, IngredientCollectionCancelPayload, Double, Int, List, String, Unit, MixingUseCase
+Cohesion: 0.10
+Nodes (13): ApprovalState, IngredientScanPayload, ShortBagWaiverPayload, SourceType, Station3StockStatus, ActiveJobCardsPayload, IngredientCollectionCancelPayload, Double (+5 more)
 
 ### Community 34 - "BomLine"
 Cohesion: 0.27
@@ -368,8 +364,8 @@ Cohesion: 0.14
 Nodes (13): Connection status: surfacing what sub-project 1 exposed, Context, Design decision: intercept `session_required` in the transport, Inherited defect: the MixingViewModel scan race, MQTT Schema 3.0 — Auth & Session Design, Navigation on session loss, Open questions for the Station 2 developer, Scope (+5 more)
 
 ### Community 36 - "BOM Line Response & Lookup Tests"
-Cohesion: 0.06
-Nodes (17): ApprovalState, IngredientScanPayload, IngredientScanResultResponse, ShortBagWaiverPayload, SourceType, Station3StockStatus, ActiveJobCardsInvalidatedResponse, ActiveJobCardsListResponse (+9 more)
+Cohesion: 0.07
+Nodes (12): IngredientScanResultResponse, ActiveJobCardsInvalidatedResponse, ActiveJobCardsListResponse, ActiveJobCardSummary, BomLineResponse, BomLoadedResponse, CollectionResumePayload, CollectionSummaryResponse (+4 more)
 
 ### Community 38 - "UI Modernisation Design Docs"
 Cohesion: 0.11
@@ -436,8 +432,8 @@ Cohesion: 0.18
 Nodes (10): Global Constraints, Job Card Lookup as Landing Screen — Implementation Plan, Task 1: `MixingViewModel` gains `pauseScanning()`, `session`, and `logout()`, Task 2: `AppScaffold` gains an RFID Pallet Lookup top-bar action, Task 3: `JobLookupScreen` becomes the landing screen (session, logout, settings, RFID button, saveable input), Task 4: `IngredientScanScreen` gets the RFID button and saveable local state, Task 5: `HopperScanScreen` gets the RFID button, Task 6: `PreMixCompleteScreen` gets the RFID button and saveable confirmation state (+2 more)
 
 ### Community 120 - "SettingsViewModel.kt"
-Cohesion: 0.22
-Nodes (8): DoseRow, Flow, Job, List, StateFlow, String, Unit, MixingBoardViewModel
+Cohesion: 0.06
+Nodes (47): Equipment, DialogFormColumn(), Modifier, BoardContent(), CycleSheetDialog(), ForceCloseDialog(), Boolean, List (+39 more)
 
 ### Community 121 - "Design"
 Cohesion: 0.20
@@ -496,8 +492,8 @@ Cohesion: 0.06
 Nodes (28): Any, Boolean, Class, Long, StateFlow, String, T, MqttConnectionState (+20 more)
 
 ### Community 137 - "LoginViewModel"
-Cohesion: 0.14
-Nodes (18): Equipment, DialogFormColumn(), Modifier, BoardContent(), CycleSheetDialog(), ForceCloseDialog(), Boolean, List (+10 more)
+Cohesion: 0.34
+Nodes (13): app_foreground(), dump(), ensure_app(), find(), goto_lookup(), lookup(), nodes(), Robust job-card sweep: locates UI elements via uiautomator instead of fixed taps (+5 more)
 
 ### Community 138 - "HomeViewModel"
 Cohesion: 0.40
@@ -533,15 +529,15 @@ Nodes (7): Logs (per run: `logs/<UTC-timestamp>/`), Options, Seed world, Self-te
 
 ### Community 149 - "MqttVocabularyTest"
 Cohesion: 0.09
-Nodes (8): ActiveRun, ReadyMix, computeHighlightedMachines(), Set, Boolean, List, String, MixingBoardViewModelTest
+Nodes (6): ActiveRun, ReadyMix, Boolean, List, String, MixingBoardViewModelTest
 
 ### Community 150 - ".request"
 Cohesion: 0.60
 Nodes (3): Any, Class, T
 
 ### Community 151 - "MixingBoardUseCase"
-Cohesion: 0.22
-Nodes (8): LayerInputDto, MachineCycleFinishPayload, MachineCycleForceClosePayload, MachineCycleStartPayload, CollectedMaterial, Any, List, String
+Cohesion: 0.28
+Nodes (7): MachineCycleStartPayload, MixDestinationAssignmentPayload, AssignedDestination, MachineCycleOutcome, Any, List, String
 
 ### Community 152 - "SettingsViewModel.kt"
 Cohesion: 0.24
@@ -572,11 +568,11 @@ Cohesion: 0.06
 Nodes (32): A10. Logout is hidden behind the operator-name label — **Medium**, A11. The two cancel dialogs contradict each other — **Medium**, A12. Raw ISO timestamps and a missing operator name — **Low**, A13. Smaller items — **Low**, A14. Large parts of the Station 2 process have no UI at all — **Plan-level**, A1. No window insets anywhere — root cause of the recurring toolbar cropping — **High**, A2. Bag dialog opens with no line armed, then silently discards the entry — **High**, A3. `allowedActions` / `allowedTabs` are received then ignored — **High** (+24 more)
 
 ### Community 161 - "LoginViewModelTest"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (3): LoginViewModelTest, Exception, MutableStateFlow
 
 ### Community 162 - ".readyMix"
-Cohesion: 0.23
+Cohesion: 0.24
 Nodes (4): MixingOverviewPayload, AreaOverview, MixingArea, MixingBoardUseCase
 
 ### Community 163 - "LoginViewModel.kt"
@@ -588,8 +584,8 @@ Cohesion: 0.06
 Nodes (33): F-001 — SECURITY (High): operator passwords traverse MQTT in cleartext, F-002 — CONTRACT (Medium): response `timestampUtc` is earlier than the request, F-003 — CONTRACT (Low): inconsistent timestamp serialization, F-004 — CONTRACT (Medium): error text is in `reason`, `errorMessage` is absent, F-005 — ENV (Low): device clock 2.67 s behind broker/host, F-006 — UX (Medium): IME hides the password field and Log In button, F-007 — UX (Low): "Or scan your badge" sits above the username field, F-008 — PERF (Medium): 2.69 s for a credential rejection (+25 more)
 
 ### Community 165 - "ConnectionStatus"
-Cohesion: 0.28
-Nodes (9): AuthUseCase, Badge, Credentials, List, String, Unit, LoginMethod, message() (+1 more)
+Cohesion: 0.23
+Nodes (10): Unit, AuthUseCase, Badge, Credentials, List, String, Unit, LoginMethod (+2 more)
 
 ### Community 166 - "MqttClientFactoryTest"
 Cohesion: 0.06
@@ -604,15 +600,15 @@ Cohesion: 0.47
 Nodes (8): emit(), now_iso(), on_connect(), on_disconnect(), on_message(), Passive MQTT sniffer for PPNAM Station 2 live-backend testing.  Read-only: subsc, redact(), report_orphans()
 
 ### Community 172 - "RfidViewModel.kt"
-Cohesion: 0.24
-Nodes (3): MachineCycleResultResponse, LayerInput, MixingBoardUseCaseTest
+Cohesion: 0.19
+Nodes (5): EquipmentDto, MachineCycleResultResponse, MixingOverviewResponse, LayerInput, MixingBoardUseCaseTest
 
 ### Community 173 - "UpgradeGateViewModel"
 Cohesion: 0.50
 Nodes (4): Boolean, StateFlow, UpgradeGateViewModel, UpgradeRequiredGate()
 
 ### Community 175 - "RfidViewModelTest"
-Cohesion: 0.19
+Cohesion: 0.20
 Nodes (3): Boolean, String, RfidViewModelTest
 
 ### Community 176 - "PalletUseCase"
@@ -620,8 +616,8 @@ Cohesion: 0.23
 Nodes (6): HoldingRecoveryPayload, PalletLookupPayload, PalletInfo, PalletState, String, PalletUseCase
 
 ### Community 177 - "MixingBoard.kt"
-Cohesion: 0.19
-Nodes (12): Accepted, ActiveCycle, AssignedDestination, EquipmentRole, Failed, Boolean, MachineCycleOutcome, MixDestination (+4 more)
+Cohesion: 0.17
+Nodes (10): Accepted, ActiveCycle, CollectedMaterial, Failed, Boolean, MixDestination, MixerPlanItem, MixPlanProgress (+2 more)
 
 ### Community 178 - ".authenticate"
 Cohesion: 0.23
@@ -655,34 +651,22 @@ Nodes (5): anomalies(), extract(), main(), Regenerate pallets.json from the barc
 Cohesion: 0.40
 Nodes (3): String, ManagerAuthorization, ManagerAction
 
-### Community 191 - "MixingBoardViewModel.kt"
-Cohesion: 0.21
-Nodes (13): AreaPicker, Board, BoardSelection, BoardSheet, Collection, CycleSheet, Error, ForceCloseDialog (+5 more)
-
-### Community 192 - "formatElapsedSince"
-Cohesion: 0.20
-Nodes (6): formatElapsedSince(), formatStationTimestamp(), Instant, String, TimeFormatTest, ZoneId
-
-### Community 193 - "sweep2.py"
-Cohesion: 0.34
-Nodes (13): app_foreground(), dump(), ensure_app(), find(), goto_lookup(), lookup(), nodes(), Robust job-card sweep: locates UI elements via uiautomator instead of fixed taps (+5 more)
-
 ## Knowledge Gaps
-- **647 isolated node(s):** `FailureKind`, `EmptyPayload`, `ScramPurpose`, `ScramChallengeResponse`, `SourceType` (+642 more)
+- **648 isolated node(s):** `FailureKind`, `EmptyPayload`, `ScramPurpose`, `ScramChallengeResponse`, `SourceType` (+643 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **82 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **81 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `MqttRepository` connect `MixingViewModel.kt` to `Room DAO Tests`, `LoginViewModelTest`, `Pre-Mix Hopper Domain Models`, `MQTT Message Envelope & Repository Impl`, `BOM Line Response & Lookup Tests`, `Typed MQTT Result & Repository Contract`, `AuthUseCase`, `RfidViewModel.kt`, `RfidViewModelTest`, `App Settings Defaults & Tests`, `MqttVocabularyTest`, `SettingsViewModelTest`?**
-  _High betweenness centrality (0.070) - this node is a cross-community bridge._
+- **Why does `MqttRepository` connect `MixingViewModel.kt` to `Room DAO Tests`, `LoginViewModelTest`, `Pre-Mix Hopper Domain Models`, `MQTT Message Envelope & Repository Impl`, `ConnectionStatus`, `BOM Line Response & Lookup Tests`, `Typed MQTT Result & Repository Contract`, `AuthUseCase`, `RfidViewModel.kt`, `RfidViewModelTest`, `MqttVocabularyTest`, `SettingsViewModelTest`?**
+  _High betweenness centrality (0.072) - this node is a cross-community bridge._
 - **Why does `Rejection` connect `jobcards.py` to `LoginViewModelTest`, `common.py`, `Rejection`, `Dashboard Use Case & Tests`, `Replay`, `HomeTile`, `BomLine`?**
-  _High betweenness centrality (0.056) - this node is a cross-community bridge._
-- **Why does `MixingUseCaseTest` connect `BOM Line Response & Lookup Tests` to `Room DAO Tests`, `MixingViewModel.kt`, `LoginViewModelTest`, `MixingViewModel.kt`, `PalletUseCase`, `.authorize`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `MqttRepositoryImpl` connect `MQTT Message Envelope & Repository Impl` to `Room DAO Tests`, `Offline Queue Repository & RFID Scan Bus`, `MixingViewModel.kt`, `MQTT Client Factory & Reconnection Tests`, `state.py`, `MqttClockSkewTest`, `MqttRepository`, `MqttResponseDeduplicationTest`, `MqttSessionExpiryTest`, `LoginViewModel.kt`, `.request`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **What connects `FailureKind`, `EmptyPayload`, `ScramPurpose` to the rest of the system?**
-  _734 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _735 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Room DAO Tests` be split into smaller, more focused modules?**
   _Cohesion score 0.10333333333333333 - nodes in this community are weakly interconnected._
 - **Should `Offline Queue Repository & RFID Scan Bus` be split into smaller, more focused modules?**
