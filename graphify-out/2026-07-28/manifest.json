@@ -3490,18 +3490,18 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCase.kt": {
-    "mtime": 1785240405.9704995,
-    "ast_hash": "2af5e50a4846d5724111d7dccf428987",
+    "mtime": 1785231896.933372,
+    "ast_hash": "441756744763038b246f345b2b5f39c3",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/data/mqtt/dto/MixingMessagesTest.kt": {
-    "mtime": 1785240455.859581,
-    "ast_hash": "95c5a026bff094b04748418fdabbfba0",
+    "mtime": 1785229422.434095,
+    "ast_hash": "78dcc5de46542c7357e046f2d1ac1ff2",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/domain/usecase/MixingBoardUseCaseTest.kt": {
-    "mtime": 1785240704.1953783,
-    "ast_hash": "d9b86f5d2fde8e40d2ba3bc78feb9be5",
+    "mtime": 1785230431.1989384,
+    "ast_hash": "abf87d5cef0a2acaf2804040b4e35522",
     "semantic_hash": ""
   },
   "tools/backend-sim/logs/20260721-120405/state-snapshots/0001-login_requested-login-56687181-0003.json": {
@@ -4505,13 +4505,13 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModel.kt": {
-    "mtime": 1785240399.3416698,
-    "ast_hash": "2233314b9a0050606f6654e0b63c3ed7",
+    "mtime": 1785231203.3283672,
+    "ast_hash": "c52eedd931bd756bcf9c2a7e0c7cd42b",
     "semantic_hash": ""
   },
   "app/src/test/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardViewModelTest.kt": {
-    "mtime": 1785240657.8899243,
-    "ast_hash": "b803ce8e9cfb2366a0f45c880511508e",
+    "mtime": 1785231276.3280835,
+    "ast_hash": "52d15281ff04c0ed12dc7b36f848cb2e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/components/UpgradeGate.kt": {
@@ -4525,8 +4525,8 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/ppnam/station2aa/ui/mixing/board/MixingBoardScreen.kt": {
-    "mtime": 1785240438.86686,
-    "ast_hash": "c6d490ea1bf04725a8a7cb70579df7df",
+    "mtime": 1785231839.32158,
+    "ast_hash": "af55ace99ccba7ad5ba57dfc2ed0c478",
     "semantic_hash": ""
   },
   "tools/backend-sim/logs/20260721-172245/state-snapshots/0001-login_requested-login-af69fe29-0003.json": {
@@ -13630,8 +13630,8 @@
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-07-28-jc-driven-mixing-design.md": {
-    "mtime": 1785240895.9587104,
-    "ast_hash": "d06f496f9410762d12f4b8cc44e90096",
+    "mtime": 1785224632.6276948,
+    "ast_hash": "c6e7bc0d62abe60635902b8168b0a8d9",
     "semantic_hash": ""
   },
   "docs/test-runs/2026-07-27/report.md": {
