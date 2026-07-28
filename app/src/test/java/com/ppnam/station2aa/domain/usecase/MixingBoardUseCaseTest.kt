@@ -57,7 +57,7 @@ class MixingBoardUseCaseTest {
         whenever(mockMqtt.request(
             eq("mixing_overview_requested"), eq("mixing_overview_result"), any(), anyOrNull(),
             eq(MixingOverviewResponse::class.java)
-        )).thenReturn(MqttOutcome.Accepted(response, NextAction.SELECT_COLLECTION_MIX_OR_MACHINE))
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.SELECT_COLLECTION))
 
         val overview = useCase.fetchOverview(MixingArea.Jandi).getOrThrow()
 
@@ -132,7 +132,7 @@ class MixingBoardUseCaseTest {
         whenever(mockMqtt.request(
             eq("collection_resume_requested"), eq("bom_loaded"), any(), anyOrNull(),
             eq(BomLoadedResponse::class.java)
-        )).thenReturn(MqttOutcome.Accepted(response, NextAction.START_MIXING))
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.OPEN_MIXING))
 
         val materials = useCase.fetchCollectedMaterials("510019068", "COL_1").getOrThrow()
 

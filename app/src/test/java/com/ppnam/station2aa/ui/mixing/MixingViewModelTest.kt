@@ -250,7 +250,7 @@ class MixingViewModelTest {
                 collectionSummary = "All products collected.",
                 collectionStatus = "ReadyForMixing",
                 overCollectionToleranceBags = 1.0,
-                nextAction = com.ppnam.station2aa.data.mqtt.NextAction.START_MIXING,
+                nextAction = com.ppnam.station2aa.data.mqtt.NextAction.OPEN_MIXING,
             )))
         viewModel.confirmIngredientScan("TAG-1", "full", 2.0)
         advanceUntilIdle()
@@ -1342,7 +1342,7 @@ class MixingViewModelTest {
     }
 
     @Test
-    fun `an accepted outcome with START_MIXING emits the mixing-board navigation event`() = runTest {
+    fun `an accepted outcome with OPEN_MIXING emits the mixing-board navigation event`() = runTest {
         whenever(mockUseCase.lookupJob("510019068")).thenReturn(Result.success(sampleOrder))
         viewModel.lookupJob("510019068")
         advanceUntilIdle()
@@ -1353,7 +1353,7 @@ class MixingViewModelTest {
                 collectionSummary = "All products collected.",
                 collectionStatus = "ReadyForMixing",
                 overCollectionToleranceBags = 1.0,
-                nextAction = com.ppnam.station2aa.data.mqtt.NextAction.START_MIXING,
+                nextAction = com.ppnam.station2aa.data.mqtt.NextAction.OPEN_MIXING,
             )))
 
         val events = mutableListOf<String>()

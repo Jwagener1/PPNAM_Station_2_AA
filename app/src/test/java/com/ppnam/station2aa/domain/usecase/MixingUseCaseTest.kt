@@ -695,7 +695,7 @@ class MixingUseCaseTest {
                 eq("ingredient_scan_requested"), eq("ingredient_scan_result"), any(), any(),
                 eq(IngredientScanResultResponse::class.java)
             )
-        ).thenReturn(MqttOutcome.Accepted(response, NextAction.START_MIXING))
+        ).thenReturn(MqttOutcome.Accepted(response, NextAction.OPEN_MIXING))
 
         val outcome = useCase.scanIngredient(
             "COL_000001", "TAG-1", "MAT-001", bagSizeOption = "full", bagCount = 2.0
@@ -704,7 +704,7 @@ class MixingUseCaseTest {
         assertEquals("All products collected.", outcome.collectionSummary)
         assertEquals("ReadyForMixing", outcome.collectionStatus)
         assertEquals(1.0, outcome.overCollectionToleranceBags!!, 0.0)
-        assertEquals(NextAction.START_MIXING, outcome.nextAction)
+        assertEquals(NextAction.OPEN_MIXING, outcome.nextAction)
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.ppnam.station2aa.ui.mixing.board
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ppnam.station2aa.data.mqtt.ErrorCode
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
@@ -433,30 +432,15 @@ class MixingBoardViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Phase 2 dispatch (§1/§8). A finished mix reaches a PRODUCTION machine only through
-     * `mix_destination_assignment_requested`; a production-machine `machine_cycle_start` is rejected
-     * with `destination_assignment_required`. The JANDI drum is the one downstream machine that IS a
-     * transfer cycle start, so it keeps [MixingBoardUseCase.startDownstream]. An unknown scanned stub
-     * (no role on the board) tries the cycle start and falls back to assignment on exactly that
-     * rejection, so a production code we could not classify still commits correctly.
-     */
     private suspend fun assignOrStartDownstream(
         machine: Equipment,
         selection: BoardSelection.Mixes,
-    ): MachineCycleOutcome {
+    ): MachineCycleOutcome =
         if (machine.role == EquipmentRole.PRODUCTION_MACHINE) {
-            return useCase.assignDestinations(selection.mixBatchIds, listOf(machine.machineCode))
-        }
-        val started = useCase.startDownstream(
-            machine.machineCode, selection.jobCardNumber, selection.mixBatchIds)
-        return if (started is MachineCycleOutcome.Rejected &&
-            started.errorCode == ErrorCode.DESTINATION_ASSIGNMENT_REQUIRED) {
             useCase.assignDestinations(selection.mixBatchIds, listOf(machine.machineCode))
         } else {
-            started
+            useCase.startDownstream(machine.machineCode, selection.jobCardNumber, selection.mixBatchIds)
         }
-    }
 
     /** Returns null and surfaces a validation error when the rows are not sendable. */
     private fun validateDoses(rows: List<DoseRow>): List<LayerInput>? {

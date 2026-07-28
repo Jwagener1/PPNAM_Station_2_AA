@@ -733,7 +733,7 @@ class MixingViewModel @Inject constructor(
                 // Auto-navigate to Mixing when the server says the collection is ready
                 // (user decision 1). Guidance, not permission — the board re-verifies
                 // everything server-side.
-                if (outcome.nextAction == NextAction.START_MIXING) {
+                if (outcome.nextAction == NextAction.OPEN_MIXING) {
                     _navigationEvent.trySend(MixingNavDestination.MIXING_BOARD)
                 }
             }

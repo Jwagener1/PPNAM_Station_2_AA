@@ -28,16 +28,13 @@ value class ErrorCode(val raw: String) {
         // v4.0 §10 — stable Mixing codes.
         val CLIENT_UPGRADE_REQUIRED = ErrorCode("client_upgrade_required")
         val INVALID_MIXING_AREA = ErrorCode("invalid_mixing_area")
-        val LEGACY_REQUEST_SHAPE = ErrorCode("legacy_request_shape")
         val UNKNOWN_OR_DISABLED_EQUIPMENT = ErrorCode("unknown_or_disabled_equipment")
         val EQUIPMENT_IN_USE = ErrorCode("equipment_in_use")
         val CYCLE_MISMATCH = ErrorCode("cycle_mismatch")
         val SOURCE_NOT_FOUND = ErrorCode("source_not_found")
         val SOURCE_NOT_READY = ErrorCode("source_not_ready")
         val SOURCE_ALREADY_ASSIGNED = ErrorCode("source_already_assigned")
-        val JOB_CARD_MISMATCH = ErrorCode("job_card_mismatch")
         val INVALID_ROUTE = ErrorCode("invalid_route")
-        val DRUM_CYCLE_REQUIRED = ErrorCode("drum_cycle_required")
         val INVALID_LAYER_INPUTS = ErrorCode("invalid_layer_inputs")
 
         // v4.1 authentication. The app can only provoke this by sending a `password` or
@@ -48,22 +45,24 @@ value class ErrorCode(val raw: String) {
         // v4.1 keyset paging. Discard accumulated pages and re-request page one.
         val PAGE_CURSOR_STALE = ErrorCode("page_cursor_stale")
 
-        // v4.1 cross-area mixer plans. The plan is saved in Station 2 (WPF), never on the
-        // handheld, so every one of these is resolved by refreshing or by desk-side action.
-        val MIXER_PLAN_REQUIRED = ErrorCode("mixer_plan_required")
-        val MIXER_NOT_IN_PLAN = ErrorCode("mixer_not_in_plan")
-        val MIXER_RESERVED = ErrorCode("mixer_reserved")
-        val MIX_PLAN_LOCKED = ErrorCode("mix_plan_locked")
-        val INVALID_PLANNED_LAYER_INPUTS = ErrorCode("invalid_planned_layer_inputs")
-        val INVALID_PLANNED_DESTINATION = ErrorCode("invalid_planned_destination")
         val DESTINATION_BUSY = ErrorCode("destination_busy")
-        val MIX_CYCLE_NOT_ACTIVE = ErrorCode("mix_cycle_not_active")
-        val DESTINATION_ASSIGNMENT_LOCKED = ErrorCode("destination_assignment_locked")
 
-        // v4.1 strict two-phase Mixing: a production-machine machine_cycle_start is rejected with
-        // this — the app must resend the finished mixes and codes via
-        // mix_destination_assignment_requested (§1/§8). Only that request may commit a destination.
-        val DESTINATION_ASSIGNMENT_REQUIRED = ErrorCode("destination_assignment_required")
+        // JC-driven Mixing (2026-07-28). Mixing is driven by a completed collection, its job
+        // card, equipment scans and server-issued cycle IDs — there are no plans to violate.
+        val COLLECTION_NOT_READY = ErrorCode("collection_not_ready")
+        val COLLECTION_ALREADY_MIXED = ErrorCode("collection_already_mixed")
+        val ROUTE_REQUIRED = ErrorCode("route_required")
+        val WRONG_SCAN_SEQUENCE = ErrorCode("wrong_scan_sequence")
+        val INVALID_DESTINATION = ErrorCode("invalid_destination")
+        /** Main output may never be allocated to a Rajoo machine. Always rejected server-side. */
+        val RAJOO_DESTINATION_FORBIDDEN = ErrorCode("rajoo_destination_forbidden")
+        val JANDI_DRUM_REQUIRED = ErrorCode("jandi_drum_required")
+        val JANDI_DRUM_BUSY = ErrorCode("jandi_drum_busy")
+        val JANDI_MAIN_MIX_REQUIRED = ErrorCode("jandi_main_mix_required")
+        /** A JANDI 4 start named a Main mixer code that resolves to more than one eligible mix. */
+        val AMBIGUOUS_MAIN_MIX = ErrorCode("ambiguous_main_mix")
+        val AUTHORIZATION_REQUIRED = ErrorCode("authorization_required")
+        val AUTHORIZATION_EXPIRED = ErrorCode("authorization_expired")
 
         // v4.1 Station 3 master-batch capture.
         val STATION3_UNAVAILABLE = ErrorCode("station3_unavailable")
@@ -79,10 +78,6 @@ value class ErrorCode(val raw: String) {
 /**
  * Contract v4.1 `nextAction`. Guidance for the scanner UI, never authorization. An empty value
  * means "no forced navigation".
- *
- * One 4.1 action is parameterised: `scan_reserved_mixer:JAN-MIX-01,MXR-02` carries the remaining
- * reserved mixer codes after the colon. Use [ScanReservedMixer] to read it rather than comparing
- * the raw string, which will never match a constant.
  */
 @JvmInline
 value class NextAction(val raw: String) {
@@ -94,8 +89,6 @@ value class NextAction(val raw: String) {
         val SCAN_INGREDIENT = NextAction("scan_ingredient")
         val RECOVER_HOLDING = NextAction("recover_holding")
         val RETRY_WITH_MANAGER_APPROVAL = NextAction("retry_with_manager_approval")
-        val START_MIXING = NextAction("start_mixing")
-        val SELECT_COLLECTION_MIX_OR_MACHINE = NextAction("select_collection_mix_or_machine")
         val SCAN_SAME_MACHINE_TO_FINISH = NextAction("scan_same_machine_to_finish")
         val UPGRADE_READER_FOR_MIXING = NextAction("upgrade_reader_for_mixing")
 
@@ -107,25 +100,20 @@ value class NextAction(val raw: String) {
         // v4.1 active-jobs invalidation push.
         val REFRESH_ACTIVE_JOBS = NextAction("refresh_active_jobs")
 
-        // v4.1 mixer plans.
-        val SAVE_MIXER_PLAN_IN_STATION_2 = NextAction("save_mixer_plan_in_station_2")
-        val SCAN_SAME_MACHINE_TO_FINISH_OR_SCAN_NEXT_PLANNED_MIXER =
-            NextAction("scan_same_machine_to_finish_or_scan_next_planned_mixer")
-
-        /** Prefix of the parameterised reserved-mixer action. */
-        const val SCAN_RESERVED_MIXER_PREFIX = "scan_reserved_mixer:"
+        // JC-driven Mixing (2026-07-28). Every value is a plain constant — the parameterised
+        // `scan_reserved_mixer:` form went with the plans.
+        val OPEN_MIXING = NextAction("open_mixing")
+        val SELECT_COLLECTION = NextAction("select_collection")
+        val SELECT_JANDI_ROUTE = NextAction("select_jandi_route")
+        val SCAN_JANDI_DRUM_TO_START = NextAction("scan_jandi_drum_to_start")
+        val SCAN_JANDI_DRUM_TO_FINISH = NextAction("scan_jandi_drum_to_finish")
+        val SELECT_MAIN_DESTINATION = NextAction("select_main_destination")
+        val SCAN_DESTINATION_TO_START = NextAction("scan_destination_to_start")
+        val SELECT_JANDI4_MAIN_SOURCE = NextAction("select_jandi4_main_source")
+        val SCAN_JANDI4_TO_START = NextAction("scan_jandi4_to_start")
+        val SCAN_ADDITIONAL_RAJOO_LAYER_OR_FINISH_ACTIVE_LAYER =
+            NextAction("scan_additional_rajoo_layer_or_finish_active_layer")
+        val REFRESH_MIXING_OVERVIEW = NextAction("refresh_mixing_overview")
+        val COMPLETED = NextAction("completed")
     }
-
-    /**
-     * The remaining reserved mixer codes when this is a `scan_reserved_mixer:` action, else null.
-     *
-     * Null and an empty list mean different things: null is "this isn't that action at all",
-     * whereas an empty list would be a malformed action that named no mixers.
-     */
-    val scanReservedMixerCodes: List<String>?
-        get() = raw.takeIf { it.startsWith(SCAN_RESERVED_MIXER_PREFIX) }
-            ?.removePrefix(SCAN_RESERVED_MIXER_PREFIX)
-            ?.split(',')
-            ?.map { it.trim() }
-            ?.filter { it.isNotEmpty() }
 }
