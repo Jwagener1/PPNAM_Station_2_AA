@@ -52,11 +52,16 @@ data class DoseRow(
 sealed class BoardSheet {
     object None : BoardSheet()
 
-    /** Start confirmation. [doseRows] is non-null only for a Rajoo mixer start. */
+    /**
+     * Start confirmation. [doseRows] is non-null only for a Rajoo mixer start.
+     * [selectedRoute] is set by Task 7's JANDI route picker; until then it stays null, so a
+     * JANDI mixer start hits the "select a route" validation path.
+     */
     data class StartConfirm(
         val machine: Equipment,
         val doseRows: List<DoseRow>?,
         val validationError: String? = null,
+        val selectedRoute: String? = null,
     ) : BoardSheet()
 
     data class CycleSheet(val machine: Equipment, val cycle: ActiveCycle) : BoardSheet()
@@ -379,23 +384,35 @@ class MixingBoardViewModel @Inject constructor(
         val machine = sheet.machine
         actionJob = viewModelScope.launch {
             val outcome: MachineCycleOutcome = when (val selection = board.selection) {
-                is BoardSelection.Collection -> {
-                    if (sheet.doseRows != null) {
-                        val doses = validateDoses(sheet.doseRows)
+                is BoardSelection.Collection -> when {
+                    machine.area == MixingArea.Rajoo && machine.role == EquipmentRole.MIXER -> {
+                        val doses = validateDoses(sheet.doseRows.orEmpty())
                         if (doses == null) return@launch // validationError already set
                         setBoard(board.copy(busy = true))
-                        useCase.startRajoo(machine.machineCode, selection.jobCardNumber,
-                            selection.collectionId, doses)
-                    } else {
+                        useCase.startRajooLayer(machine.machineCode, selection.collectionId, doses)
+                    }
+                    machine.area == MixingArea.Jandi && machine.role == EquipmentRole.MIXER -> {
+                        val route = sheet.selectedRoute
+                        if (route == null) {
+                            setBoard(board.copy(sheet = sheet.copy(
+                                validationError = "Select JANDI 2, JANDI 3 or the drum.")))
+                            return@launch
+                        }
                         setBoard(board.copy(busy = true))
-                        useCase.startMixer(machine.machineCode, selection.jobCardNumber, selection.collectionId)
+                        useCase.startJandiMixer(machine.machineCode, selection.collectionId, route)
+                    }
+                    else -> {
+                        setBoard(board.copy(busy = true))
+                        useCase.startMixerFromCollection(machine.machineCode, selection.collectionId)
                     }
                 }
                 is BoardSelection.Mix -> {
                     setBoard(board.copy(busy = true))
-                    // Task 5 replaces this with startProductionDestination; startDownstream is a
-                    // temporary stand-in that keeps the module compiling and green.
-                    useCase.startDownstream(machine.machineCode, selection.jobCardNumber, listOf(selection.mixBatchId))
+                    if (machine.role == EquipmentRole.TRANSFER) {
+                        useCase.startDrumTransfer(machine.machineCode, selection.mixBatchId)
+                    } else {
+                        useCase.startProductionDestination(machine.machineCode, selection.mixBatchId)
+                    }
                 }
                 is BoardSelection.None -> return@launch
             }

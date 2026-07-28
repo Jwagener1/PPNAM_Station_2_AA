@@ -392,9 +392,9 @@ class MixingBoardViewModelTest {
     }
 
     @Test
-    fun `confirmStart for a collection on a plain mixer calls startMixer`() = runTest {
+    fun `confirmStart for a collection on a plain mixer calls startMixerFromCollection`() = runTest {
         openMainBoard(); advanceUntilIdle()
-        whenever(mockUseCase.startMixer(any(), any(), any())).thenReturn(
+        whenever(mockUseCase.startMixerFromCollection(any(), any())).thenReturn(
             com.ppnam.station2aa.domain.model.MachineCycleOutcome.Accepted(
                 action = "Started", machineCode = "MXR-01", cycleId = "CYC_1",
                 mixBatchId = "MIX_5", productionRunId = null,
@@ -405,7 +405,7 @@ class MixingBoardViewModelTest {
         viewModel.confirmStart()
         advanceUntilIdle()
 
-        verify(mockUseCase).startMixer("MXR-01", "510019068", "COL_1")
+        verify(mockUseCase).startMixerFromCollection("MXR-01", "COL_1")
         val board = viewModel.uiState.value as MixingBoardUiState.Board
         assertTrue(board.selection is BoardSelection.None)
         assertTrue(board.sheet is BoardSheet.None)
@@ -413,12 +413,9 @@ class MixingBoardViewModelTest {
     }
 
     @Test
-    fun `confirmStart for a mix on a downstream machine calls startDownstream`() = runTest {
-        // Task 3: assignDestinations is retired along with the plan/reservation surface.
-        // startDownstream is a temporary stand-in for every downstream selection until Task 5
-        // replaces it with startProductionDestination.
+    fun `confirmStart for a mix on a downstream machine calls startProductionDestination`() = runTest {
         openMainBoard(); advanceUntilIdle()
-        whenever(mockUseCase.startDownstream(any(), any(), any())).thenReturn(
+        whenever(mockUseCase.startProductionDestination(any(), any())).thenReturn(
             MachineCycleOutcome.Accepted(
                 action = "Started", machineCode = "EXT-03", cycleId = null,
                 mixBatchId = "MIX_1", productionRunId = "RUN_1",
@@ -429,13 +426,13 @@ class MixingBoardViewModelTest {
         viewModel.confirmStart()
         advanceUntilIdle()
 
-        verify(mockUseCase).startDownstream("EXT-03", "510019068", listOf("MIX_1"))
+        verify(mockUseCase).startProductionDestination("EXT-03", "MIX_1")
     }
 
     @Test
     fun `confirmStart for mixes on a JANDI drum starts a transfer cycle`() = runTest {
         // The JANDI drum is a Transfer — a downstream machine that starts via
-        // machine_cycle_start with mixBatchIds.
+        // machine_cycle_start with a mixBatchId.
         val drumOverview = AreaOverview(
             equipment = listOf(equipment("JAN-DRUM-01", role = "Transfer", area = MixingArea.Jandi)),
             activeCycles = emptyList(),
@@ -448,7 +445,7 @@ class MixingBoardViewModelTest {
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(emptyList()))
         viewModel.openArea(MixingArea.Jandi); advanceUntilIdle()
 
-        whenever(mockUseCase.startDownstream(any(), any(), any())).thenReturn(
+        whenever(mockUseCase.startDrumTransfer(any(), any())).thenReturn(
             MachineCycleOutcome.Accepted(
                 action = "Started", machineCode = "JAN-DRUM-01", cycleId = "CYC_7",
                 mixBatchId = "MIX_7", productionRunId = null,
@@ -459,14 +456,14 @@ class MixingBoardViewModelTest {
         viewModel.confirmStart()
         advanceUntilIdle()
 
-        verify(mockUseCase).startDownstream("JAN-DRUM-01", "510019068", listOf("MIX_7"))
+        verify(mockUseCase).startDrumTransfer("JAN-DRUM-01", "MIX_7")
     }
 
     @Test
     fun `a rejected start applies the embedded areaStatus and keeps the selection`() = runTest {
         openMainBoard(); advanceUntilIdle()
         val refreshed = mainOverview.copy(equipment = listOf(equipment("MXR-01", status = "InUse")))
-        whenever(mockUseCase.startMixer(any(), any(), any())).thenReturn(
+        whenever(mockUseCase.startMixerFromCollection(any(), any())).thenReturn(
             com.ppnam.station2aa.domain.model.MachineCycleOutcome.Rejected(
                 errorCode = com.ppnam.station2aa.data.mqtt.ErrorCode.EQUIPMENT_IN_USE,
                 reason = "Busy on another cycle.", areaStatus = refreshed))
@@ -486,7 +483,7 @@ class MixingBoardViewModelTest {
     @Test
     fun `a rejection without areaStatus keeps the current board picture`() = runTest {
         openMainBoard(); advanceUntilIdle()
-        whenever(mockUseCase.startMixer(any(), any(), any())).thenReturn(
+        whenever(mockUseCase.startMixerFromCollection(any(), any())).thenReturn(
             com.ppnam.station2aa.domain.model.MachineCycleOutcome.Rejected(
                 errorCode = com.ppnam.station2aa.data.mqtt.ErrorCode.SESSION_REQUIRED,
                 reason = "No valid session.", areaStatus = null))
@@ -544,7 +541,7 @@ class MixingBoardViewModelTest {
 
         val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
         assertNotNull((sheet as BoardSheet.StartConfirm).validationError)
-        verify(mockUseCase, never()).startRajoo(any(), any(), any(), any())
+        verify(mockUseCase, never()).startRajooLayer(any(), any(), any())
     }
 
     @Test

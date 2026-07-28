@@ -84,9 +84,11 @@ class MixingMessagesTest {
     @Test
     fun `start payload omits absent optional fields when serialized`() {
         val json = gson.toJson(MachineCycleStartPayload(
-            machineCode = "MXR-01", productionOrderDocumentNumber = "510019068",
-            collectionId = "COL_000001"))
-        assertFalse("mixBatchIds must be omitted, not null", json.contains("mixBatchIds"))
+            machineCode = "MXR-01", collectionId = "COL_000001"))
+        assertFalse("destinationMachineCode must be omitted, not null", json.contains("destinationMachineCode"))
+        assertFalse("mixBatchId must be omitted, not null", json.contains("mixBatchId"))
+        assertFalse("mainSourceMixBatchId must be omitted, not null", json.contains("mainSourceMixBatchId"))
+        assertFalse("mainSourceMixerCode must be omitted, not null", json.contains("mainSourceMixerCode"))
         assertFalse("layerInputs must be omitted, not null", json.contains("layerInputs"))
         assertTrue(json.contains("\"collectionId\":\"COL_000001\""))
     }

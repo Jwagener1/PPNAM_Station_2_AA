@@ -12,6 +12,7 @@ import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.EquipmentDto
+import com.ppnam.station2aa.data.mqtt.dto.JandiRoute
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleStartPayload
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewPayload
@@ -162,57 +163,114 @@ class MixingBoardUseCaseTest {
         assertEquals(550.0, materials.single().collectedQty, 0.0)
     }
 
-    @Test
-    fun `startMixer sends collectionId and no mixBatchIds`() = runTest {
+    private suspend fun captureStart(): MachineCycleStartPayload = argumentCaptor<Any>().apply {
+        verify(mockMqtt).request(eq("machine_cycle_start_requested"), any(), capture(), anyOrNull(),
+            eq(MachineCycleResultResponse::class.java))
+    }.firstValue as MachineCycleStartPayload
+
+    private suspend fun stubStartAccepted() {
         whenever(mockMqtt.request(
             eq("machine_cycle_start_requested"), eq("machine_cycle_result"), any(), anyOrNull(),
             eq(MachineCycleResultResponse::class.java)
-        )).thenReturn(MqttOutcome.Accepted(
-            MachineCycleResultResponse(action = "Started", machineCode = "MXR-01",
-                cycleId = "CYC_1", mixBatchId = "MIX_1"),
-            NextAction.SCAN_SAME_MACHINE_TO_FINISH))
-
-        val outcome = useCase.startMixer("MXR-01", "510019068", "COL_1")
-
-        val payload = argumentCaptor<Any>().apply {
-            verify(mockMqtt).request(any(), any(), capture(), anyOrNull(), eq(MachineCycleResultResponse::class.java))
-        }.firstValue as MachineCycleStartPayload
-        assertEquals("COL_1", payload.collectionId)
-        assertNull(payload.mixBatchIds)
-        assertNull(payload.layerInputs)
-        assertTrue(outcome is MachineCycleOutcome.Accepted)
-        assertEquals("CYC_1", (outcome as MachineCycleOutcome.Accepted).cycleId)
+        )).thenReturn(MqttOutcome.Accepted(MachineCycleResultResponse(), NextAction.SCAN_SAME_MACHINE_TO_FINISH))
     }
 
     @Test
-    fun `startRajoo carries layer inputs`() = runTest {
-        whenever(mockMqtt.request(any(), any(), any(), anyOrNull(), eq(MachineCycleResultResponse::class.java)))
-            .thenReturn(MqttOutcome.Accepted(MachineCycleResultResponse(action = "Started"), NextAction.NONE))
+    fun `a direct mixer start sends only machineCode and collectionId`() = runTest {
+        stubStartAccepted()
+        useCase.startMixerFromCollection("DOL-MIX-01", "COL_000123")
 
-        useCase.startRajoo("RAJ-GM-01", "510019068", "COL_1",
-            listOf(LayerInput("MAT-1", 12.5), LayerInput("MAT-2", 3.0)))
-
-        val payload = argumentCaptor<Any>().apply {
-            verify(mockMqtt).request(any(), any(), capture(), anyOrNull(), eq(MachineCycleResultResponse::class.java))
-        }.firstValue as MachineCycleStartPayload
-        assertEquals(2, payload.layerInputs!!.size)
-        assertEquals("MAT-1", payload.layerInputs!![0].materialCode)
-        assertEquals(12.5, payload.layerInputs!![0].dosingQuantity, 0.0)
-        assertEquals("COL_1", payload.collectionId)
+        val p = captureStart()
+        assertEquals("DOL-MIX-01", p.machineCode)
+        assertEquals("COL_000123", p.collectionId)
+        assertNull(p.destinationMachineCode)
+        assertNull(p.mixBatchId)
+        assertNull(p.layerInputs)
+        assertNull(p.mainSourceMixBatchId)
+        assertNull(p.mainSourceMixerCode)
     }
 
     @Test
-    fun `startDownstream sends mixBatchIds and no collectionId`() = runTest {
-        whenever(mockMqtt.request(any(), any(), any(), anyOrNull(), eq(MachineCycleResultResponse::class.java)))
-            .thenReturn(MqttOutcome.Accepted(MachineCycleResultResponse(action = "Started"), NextAction.NONE))
+    fun `a JANDI mixer start carries the route`() = runTest {
+        stubStartAccepted()
+        useCase.startJandiMixer("JAN-MIX-01", "COL_000124", JandiRoute.DRUM)
 
-        useCase.startDownstream("EXT-03", "510019068", listOf("MIX_1", "MIX_2"))
+        val p = captureStart()
+        assertEquals("JAN-MIX-01", p.machineCode)
+        assertEquals("COL_000124", p.collectionId)
+        assertEquals("JAN-DRUM-01", p.destinationMachineCode)
+        assertNull(p.mixBatchId)
+    }
 
-        val payload = argumentCaptor<Any>().apply {
-            verify(mockMqtt).request(any(), any(), capture(), anyOrNull(), eq(MachineCycleResultResponse::class.java))
-        }.firstValue as MachineCycleStartPayload
-        assertEquals(listOf("MIX_1", "MIX_2"), payload.mixBatchIds)
-        assertNull(payload.collectionId)
+    @Test
+    fun `a Rajoo layer start carries its dosing lines`() = runTest {
+        stubStartAccepted()
+        useCase.startRajooLayer("RAJ-GM-01", "COL_000125",
+            listOf(LayerInput("MAT-001", 12.5)))
+
+        val p = captureStart()
+        assertEquals("RAJ-GM-01", p.machineCode)
+        assertEquals("COL_000125", p.collectionId)
+        assertEquals(1, p.layerInputs?.size)
+        assertEquals("MAT-001", p.layerInputs?.single()?.materialCode)
+        assertEquals(12.5, p.layerInputs?.single()?.dosingQuantity ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun `a Rajoo layer start with no doses never reaches the wire`() = runTest {
+        // 1-5 positive entries are required for each started layer. Rejecting locally tells the
+        // operator immediately instead of spending a round trip on invalid_layer_inputs.
+        val outcome = useCase.startRajooLayer("RAJ-GM-01", "COL_000125", emptyList())
+
+        assertTrue(outcome is MachineCycleOutcome.Rejected)
+        // No areaStatus: nothing was attempted, so the board must keep its current picture.
+        assertNull((outcome as MachineCycleOutcome.Rejected).areaStatus)
+        verifyNoInteractions(mockMqtt)
+    }
+
+    @Test
+    fun `a Rajoo layer start with six doses never reaches the wire`() = runTest {
+        val six = (1..6).map { LayerInput("MAT-00$it", 1.0) }
+        val outcome = useCase.startRajooLayer("RAJ-GM-01", "COL_000125", six)
+
+        assertTrue(outcome is MachineCycleOutcome.Rejected)
+        verifyNoInteractions(mockMqtt)
+    }
+
+    @Test
+    fun `a drum transfer start sends the mix, not a collection`() = runTest {
+        stubStartAccepted()
+        useCase.startDrumTransfer("JAN-DRUM-01", "MIX_000124")
+
+        val p = captureStart()
+        assertEquals("JAN-DRUM-01", p.machineCode)
+        assertEquals("MIX_000124", p.mixBatchId)
+        assertNull(p.collectionId)
+    }
+
+    @Test
+    fun `a production destination start sends one mix`() = runTest {
+        stubStartAccepted()
+        useCase.startProductionDestination("EXT-03", "MIX_000126")
+
+        val p = captureStart()
+        assertEquals("EXT-03", p.machineCode)
+        assertEquals("MIX_000126", p.mixBatchId)
+        assertNull(p.collectionId)
+    }
+
+    @Test
+    fun `a JANDI 4 start accepts an exact mix or a source mixer code, never both`() = runTest {
+        stubStartAccepted()
+        useCase.startJandi4("JAN-04", mainSourceMixBatchId = "MIX_000130", mainSourceMixerCode = null)
+        val byMix = captureStart()
+        assertEquals("MIX_000130", byMix.mainSourceMixBatchId)
+        assertNull(byMix.mainSourceMixerCode)
+
+        val both = useCase.startJandi4("JAN-04", "MIX_000130", "MXR-02")
+        assertTrue(both is MachineCycleOutcome.Rejected)
+        val neither = useCase.startJandi4("JAN-04", null, null)
+        assertTrue(neither is MachineCycleOutcome.Rejected)
     }
 
     @Test
@@ -222,7 +280,7 @@ class MixingBoardUseCaseTest {
         whenever(mockMqtt.request(any(), any(), any(), anyOrNull(), eq(MachineCycleResultResponse::class.java)))
             .thenReturn(MqttOutcome.Rejected(response, ErrorCode.EQUIPMENT_IN_USE, "Busy.", NextAction.NONE))
 
-        val outcome = useCase.startMixer("MXR-01", "510019068", "COL_1")
+        val outcome = useCase.startMixerFromCollection("MXR-01", "COL_1")
 
         assertTrue(outcome is MachineCycleOutcome.Rejected)
         val rejected = outcome as MachineCycleOutcome.Rejected

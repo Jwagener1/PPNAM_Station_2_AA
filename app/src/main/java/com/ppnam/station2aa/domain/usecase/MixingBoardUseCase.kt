@@ -10,6 +10,7 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveRunDto
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.EquipmentDto
+import com.ppnam.station2aa.data.mqtt.dto.JandiRoute
 import com.ppnam.station2aa.data.mqtt.dto.LayerInputDto
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleFinishPayload
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleForceClosePayload
@@ -102,44 +103,124 @@ class MixingBoardUseCase @Inject constructor(
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
 
-    suspend fun startMixer(machineCode: String, jobCardNumber: String, collectionId: String): MachineCycleOutcome =
+    /** DOLCI, Mackie, and Main mixers: a completed collection is the only input. */
+    suspend fun startMixerFromCollection(machineCode: String, collectionId: String): MachineCycleOutcome =
         cycleRequest(
             "machine_cycle_start_requested",
-            MachineCycleStartPayload(
-                machineCode = machineCode,
-                productionOrderDocumentNumber = jobCardNumber,
-                collectionId = collectionId,
-            ),
+            MachineCycleStartPayload(machineCode = machineCode, collectionId = collectionId),
             correlationKey = collectionId,
         )
 
-    suspend fun startRajoo(
+    /**
+     * The JANDI shared mixer. The route decides the whole downstream lifecycle — JANDI 2/3 feed
+     * directly, the drum route makes the mix ReadyForTransfer — so it is required at start, not
+     * chosen afterwards.
+     */
+    suspend fun startJandiMixer(
         machineCode: String,
-        jobCardNumber: String,
         collectionId: String,
-        doses: List<LayerInput>,
-    ): MachineCycleOutcome =
-        cycleRequest(
+        route: String,
+    ): MachineCycleOutcome {
+        if (route !in JandiRoute.ALL) {
+            return rejectedLocally("Select JANDI 2, JANDI 3 or the drum before starting.")
+        }
+        return cycleRequest(
             "machine_cycle_start_requested",
             MachineCycleStartPayload(
                 machineCode = machineCode,
-                productionOrderDocumentNumber = jobCardNumber,
+                collectionId = collectionId,
+                destinationMachineCode = route,
+            ),
+            correlationKey = collectionId,
+        )
+    }
+
+    /**
+     * One Rajoo layer. Each gravimetric mixer is one layer and starts from its own completed
+     * collection; 1-5 positive dosing lines are required for every started layer.
+     */
+    suspend fun startRajooLayer(
+        machineCode: String,
+        collectionId: String,
+        doses: List<LayerInput>,
+    ): MachineCycleOutcome {
+        val error = when {
+            doses.isEmpty() -> "A Rajoo layer needs at least one dose line."
+            doses.size > 5 -> "A Rajoo layer takes at most five dose lines."
+            doses.any { it.dosingQuantity <= 0.0 } -> "Every dose must be a positive quantity."
+            else -> null
+        }
+        if (error != null) return rejectedLocally(error)
+        return cycleRequest(
+            "machine_cycle_start_requested",
+            MachineCycleStartPayload(
+                machineCode = machineCode,
                 collectionId = collectionId,
                 layerInputs = doses.map { LayerInputDto(it.materialCode, it.dosingQuantity) },
             ),
             correlationKey = collectionId,
         )
+    }
 
-    suspend fun startDownstream(machineCode: String, jobCardNumber: String, mixBatchIds: List<String>): MachineCycleOutcome =
+    /**
+     * Decanting a ReadyForTransfer JANDI mix into the single drum.
+     *
+     * This shares a wire shape with [startProductionDestination] but is deliberately a separate
+     * function: a transfer cycle and a production run start are different operations, the call
+     * sites read correctly this way, and the two can diverge without a refactor. Do not collapse
+     * them. (Ruling, 2026-07-28.)
+     */
+    suspend fun startDrumTransfer(machineCode: String, mixBatchId: String): MachineCycleOutcome =
         cycleRequest(
+            "machine_cycle_start_requested",
+            MachineCycleStartPayload(machineCode = machineCode, mixBatchId = mixBatchId),
+            correlationKey = mixBatchId,
+        )
+
+    /**
+     * A Main destination scan: assigns and starts exactly one ready mix on one production
+     * machine. This replaces the withdrawn `mix_destination_assignment_requested` entirely.
+     */
+    suspend fun startProductionDestination(machineCode: String, mixBatchId: String): MachineCycleOutcome =
+        cycleRequest(
+            "machine_cycle_start_requested",
+            MachineCycleStartPayload(machineCode = machineCode, mixBatchId = mixBatchId),
+            correlationKey = mixBatchId,
+        )
+
+    /**
+     * JANDI 4 consumes the current drum plus exactly one ready Main mix, whose job cards may
+     * differ. The Main input is named either exactly or by its source mixer code, which resolves
+     * only when exactly one eligible output exists — otherwise the server answers
+     * `ambiguous_main_mix`.
+     */
+    suspend fun startJandi4(
+        machineCode: String,
+        mainSourceMixBatchId: String? = null,
+        mainSourceMixerCode: String? = null,
+    ): MachineCycleOutcome {
+        val byMix = !mainSourceMixBatchId.isNullOrBlank()
+        val byMixer = !mainSourceMixerCode.isNullOrBlank()
+        if (byMix == byMixer) {
+            return rejectedLocally("Name the Main mix either exactly or by its source mixer, not both.")
+        }
+        return cycleRequest(
             "machine_cycle_start_requested",
             MachineCycleStartPayload(
                 machineCode = machineCode,
-                productionOrderDocumentNumber = jobCardNumber,
-                mixBatchIds = mixBatchIds,
+                mainSourceMixBatchId = mainSourceMixBatchId?.takeIf { byMix },
+                mainSourceMixerCode = mainSourceMixerCode?.takeIf { byMixer },
             ),
-            correlationKey = mixBatchIds.firstOrNull(),
+            correlationKey = mainSourceMixBatchId ?: mainSourceMixerCode,
         )
+    }
+
+    /**
+     * A refusal decided here, before anything was sent. areaStatus is null precisely because
+     * nothing was attempted server-side — the board must keep the picture it already has.
+     */
+    private fun rejectedLocally(reason: String) =
+        MachineCycleOutcome.Rejected(errorCode = null, reason = reason, areaStatus = null)
 
     suspend fun finish(machineCode: String, cycleId: String): MachineCycleOutcome =
         cycleRequest(

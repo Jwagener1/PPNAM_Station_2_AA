@@ -143,17 +143,38 @@ data class LayerInputDto(
     val dosingQuantity: Double,
 )
 
+/** The three JANDI routes the shared mixer must be given before it starts. */
+object JandiRoute {
+    const val JANDI_2 = "JAN-02"
+    const val JANDI_3 = "JAN-03"
+    const val DRUM = "JAN-DRUM-01"
+
+    val ALL = listOf(JANDI_2, JANDI_3, DRUM)
+}
+
 /**
- * `machine_cycle_start_requested`. Exactly one of [collectionId] (mixer start) or
- * [mixBatchIds] (drum/production start) travels.
+ * `machine_cycle_start_requested` — one payload covering six variants.
  *
- * The retired v3 array fields never appear here by construction.
+ * The optional fields could be combined illegally, so nothing constructs this directly: the six
+ * named functions on [com.ppnam.station2aa.domain.usecase.MixingBoardUseCase] are the only
+ * builders, and each populates exactly one legal combination.
+ *
+ * | Variant | Fields sent |
+ * |---|---|
+ * | DOLCI / Mackie / Main mixer | machineCode, collectionId |
+ * | JANDI shared mixer | + destinationMachineCode |
+ * | Rajoo layer | + layerInputs (1-5, required) |
+ * | JANDI drum transfer | machineCode, mixBatchId |
+ * | Main production destination | machineCode, mixBatchId |
+ * | JANDI 4 | machineCode, mainSourceMixBatchId OR mainSourceMixerCode |
  */
 data class MachineCycleStartPayload(
     val machineCode: String,
-    val productionOrderDocumentNumber: String,
     val collectionId: String? = null,
-    val mixBatchIds: List<String>? = null,
+    val destinationMachineCode: String? = null,
+    val mixBatchId: String? = null,
+    val mainSourceMixBatchId: String? = null,
+    val mainSourceMixerCode: String? = null,
     val layerInputs: List<LayerInputDto>? = null,
 )
 
