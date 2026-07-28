@@ -112,7 +112,7 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
     LaunchedEffect(board.selection) {
         when (board.selection) {
             is BoardSelection.Collection -> machineTab = MachineTab.Collections
-            is BoardSelection.Mixes -> machineTab = MachineTab.Mixing
+            is BoardSelection.Mix -> machineTab = MachineTab.Mixing
             is BoardSelection.None -> Unit
         }
     }
@@ -132,7 +132,7 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                 when (val sel = board.selection) {
                     is BoardSelection.None -> "Select a collection or mix, then scan a machine"
                     is BoardSelection.Collection -> "Selected: ${sel.collectionId}"
-                    is BoardSelection.Mixes -> "Selected: ${sel.mixBatchIds.joinToString()}"
+                    is BoardSelection.Mix -> "Selected: ${sel.mixBatchId}"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = if (board.selection is BoardSelection.None) TextMuted else AmberPrimary,
@@ -177,26 +177,24 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
             if (board.overview.readyMixes.isNotEmpty()) {
                 item { SectionHeader("Ready mixes") }
                 items(board.overview.readyMixes, key = { it.mixBatchId }) { mix ->
-                    val mixesSelection = board.selection as? BoardSelection.Mixes
-                    val selected = mixesSelection?.mixBatchIds?.contains(mix.mixBatchId) == true
-                    // Same-JC rule: once a mix is selected, other JCs grey out.
-                    val selectable = mixesSelection == null || mixesSelection.jobCardNumber == mix.jobCardNumber
+                    val selected =
+                        (board.selection as? BoardSelection.Mix)?.mixBatchId == mix.mixBatchId
                     Card(
                         modifier = Modifier.fillMaxWidth()
-                            .clickable(enabled = selectable && !board.busy) { viewModel.toggleMix(mix.mixBatchId) },
+                            .clickable(enabled = !board.busy) { viewModel.selectMix(mix.mixBatchId) },
                         colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
                         border = BorderStroke(1.dp, if (selected) AmberPrimary else GraphiteBorder),
                     ) {
                         Column(Modifier.padding(12.dp)) {
                             Text("${mix.mixBatchId} · JC ${mix.jobCardNumber}",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = if (selectable) TextPrimary else TextMuted)
+                                color = TextPrimary)
                             Text("From ${mix.mixerDisplayName}",
                                 style = MaterialTheme.typography.bodySmall, color = TextMuted)
                             // Destinations render ONLY from validNextMachineCodes (§13.8).
                             Text("Next: ${mix.validNextMachineCodes.joinToString()}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (selectable) SuccessGreen else TextMuted)
+                                color = SuccessGreen)
                         }
                     }
                 }
@@ -357,7 +355,7 @@ private fun StartConfirmDialog(
     // Strict two-phase (§8): committing finished mixes to a production machine is a destination
     // ASSIGNMENT, not a cycle start — the JANDI drum (a Transfer) is the one downstream machine
     // that is still a start. Word the confirmation to match what actually goes on the wire.
-    val isAssignment = selection is BoardSelection.Mixes &&
+    val isAssignment = selection is BoardSelection.Mix &&
         sheet.machine.role == EquipmentRole.PRODUCTION_MACHINE
     val confirmVerb = if (isAssignment) "Assign" else "Start"
     AlertDialog(
@@ -375,7 +373,7 @@ private fun StartConfirmDialog(
                 Text(
                     when (selection) {
                         is BoardSelection.Collection -> "Collection ${selection.collectionId} · JC ${selection.jobCardNumber}"
-                        is BoardSelection.Mixes -> "Mixes ${selection.mixBatchIds.joinToString()} · JC ${selection.jobCardNumber}"
+                        is BoardSelection.Mix -> "Mix ${selection.mixBatchId} · JC ${selection.jobCardNumber}"
                         is BoardSelection.None -> ""
                     },
                     color = TextMuted,

@@ -3,7 +3,6 @@ package com.ppnam.station2aa.ui.mixing.board
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSessionHolder
 import com.ppnam.station2aa.domain.model.ActiveCycle
-import com.ppnam.station2aa.domain.model.ActiveRun
 import com.ppnam.station2aa.domain.model.AreaOverview
 import com.ppnam.station2aa.domain.model.AssignedDestination
 import com.ppnam.station2aa.domain.model.Equipment
@@ -181,29 +180,23 @@ class MixingBoardViewModelTest {
     }
 
     @Test
-    fun `computeHighlightedMachines for mixes uses the validNext intersection and same-JC accumulation`() {
+    fun `computeHighlightedMachines for a mix highlights its validNext machines the server allows scanning`() {
         val overview = mainOverview.copy(
             equipment = listOf(
                 equipment("EXT-03", role = "ProductionMachine"),
-                equipment("EXT-04", role = "ProductionMachine", status = "InUse", currentJc = "510019068"),
-                equipment("EXT-05", role = "ProductionMachine", status = "InUse", currentJc = "510018531"),
-                equipment("EXT-06", role = "ProductionMachine", status = "InUse", currentJc = "510018531"),
+                equipment("EXT-04", role = "ProductionMachine", status = "InUse", currentJc = "510019068",
+                    scanAllowed = false),
             ),
             readyMixes = listOf(
-                readyMix("MIX_1", validNext = listOf("EXT-03", "EXT-04", "EXT-05", "EXT-06")),
-                readyMix("MIX_2", validNext = listOf("EXT-03", "EXT-04", "EXT-06")),
-            ),
-            activeRuns = listOf(
-                ActiveRun("RUN_1", "EXT-04", "510019068", listOf("MIX_0"), "2026-07-21T08:00:00Z"),
-                ActiveRun("RUN_2", "EXT-05", "510018531", listOf("MIX_8"), "2026-07-21T08:00:00Z"),
-                ActiveRun("RUN_3", "EXT-06", "510018531", listOf("MIX_7"), "2026-07-21T08:00:00Z"),
+                readyMix("MIX_1", validNext = listOf("EXT-03", "EXT-04")),
             ),
         )
         val highlights = computeHighlightedMachines(
-            overview, BoardSelection.Mixes(listOf("MIX_1", "MIX_2"), "510019068"))
-        // EXT-03 available+in intersection; EXT-04 accumulating same JC; EXT-05 other JC excluded;
-        // EXT-06 IN intersection but its active run is on another JC — the true accumulation boundary
-        assertEquals(setOf("EXT-03", "EXT-04"), highlights)
+            overview, BoardSelection.Mix("MIX_1", "510019068"))
+        // EXT-03 is in validNext and scanAllowed; EXT-04 is in validNext but the server has not
+        // marked it scanAllowed — a destination start now takes one mix into one run, so there is
+        // no local accumulation branch to offer it anyway.
+        assertEquals(setOf("EXT-03"), highlights)
     }
 
     @Test
@@ -267,28 +260,9 @@ class MixingBoardViewModelTest {
         )
 
         val highlights = computeHighlightedMachines(
-            overview, BoardSelection.Mixes(listOf("MIX_Q"), "510019068"))
+            overview, BoardSelection.Mix("MIX_Q", "510019068"))
 
         assertTrue("a quarantined mix must not be routable to production", highlights.isEmpty())
-    }
-
-    @Test
-    fun `a quarantined mix mixed into a selection cannot widen the destinations`() {
-        // The intersection must be taken over assignable mixes only. If the quarantined one were
-        // left in, its validNextMachineCodes would participate in the intersection and could even
-        // narrow or widen the legal set based on material nobody may use.
-        val overview = mainOverview.copy(
-            readyMixes = listOf(
-                readyMix("MIX_1", validNext = listOf("EXT-03")),
-                readyMix("MIX_Q", validNext = listOf("EXT-03", "EXT-04"),
-                    status = "Quarantined", completionMode = "ForceClosed", isAssignable = false),
-            )
-        )
-
-        val highlights = computeHighlightedMachines(
-            overview, BoardSelection.Mixes(listOf("MIX_1", "MIX_Q"), "510019068"))
-
-        assertEquals(setOf("EXT-03"), highlights)
     }
 
     @Test
@@ -313,7 +287,7 @@ class MixingBoardViewModelTest {
         val collectionHighlights =
             computeHighlightedMachines(overview, BoardSelection.Collection("COL_1", "510019068"))
         val mixHighlights =
-            computeHighlightedMachines(overview, BoardSelection.Mixes(listOf("MIX_1"), "510019068"))
+            computeHighlightedMachines(overview, BoardSelection.Mix("MIX_1", "510019068"))
         val collectionsTab = overview.equipment
             .filter { machineTabOf(it) == MachineTab.Collections }.map { it.machineCode }.toSet()
         val mixingTab = overview.equipment
@@ -347,21 +321,65 @@ class MixingBoardViewModelTest {
         viewModel.openArea(MixingArea.Main)
     }
 
+    private val twoMixOverview = mainOverview.copy(
+        readyMixes = listOf(
+            readyMix("MIX_1", validNext = listOf("EXT-03")),
+            readyMix("MIX_2", validNext = listOf("EXT-03")),
+        ))
+
     @Test
-    fun `selectCollection highlights mixers and toggleMix respects the same-JC rule`() = runTest {
+    fun `selecting a second mix replaces the first rather than adding to it`() = runTest {
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(twoMixOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        viewModel.openArea(MixingArea.Main)
+        advanceUntilIdle()
+
+        viewModel.selectMix("MIX_1")
+        advanceUntilIdle()
+        assertEquals(
+            BoardSelection.Mix("MIX_1", "510019068"),
+            (viewModel.uiState.value as MixingBoardUiState.Board).selection)
+
+        viewModel.selectMix("MIX_2")
+        advanceUntilIdle()
+        assertEquals(
+            BoardSelection.Mix("MIX_2", "510019068"),
+            (viewModel.uiState.value as MixingBoardUiState.Board).selection)
+    }
+
+    @Test
+    fun `selecting the same mix twice clears the selection`() = runTest {
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(twoMixOverview))
+        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
+        viewModel.openArea(MixingArea.Main)
+        advanceUntilIdle()
+
+        viewModel.selectMix("MIX_1")
+        viewModel.selectMix("MIX_1")
+        advanceUntilIdle()
+
+        assertEquals(
+            BoardSelection.None,
+            (viewModel.uiState.value as MixingBoardUiState.Board).selection)
+    }
+
+    @Test
+    fun `selectCollection highlights mixers and selectMix highlights the mix's validNext machines`() = runTest {
         openMainBoard(); advanceUntilIdle()
         viewModel.selectCollection("COL_1")
         var board = viewModel.uiState.value as MixingBoardUiState.Board
         assertEquals(setOf("MXR-01"), board.highlightedMachineCodes)
 
         viewModel.clearSelection()
-        viewModel.toggleMix("MIX_1")
+        viewModel.selectMix("MIX_1")
         board = viewModel.uiState.value as MixingBoardUiState.Board
-        assertTrue(board.selection is BoardSelection.Mixes)
+        assertTrue(board.selection is BoardSelection.Mix)
         assertEquals(setOf("EXT-03", "EXT-04"), board.highlightedMachineCodes)
 
-        // a second toggle removes it -> selection collapses to None
-        viewModel.toggleMix("MIX_1")
+        // selecting the same mix again clears it -> selection collapses to None
+        viewModel.selectMix("MIX_1")
         board = viewModel.uiState.value as MixingBoardUiState.Board
         assertTrue(board.selection is BoardSelection.None)
     }
@@ -440,7 +458,7 @@ class MixingBoardViewModelTest {
                 affectedMixBatchIds = listOf("MIX_1"), alreadyFinished = false,
                 forceClosed = false, approverDisplayName = null, areaStatus = mainOverview,
                 assignedDestinations = listOf(AssignedDestination("EXT-03", "RUN_1"))))
-        viewModel.toggleMix("MIX_1")
+        viewModel.selectMix("MIX_1")
         viewModel.machineChosen("EXT-03")
         viewModel.confirmStart()
         advanceUntilIdle()
@@ -471,7 +489,7 @@ class MixingBoardViewModelTest {
                 mixBatchId = "MIX_7", productionRunId = null,
                 affectedMixBatchIds = listOf("MIX_7"), alreadyFinished = false,
                 forceClosed = false, approverDisplayName = null, areaStatus = drumOverview))
-        viewModel.toggleMix("MIX_7")
+        viewModel.selectMix("MIX_7")
         viewModel.machineChosen("JAN-DRUM-01")
         viewModel.confirmStart()
         advanceUntilIdle()
@@ -658,24 +676,5 @@ class MixingBoardViewModelTest {
         verify(mockUseCase, never()).forceClose(any(), any(), any(), any(), any())
         val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
         assertNotNull((sheet as BoardSheet.ForceCloseDialog).validationError)
-    }
-
-    @Test
-    fun `toggleMix ignores a mix from another job card once one is selected`() = runTest {
-        val overview = mainOverview.copy(readyMixes = listOf(
-            readyMix("MIX_1", validNext = listOf("EXT-03")),
-            readyMix("MIX_OTHER", jc = "510018531", validNext = listOf("EXT-03")),
-        ))
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(overview))
-        whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
-        viewModel.openArea(MixingArea.Main)
-        advanceUntilIdle()
-
-        viewModel.toggleMix("MIX_1")
-        viewModel.toggleMix("MIX_OTHER") // other JC — the same-JC mirror must ignore this tap
-
-        val selection = (viewModel.uiState.value as MixingBoardUiState.Board).selection
-        assertTrue(selection is BoardSelection.Mixes)
-        assertEquals(listOf("MIX_1"), (selection as BoardSelection.Mixes).mixBatchIds)
     }
 }

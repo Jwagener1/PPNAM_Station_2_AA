@@ -31,7 +31,13 @@ import javax.inject.Inject
 sealed class BoardSelection {
     object None : BoardSelection()
     data class Collection(val collectionId: String, val jobCardNumber: String) : BoardSelection()
-    data class Mixes(val mixBatchIds: List<String>, val jobCardNumber: String) : BoardSelection()
+
+    /**
+     * Exactly one finished mix. The JC-driven contract's destination start carries a singular
+     * `mixBatchId` — "the first destination-machine scan assigns and starts exactly one Main
+     * mix" — so a multi-mix selection can no longer be expressed on the wire.
+     */
+    data class Mix(val mixBatchId: String, val jobCardNumber: String) : BoardSelection()
 }
 
 /** One Rajoo dose-entry row; [doseText] is the raw operator input, validated on confirm. */
@@ -137,30 +143,19 @@ internal fun computeHighlightedMachines(overview: AreaOverview, selection: Board
             }
         }
 
-        is BoardSelection.Mixes -> {
-            val chosen = overview.readyMixes
-                .filter { it.mixBatchId in selection.mixBatchIds }
-                // 4.1/B2: a force-closed mix is Quarantined and never assignable until an audited
-                // Manager/Admin Release or Discard. Offering a destination for one would let the
-                // operator send quarantined material to production — the exact defect B2 reported.
-                .filter { it.isAssignable }
-            if (chosen.isEmpty()) {
-                // Every selected mix is quarantined: no destination is legal.
+        is BoardSelection.Mix -> {
+            val mix = overview.readyMixes.firstOrNull { it.mixBatchId == selection.mixBatchId }
+            // 4.1/B2: a force-closed mix is Quarantined and never assignable until an audited
+            // Manager/Admin Release or Discard. Offering a destination for one would let the
+            // operator send quarantined material to production — the exact defect B2 reported.
+            if (mix == null || !mix.isAssignable) {
                 emptySet()
             } else {
-                val intersection = chosen
-                    .map { it.validNextMachineCodes.toSet() }
-                    .reduceOrNull { a, b -> a intersect b }
-                    .orEmpty()
+                val valid = mix.validNextMachineCodes.toSet()
                 val available = overview.equipment
-                    .filter { it.machineCode in intersection && it.isEnabled && it.status == "Available" }
+                    .filter { it.machineCode in valid && it.isEnabled && it.scanAllowed }
                     .map { it.machineCode }
-                // Run accumulation (§8): a production machine busy on the SAME JC with an
-                // active run accepts additional completed mixes into that run.
-                val accumulating = overview.activeRuns
-                    .filter { it.jobCardNumber == selection.jobCardNumber && it.machineCode in intersection }
-                    .map { it.machineCode }
-                (available + accumulating).toSet()
+                available.toSet()
             }
         }
     }
@@ -304,20 +299,16 @@ class MixingBoardViewModel @Inject constructor(
         setBoard(board.copy(selection = BoardSelection.Collection(collection.collectionId, collection.jobCardNumber)))
     }
 
-    fun toggleMix(mixBatchId: String) {
+    fun selectMix(mixBatchId: String) {
         val board = board() ?: return
         if (board.busy || board.sheet != BoardSheet.None) return
         val mix = board.overview.readyMixes.firstOrNull { it.mixBatchId == mixBatchId } ?: return
-        val current = board.selection as? BoardSelection.Mixes
-        // Same-JC rule (client mirror of job_card_mismatch): ignore taps on other-JC mixes.
-        if (current != null && current.jobCardNumber != mix.jobCardNumber) return
-        val ids = when {
-            current == null -> listOf(mixBatchId)
-            mixBatchId in current.mixBatchIds -> current.mixBatchIds - mixBatchId
-            else -> current.mixBatchIds + mixBatchId
+        // Tapping the selected mix again clears it; tapping another replaces it outright.
+        val selection = if ((board.selection as? BoardSelection.Mix)?.mixBatchId == mixBatchId) {
+            BoardSelection.None
+        } else {
+            BoardSelection.Mix(mix.mixBatchId, mix.jobCardNumber)
         }
-        val selection = if (ids.isEmpty()) BoardSelection.None
-        else BoardSelection.Mixes(ids, mix.jobCardNumber)
         setBoard(board.copy(selection = selection))
     }
 
@@ -373,7 +364,7 @@ class MixingBoardViewModel @Inject constructor(
                     setBoard(board.copy(sheet = BoardSheet.StartConfirm(machine, doseRows = null)))
                 }
             }
-            is BoardSelection.Mixes ->
+            is BoardSelection.Mix ->
                 setBoard(board.copy(sheet = BoardSheet.StartConfirm(machine, doseRows = null)))
         }
     }
@@ -412,7 +403,7 @@ class MixingBoardViewModel @Inject constructor(
                         useCase.startMixer(machine.machineCode, selection.jobCardNumber, selection.collectionId)
                     }
                 }
-                is BoardSelection.Mixes -> {
+                is BoardSelection.Mix -> {
                     setBoard(board.copy(busy = true))
                     assignOrStartDownstream(machine, selection)
                 }
@@ -434,12 +425,12 @@ class MixingBoardViewModel @Inject constructor(
 
     private suspend fun assignOrStartDownstream(
         machine: Equipment,
-        selection: BoardSelection.Mixes,
+        selection: BoardSelection.Mix,
     ): MachineCycleOutcome =
         if (machine.role == EquipmentRole.PRODUCTION_MACHINE) {
-            useCase.assignDestinations(selection.mixBatchIds, listOf(machine.machineCode))
+            useCase.assignDestinations(listOf(selection.mixBatchId), listOf(machine.machineCode))
         } else {
-            useCase.startDownstream(machine.machineCode, selection.jobCardNumber, selection.mixBatchIds)
+            useCase.startDownstream(machine.machineCode, selection.jobCardNumber, listOf(selection.mixBatchId))
         }
 
     /** Returns null and surfaces a validation error when the rows are not sendable. */
