@@ -18,7 +18,8 @@
 - **`ErrorCode` and `NextAction` stay value classes.** Unknown codes must pass through intact, never fail a parse.
 - **Omit, never null.** Optional request fields are absent from the JSON when unused; Gson's default omits nulls, so model them as `null`-defaulted properties.
 - **Out of scope, do not edit:** `tools/backend-sim/`, `tools/test-harness/`, `docs/TEST_PLAN.md`, and everything in `C:\Dev\PPNAM-Station-2`.
-- **Test command:** `./gradlew test` (full suite). Single class: `./gradlew test --tests "*ClassName*"`.
+- **Test command:** `./gradlew test` (full suite). Single class: `./gradlew testDebugUnitTest --tests "*ClassName*"` — `test` is a lifecycle task on this project and rejects `--tests`.
+- **Java is not on PATH.** In Bash, before any Gradle command: `export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"`.
 - **Baseline:** the full suite is green before Task 1 and must be green at the end of every task.
 
 ## File Structure
@@ -106,7 +107,7 @@ Keep the file's existing imports and the existing envelope-code assertions; dele
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests "*MqttVocabularyTest*"`
+Run: `./gradlew testDebugUnitTest --tests "*MqttVocabularyTest*"`
 Expected: FAIL — compilation error, `Unresolved reference: COLLECTION_NOT_READY`.
 
 - [ ] **Step 3: Update the vocabulary**
@@ -276,7 +277,7 @@ behaviours are gone.
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests "*MixingBoardViewModelTest*"`
+Run: `./gradlew testDebugUnitTest --tests "*MixingBoardViewModelTest*"`
 Expected: FAIL — `Unresolved reference: selectMix`.
 
 - [ ] **Step 3: Replace the selection type**
@@ -427,7 +428,7 @@ rather than only in method names. (Ruling, 2026-07-28.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests "*MixingBoardUseCaseTest*"`
+Run: `./gradlew testDebugUnitTest --tests "*MixingBoardUseCaseTest*"`
 Expected: FAIL — `assignDestinations` still exists, and `ReadyCollectionDto` still accepts plan arguments.
 
 - [ ] **Step 3: Delete from the wire layer**
@@ -624,7 +625,7 @@ Add to `MixingBoardUseCaseTest.kt`:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests "*MixingBoardUseCaseTest*"`
+Run: `./gradlew testDebugUnitTest --tests "*MixingBoardUseCaseTest*"`
 Expected: FAIL — `No value passed for parameter 'jobCardNumber'` / unresolved `payload.jobCardNumber`.
 
 - [ ] **Step 3: Rename on the wire**
@@ -872,7 +873,7 @@ Add to `MixingBoardUseCaseTest.kt`:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests "*MixingBoardUseCaseTest*"`
+Run: `./gradlew testDebugUnitTest --tests "*MixingBoardUseCaseTest*"`
 Expected: FAIL — `Unresolved reference: startMixerFromCollection`.
 
 - [ ] **Step 3: Reshape the start payload**
@@ -1192,7 +1193,7 @@ Add to `MixingBoardUseCaseTest.kt`:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests "*MixingBoardUseCaseTest*"`
+Run: `./gradlew testDebugUnitTest --tests "*MixingBoardUseCaseTest*"`
 Expected: FAIL — `Unresolved reference: RunInputDto`.
 
 - [ ] **Step 3: Add the wire shapes**
@@ -1456,7 +1457,7 @@ Add the two helpers if the file does not already have equivalents:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew test --tests "*MixingBoardViewModelTest*"`
+Run: `./gradlew testDebugUnitTest --tests "*MixingBoardViewModelTest*"`
 Expected: FAIL — `Unresolved reference: routeOptions`.
 
 - [ ] **Step 3: Extend the sheet state**
