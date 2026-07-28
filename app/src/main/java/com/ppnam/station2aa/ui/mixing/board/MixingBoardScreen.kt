@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.ppnam.station2aa.data.mqtt.dto.JandiRoute
 import com.ppnam.station2aa.data.session.OperatorSession
 import com.ppnam.station2aa.data.session.StationAction
 import com.ppnam.station2aa.data.session.canShow
@@ -346,6 +347,13 @@ private fun MachineCard(
     }
 }
 
+private fun routeLabel(route: String) = when (route) {
+    JandiRoute.JANDI_2 -> "JANDI 2 (direct feed)"
+    JandiRoute.JANDI_3 -> "JANDI 3 (direct feed)"
+    JandiRoute.DRUM -> "Drum (decant, then JANDI 4)"
+    else -> route
+}
+
 @Composable
 private fun StartConfirmDialog(
     sheet: BoardSheet.StartConfirm,
@@ -386,6 +394,44 @@ private fun StartConfirmDialog(
                 // existed, just not where the person who needed it was looking.
                 sheet.validationError?.let {
                     Text(it, color = DangerRed, style = MaterialTheme.typography.labelMedium)
+                }
+                if (sheet.routeOptions.isNotEmpty()) {
+                    Text("Route", style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                    sheet.routeOptions.forEach { route ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable { viewModel.selectRoute(route) },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = sheet.selectedRoute == route,
+                                onClick = { viewModel.selectRoute(route) },
+                                colors = RadioButtonDefaults.colors(selectedColor = AmberPrimary),
+                            )
+                            Text(routeLabel(route), color = TextPrimary)
+                        }
+                    }
+                }
+
+                if (sheet.mainSourceOptions.isNotEmpty()) {
+                    Text("Main mix", style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                    sheet.mainSourceOptions.forEach { mix ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable { viewModel.selectMainSource(mix.mixBatchId) },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = sheet.selectedMainSource == mix.mixBatchId,
+                                onClick = { viewModel.selectMainSource(mix.mixBatchId) },
+                                colors = RadioButtonDefaults.colors(selectedColor = AmberPrimary),
+                            )
+                            Column {
+                                Text("JC ${mix.jobCardNumber}",
+                                    style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                Text("${mix.mixBatchId} · from ${mix.sourceMixerCode}",
+                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            }
+                        }
+                    }
                 }
                 if (sheet.doseRows != null) {
                     // A Rajoo start takes at most five dose lines (validateDoses' own rule) — cap

@@ -626,6 +626,96 @@ class MixingBoardViewModelTest {
         assertFalse(board.busy)
     }
 
+    private val jandiOverview = AreaOverview(
+        equipment = listOf(
+            equipment("JAN-MIX-01", role = "Mixer", area = MixingArea.Jandi),
+            equipment("JAN-04", role = "ProductionMachine", area = MixingArea.Jandi),
+        ),
+        activeCycles = emptyList(),
+        readyMixes = emptyList(),
+        activeRuns = emptyList(),
+        readyCollections = listOf(readyCollection("COL_000124", validMixers = listOf("JAN-MIX-01"))),
+    )
+
+    private suspend fun openJandiBoard() {
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(jandiOverview))
+        whenever(mockUseCase.fetchReadyCollections())
+            .thenReturn(Result.success(jandiOverview.readyCollections))
+        viewModel.openArea(MixingArea.Jandi)
+    }
+
+    private fun acceptedOutcome(overview: AreaOverview) = MachineCycleOutcome.Accepted(
+        action = "Started", machineCode = "JAN-04", cycleId = "CYC_000140",
+        mixBatchId = null, productionRunId = "RUN_000140", affectedMixBatchIds = emptyList(),
+        alreadyFinished = false, forceClosed = false, approverDisplayName = null,
+        areaStatus = overview,
+    )
+
+    @Test
+    fun `a JANDI mixer start offers the three routes and blocks until one is chosen`() = runTest {
+        // Not stubbed until needed: an unstubbed suspend fun returning a non-null sealed class
+        // hands applyOutcome a null, which cannot match any `when` branch.
+        whenever(mockUseCase.startJandiMixer(any(), any(), any()))
+            .thenReturn(acceptedOutcome(jandiOverview))
+        openJandiBoard()
+        advanceUntilIdle()
+        viewModel.selectCollection("COL_000124")
+        viewModel.machineChosen("JAN-MIX-01")
+        advanceUntilIdle()
+
+        val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
+            as BoardSheet.StartConfirm
+        assertEquals(listOf("JAN-02", "JAN-03", "JAN-DRUM-01"), sheet.routeOptions)
+        assertNull(sheet.selectedRoute)
+
+        // Confirming without a route must not reach the server.
+        viewModel.confirmStart()
+        advanceUntilIdle()
+        verify(mockUseCase, never()).startJandiMixer(any(), any(), any())
+
+        viewModel.selectRoute("JAN-DRUM-01")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+        verify(mockUseCase).startJandiMixer("JAN-MIX-01", "COL_000124", "JAN-DRUM-01")
+    }
+
+    @Test
+    fun `a scanned Main mixer code is cached and used as the JANDI 4 source`() = runTest {
+        // "The Android app may cache the scanned Main mixer code locally until the JANDI 4 start
+        // request. There is no separate source-selection MQTT mutation."
+        whenever(mockUseCase.startJandi4(any(), anyOrNull(), anyOrNull()))
+            .thenReturn(acceptedOutcome(jandiOverview))
+        openJandiBoard()
+        advanceUntilIdle()
+
+        viewModel.cacheMainSourceMixerCode("MXR-02")
+        viewModel.machineChosen("JAN-04")
+        advanceUntilIdle()
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        verify(mockUseCase).startJandi4("JAN-04", null, "MXR-02")
+    }
+
+    @Test
+    fun `the cached Main mixer code is cleared once a JANDI 4 start is accepted`() = runTest {
+        whenever(mockUseCase.startJandi4(any(), anyOrNull(), anyOrNull()))
+            .thenReturn(acceptedOutcome(jandiOverview))
+        openJandiBoard()
+        advanceUntilIdle()
+        viewModel.cacheMainSourceMixerCode("MXR-02")
+        viewModel.machineChosen("JAN-04")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+
+        // A second JANDI 4 start must not silently reuse the consumed code.
+        viewModel.machineChosen("JAN-04")
+        viewModel.confirmStart()
+        advanceUntilIdle()
+        verify(mockUseCase).startJandi4("JAN-04", null, null)
+    }
+
     @Test
     fun `submitForceClose refuses blank credentials without touching the wire`() = runTest {
         openMainBoard(); advanceUntilIdle()

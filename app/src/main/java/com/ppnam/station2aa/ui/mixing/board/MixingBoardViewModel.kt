@@ -2,6 +2,7 @@ package com.ppnam.station2aa.ui.mixing.board
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ppnam.station2aa.data.mqtt.dto.JandiRoute
 import com.ppnam.station2aa.data.rfid.ScanEvent
 import com.ppnam.station2aa.data.rfid.ScanEventBus
 import com.ppnam.station2aa.data.session.OperatorSession
@@ -14,6 +15,7 @@ import com.ppnam.station2aa.domain.model.LayerInput
 import com.ppnam.station2aa.domain.model.MachineCycleOutcome
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.domain.model.ReadyCollection
+import com.ppnam.station2aa.domain.model.ReadyMix
 import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import com.ppnam.station2aa.domain.usecase.AuthUseCase
@@ -26,6 +28,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/** JANDI 4 is reached with no board selection — its sources are the drum plus a Main mix. */
+private const val JANDI_4_CODE = "JAN-04"
 
 /** What the operator has picked as the START source (source-first, user decision 4). */
 sealed class BoardSelection {
@@ -53,15 +58,17 @@ sealed class BoardSheet {
     object None : BoardSheet()
 
     /**
-     * Start confirmation. [doseRows] is non-null only for a Rajoo mixer start.
-     * [selectedRoute] is set by Task 7's JANDI route picker; until then it stays null, so a
-     * JANDI mixer start hits the "select a route" validation path.
+     * Start confirmation. [doseRows] is non-null only for a Rajoo mixer start, [routeOptions] is
+     * non-empty only for the JANDI shared mixer, and [mainSourceOptions] only for JANDI 4.
      */
     data class StartConfirm(
         val machine: Equipment,
         val doseRows: List<DoseRow>?,
-        val validationError: String? = null,
+        val routeOptions: List<String> = emptyList(),
         val selectedRoute: String? = null,
+        val mainSourceOptions: List<ReadyMix> = emptyList(),
+        val selectedMainSource: String? = null,
+        val validationError: String? = null,
     ) : BoardSheet()
 
     data class CycleSheet(val machine: Equipment, val cycle: ActiveCycle) : BoardSheet()
@@ -312,6 +319,29 @@ class MixingBoardViewModel @Inject constructor(
     }
 
     /**
+     * A Main mixer code scanned ahead of a JANDI 4 start. The contract is explicit that this is
+     * client-side only: "There is no separate source-selection MQTT mutation." Cleared once a
+     * JANDI 4 start is accepted, so it cannot leak into the next run.
+     */
+    private var cachedMainSourceMixerCode: String? = null
+
+    fun cacheMainSourceMixerCode(machineCode: String) {
+        cachedMainSourceMixerCode = machineCode.takeIf { it.isNotBlank() }
+    }
+
+    fun selectRoute(route: String) {
+        val board = board() ?: return
+        val sheet = board.sheet as? BoardSheet.StartConfirm ?: return
+        setBoard(board.copy(sheet = sheet.copy(selectedRoute = route, validationError = null)))
+    }
+
+    fun selectMainSource(mixBatchId: String) {
+        val board = board() ?: return
+        val sheet = board.sheet as? BoardSheet.StartConfirm ?: return
+        setBoard(board.copy(sheet = sheet.copy(selectedMainSource = mixBatchId, validationError = null)))
+    }
+
+    /**
      * A machine was scanned or a highlighted card tapped. With a selection this opens the
      * start-confirm sheet; without one it opens the machine's active-cycle sheet, or just
      * explains. An unknown scanned code still proceeds with a stub — trusted intent,
@@ -330,6 +360,18 @@ class MixingBoardViewModel @Inject constructor(
             )
         when (val selection = board.selection) {
             is BoardSelection.None -> {
+                // JANDI 4 takes the current drum plus one ready Main mix, so it starts without a
+                // board selection. Its Main input is chosen in the sheet or supplied by a Main
+                // mixer code scanned earlier.
+                if (machine.machineCode == JANDI_4_CODE) {
+                    setBoard(board.copy(sheet = BoardSheet.StartConfirm(
+                        machine = machine,
+                        doseRows = null,
+                        mainSourceOptions = board.overview.readyMixes
+                            .filter { it.area == MixingArea.Main && it.isAssignable },
+                    )))
+                    return
+                }
                 val cycle = board.overview.activeCycles.firstOrNull { it.machineCode == machineCode }
                 if (cycle != null) {
                     setBoard(board.copy(sheet = BoardSheet.CycleSheet(machine, cycle)))
@@ -354,7 +396,10 @@ class MixingBoardViewModel @Inject constructor(
                             }
                     }
                 } else {
-                    setBoard(board.copy(sheet = BoardSheet.StartConfirm(machine, doseRows = null)))
+                    val routes = if (machine.area == MixingArea.Jandi &&
+                        machine.role == EquipmentRole.MIXER) JandiRoute.ALL else emptyList()
+                    setBoard(board.copy(sheet = BoardSheet.StartConfirm(
+                        machine = machine, doseRows = null, routeOptions = routes)))
                 }
             }
             is BoardSelection.Mix ->
@@ -382,6 +427,21 @@ class MixingBoardViewModel @Inject constructor(
         val board = board() ?: return
         val sheet = board.sheet as? BoardSheet.StartConfirm ?: return
         val machine = sheet.machine
+        if (machine.machineCode == JANDI_4_CODE) {
+            actionJob = viewModelScope.launch {
+                setBoard(board.copy(busy = true))
+                val outcome = useCase.startJandi4(
+                    machineCode = machine.machineCode,
+                    mainSourceMixBatchId = sheet.selectedMainSource,
+                    mainSourceMixerCode = if (sheet.selectedMainSource == null) cachedMainSourceMixerCode else null,
+                )
+                if (outcome is MachineCycleOutcome.Accepted) cachedMainSourceMixerCode = null
+                applyOutcome(outcome) { accepted ->
+                    "Started ${accepted.productionRunId ?: accepted.cycleId ?: ""} on ${accepted.machineCode}"
+                }
+            }
+            return
+        }
         actionJob = viewModelScope.launch {
             val outcome: MachineCycleOutcome = when (val selection = board.selection) {
                 is BoardSelection.Collection -> when {
