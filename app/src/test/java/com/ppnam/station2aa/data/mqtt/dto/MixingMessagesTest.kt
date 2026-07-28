@@ -39,8 +39,19 @@ class MixingMessagesTest {
           }],
           "activeRuns": [{
             "productionRunId": "RUN_000001", "machineCode": "EXT-03",
-            "jobCardNumber": "510019068",
-            "mixBatchIds": ["MIX_000001"], "startedAtUtc": "2026-07-21T08:30:00Z"
+            "status": "InProgress", "startedAtUtc": "2026-07-21T08:30:00Z",
+            "inputs": [
+              {
+                "inputRole": "Main", "jobCardNumber": "510019068",
+                "productionOrderDocumentNumber": "PO-000001", "collectionId": "COL_000001",
+                "mixBatchId": "MIX_000001", "sourceMixerCode": "JAN-MIX-01", "productLayer": null
+              },
+              {
+                "inputRole": "Drum", "jobCardNumber": "510019099",
+                "productionOrderDocumentNumber": "PO-000002", "collectionId": "COL_000002",
+                "mixBatchId": "MIX_000002", "sourceMixerCode": "JAN-DRUM-01", "productLayer": null
+              }
+            ]
           }]
         }
     """.trimIndent()
@@ -56,7 +67,20 @@ class MixingMessagesTest {
         assertEquals(listOf("JAN-02", "JAN-03", "JAN-04"), eq.validDestinationMachineCodes)
         assertEquals("CYC_000007", r.activeCycles.single().cycleId)
         assertEquals(listOf("JAN-DRUM-01", "JAN-02", "JAN-03"), r.readyMixes.single().validNextMachineCodes)
-        assertEquals("RUN_000001", r.activeRuns.single().productionRunId)
+        val run = r.activeRuns.single()
+        assertEquals("RUN_000001", run.productionRunId)
+        assertEquals("InProgress", run.status)
+        // Mixed-JC composite runs are the whole point of inputs[] — both entries must survive
+        // parsing, with different jobCardNumber values, even though Gson would silently drop a
+        // stale field name and let this pin the wrong wire shape.
+        assertEquals(2, run.inputs.size)
+        assertEquals("510019068", run.inputs[0].jobCardNumber)
+        assertEquals("510019099", run.inputs[1].jobCardNumber)
+        assertNotEquals(run.inputs[0].jobCardNumber, run.inputs[1].jobCardNumber)
+        assertEquals("MIX_000001", run.inputs[0].mixBatchId)
+        assertEquals("MIX_000002", run.inputs[1].mixBatchId)
+        assertEquals("JAN-MIX-01", run.inputs[0].sourceMixerCode)
+        assertEquals("JAN-DRUM-01", run.inputs[1].sourceMixerCode)
     }
 
     @Test
