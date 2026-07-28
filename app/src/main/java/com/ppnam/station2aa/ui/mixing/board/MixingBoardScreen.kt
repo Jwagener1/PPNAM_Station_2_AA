@@ -191,11 +191,15 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         Column(Modifier.padding(12.dp)) {
                             Text("JC ${mix.jobCardNumber}",
                                 style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            Text(
-                                "${mix.mixBatchId} · ${mix.collectionId}" +
-                                    (mix.sourceMixerCode.takeIf { it.isNotBlank() }
-                                        ?.let { " · from $it" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            val mixSecondary = secondaryLine(
+                                mix.mixBatchId,
+                                mix.collectionId,
+                                mix.sourceMixerCode.takeIf { it.isNotBlank() }?.let { "from $it" },
+                            )
+                            if (mixSecondary.isNotBlank()) {
+                                Text(mixSecondary,
+                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            }
                             // Destinations render ONLY from validNextMachineCodes (§13.8).
                             Text("Next: ${mix.validNextMachineCodes.joinToString()}",
                                 style = MaterialTheme.typography.labelSmall,
@@ -216,11 +220,11 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         Column(Modifier.padding(12.dp)) {
                             Text("JC ${drum.jobCardNumber}",
                                 style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            Text(
-                                drum.mixBatchId +
-                                    (drum.collectionId.takeIf { it.isNotBlank() }
-                                        ?.let { " · $it" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            val drumSecondary = secondaryLine(drum.mixBatchId, drum.collectionId)
+                            if (drumSecondary.isNotBlank()) {
+                                Text(drumSecondary,
+                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            }
                             Text(drum.status,
                                 style = MaterialTheme.typography.bodyMedium, color = WarningOrange)
                             if (drum.scanGuidance.isNotBlank()) {
@@ -307,19 +311,25 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         Column(Modifier.padding(12.dp)) {
                             Text(run.machineCode,
                                 style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                            Text(
-                                run.productionRunId +
-                                    (run.status.takeIf { it.isNotBlank() }
-                                        ?.let { " · $it" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            val runSecondary = secondaryLine(run.productionRunId, run.status)
+                            if (runSecondary.isNotBlank()) {
+                                Text(runSecondary,
+                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            }
                             // A JANDI 4 or Rajoo run carries several inputs whose job cards may
                             // differ. Listing them is the only way that is visible to an operator.
                             run.inputs.forEach { input ->
+                                // "JC …" is the leading identifier (never conditionally hidden,
+                                // matching every other card's JC line); only the traits after it
+                                // — layer and role — are optional and joined so a blank one
+                                // can't leave a dangling " · " behind.
+                                val inputTraits = secondaryLine(
+                                    input.productLayer?.let { "layer $it" },
+                                    input.inputRole,
+                                )
                                 Text(
                                     "JC ${input.jobCardNumber}" +
-                                        (input.productLayer?.let { " · layer $it" } ?: "") +
-                                        (input.inputRole.takeIf { it.isNotBlank() }
-                                            ?.let { " · $it" } ?: ""),
+                                        (inputTraits.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
                                     style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                                 Text(input.mixBatchId,
                                     style = MaterialTheme.typography.labelSmall, color = TextMuted)
@@ -418,6 +428,16 @@ private fun routeLabel(route: String) = when (route) {
     JandiRoute.DRUM -> "Drum (decant, then JANDI 4)"
     else -> route
 }
+
+/**
+ * Builds a secondary/traceability line from parts that may individually be blank — several of
+ * these fields (mixerCode, inputRole, run status…) are inferred and unconfirmed against the
+ * backend, so a blank value is a real runtime case, not a hypothetical. Joining only the
+ * non-blank parts makes a dangling or doubled " · " structurally unrepresentable, rather than
+ * guarding each field in place.
+ */
+private fun secondaryLine(vararg parts: String?): String =
+    parts.filterNot { it.isNullOrBlank() }.joinToString(" · ")
 
 @Composable
 private fun StartConfirmDialog(
