@@ -464,7 +464,7 @@ class MixingUseCaseTest {
         verify(mockMqtt).request(
             eq("collection_resume_requested"), eq("bom_loaded"),
             argThat<Any> {
-                this is CollectionResumePayload && collectionId == "COL_000123" && jobCardNumber == "510019068"
+                this is CollectionResumePayload && collectionId == "COL_000123"
             },
             eq("COL_000123"), eq(BomLoadedResponse::class.java),
         )

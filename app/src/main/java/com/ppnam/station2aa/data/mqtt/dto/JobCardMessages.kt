@@ -5,9 +5,11 @@ data class JobCardLoadPayload(
     val jobCardNumber: String,
 )
 
-/** `collection_resume_requested` — replays the stored BOM snapshot without calling SAP again. */
+/**
+ * `collection_resume_requested` — replays the stored BOM snapshot without calling SAP again.
+ * Requires only the collection; Station 2 returns the job card.
+ */
 data class CollectionResumePayload(
-    val jobCardNumber: String,
     val collectionId: String,
 )
 

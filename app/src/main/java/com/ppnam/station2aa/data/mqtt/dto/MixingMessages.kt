@@ -1,9 +1,10 @@
 package com.ppnam.station2aa.data.mqtt.dto
 
-/** `mixing_overview_requested` — both filters optional; Gson omits nulls per the contract. */
+/** `mixing_overview_requested` — every filter optional; Gson omits nulls per the contract. */
 data class MixingOverviewPayload(
     val mixingArea: String? = null,
-    val productionOrderDocumentNumber: String? = null,
+    val jobCardNumber: String? = null,
+    val collectionId: String? = null,
 )
 
 /** Equipment `status`. */
@@ -14,6 +15,7 @@ object EquipmentStatus {
 }
 
 data class EquipmentDto(
+    val currentJobCardNumber: String? = null,
     val mixingArea: String = "",
     val equipmentRole: String = "",
     val machineCode: String = "",
@@ -24,7 +26,6 @@ data class EquipmentDto(
     val status: String = "",
     val productLayer: Int? = null,
     val currentCycleId: String? = null,
-    val currentProductionOrderDocumentNumber: String? = null,
 
     /**
      * Whether THIS handheld may scan this machine right now.
@@ -54,11 +55,11 @@ object CompletionMode {
 }
 
 data class ReadyMixDto(
+    val jobCardNumber: String = "",
     val mixBatchId: String = "",
     val collectionId: String = "",
     val mixingArea: String = "",
-    val productionOrderDocumentNumber: String = "",
-    val mixerCode: String = "",
+    val sourceMixerCode: String = "",
     val mixerDisplayName: String = "",
     val productLayer: Int? = null,
     /** [MixStatus]. */
@@ -86,11 +87,11 @@ data class ReadyMixDto(
 }
 
 data class ActiveCycleDto(
+    val jobCardNumber: String = "",
     val cycleId: String = "",
     val machineCode: String = "",
     val mixingArea: String = "",
     val equipmentRole: String = "",
-    val productionOrderDocumentNumber: String = "",
     val collectionId: String? = null,
     val mixBatchIds: List<String> = emptyList(),
     val productionRunId: String? = null,
@@ -99,9 +100,9 @@ data class ActiveCycleDto(
 )
 
 data class ActiveRunDto(
+    val jobCardNumber: String = "",
     val productionRunId: String = "",
     val machineCode: String = "",
-    val productionOrderDocumentNumber: String = "",
     val mixBatchIds: List<String> = emptyList(),
     val startedAtUtc: String = "",
 )
@@ -115,7 +116,6 @@ data class ActiveRunDto(
 data class ReadyCollectionDto(
     val collectionId: String = "",
     val jobCardNumber: String = "",
-    val productionOrderDocumentNumber: String = "",
     val productCode: String = "",
     val productName: String = "",
     val status: String = "",
@@ -126,11 +126,6 @@ data class ReadyCollectionDto(
 /** `mixing_overview_result`, and the `areaStatus` embedded in every machine result (§8). */
 data class MixingOverviewResponse(
     val mixingArea: String? = null,
-    /**
-     * Inferred only when everything in scope belongs to one production order; null when the scope
-     * is empty or spans several. Echoes the request's value when one was supplied.
-     */
-    val productionOrderDocumentNumber: String? = null,
     val equipment: List<EquipmentDto> = emptyList(),
     /** Collections that can start a mixer. */
     val readyCollections: List<ReadyCollectionDto> = emptyList(),
@@ -186,12 +181,12 @@ data class MachineCycleForceClosePayload(
 
 /** `machine_cycle_result` — the unified §8 result for start, finish, and force-close. */
 data class MachineCycleResultResponse(
+    val jobCardNumber: String? = null,
     val action: String? = null,
     val mixingArea: String? = null,
     val equipmentRole: String? = null,
     val machineCode: String? = null,
     val cycleId: String? = null,
-    val productionOrderDocumentNumber: String? = null,
     val collectionId: String? = null,
     val mixBatchId: String? = null,
     val productionRunId: String? = null,

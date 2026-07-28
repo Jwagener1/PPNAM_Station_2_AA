@@ -61,7 +61,7 @@ class MixingBoardViewModelTest {
         isAssignable: Boolean = true,
     ) = ReadyMix(
         mixBatchId = id, collectionId = "COL_$id", area = MixingArea.Main, jobCardNumber = jc,
-        mixerCode = "MXR-01", mixerDisplayName = "Main Mixer 1", status = status,
+        sourceMixerCode = "MXR-01", mixerDisplayName = "Main Mixer 1", status = status,
         validNextMachineCodes = validNext, nextStepDescription = "",
         completionMode = completionMode, isAssignable = isAssignable,
     )
@@ -118,18 +118,18 @@ class MixingBoardViewModelTest {
 
     @Test
     fun `loadAreaPicker success carries the overview and the pending collection`() = runTest {
-        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         viewModel.loadAreaPicker("COL_1")
         advanceUntilIdle()
         val state = viewModel.uiState.value
         assertTrue(state is MixingBoardUiState.AreaPicker)
         assertEquals("COL_1", (state as MixingBoardUiState.AreaPicker).pendingCollectionId)
-        verify(mockUseCase).fetchOverview(isNull(), anyOrNull())
+        verify(mockUseCase).fetchOverview(isNull(), anyOrNull(), anyOrNull())
     }
 
     @Test
     fun `loadAreaPicker failure sets Error`() = runTest {
-        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull()))
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.failure(Exception("boom")))
         viewModel.loadAreaPicker(null)
         advanceUntilIdle()
@@ -139,7 +139,7 @@ class MixingBoardViewModelTest {
     @Test
     fun `openArea loads the filtered overview and collections and pre-selects the pending collection`() = runTest {
         // Stub BOTH shapes before any call — the eager dispatcher runs launches immediately.
-        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         viewModel.loadAreaPicker("COL_1")
         advanceUntilIdle()
@@ -159,7 +159,7 @@ class MixingBoardViewModelTest {
 
     @Test
     fun `reconnect triggers a refresh of the current board`() = runTest {
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         viewModel.openArea(MixingArea.Main)
         advanceUntilIdle()
@@ -169,7 +169,7 @@ class MixingBoardViewModelTest {
         advanceUntilIdle()
 
         // openArea's overview fetch ran twice: once on entry, once on reconnect
-        verify(mockUseCase, times(2)).fetchOverview(eq(MixingArea.Main), anyOrNull())
+        verify(mockUseCase, times(2)).fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull())
     }
 
     @Test
@@ -267,7 +267,7 @@ class MixingBoardViewModelTest {
 
     @Test
     fun `the auto-nav pre-selection is one-shot — a refresh does not re-assert it`() = runTest {
-        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         viewModel.loadAreaPicker("COL_1")
         advanceUntilIdle()
@@ -283,7 +283,7 @@ class MixingBoardViewModelTest {
     }
 
     private suspend fun openMainBoard() {
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         viewModel.openArea(MixingArea.Main)
     }
@@ -296,7 +296,7 @@ class MixingBoardViewModelTest {
 
     @Test
     fun `selecting a second mix replaces the first rather than adding to it`() = runTest {
-        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull()))
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(twoMixOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         viewModel.openArea(MixingArea.Main)
@@ -317,7 +317,7 @@ class MixingBoardViewModelTest {
 
     @Test
     fun `selecting the same mix twice clears the selection`() = runTest {
-        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull()))
+        whenever(mockUseCase.fetchOverview(anyOrNull(), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(twoMixOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         viewModel.openArea(MixingArea.Main)
@@ -373,9 +373,9 @@ class MixingBoardViewModelTest {
     fun `machineChosen with a collection on a Rajoo mixer fetches dose rows`() = runTest {
         val rajooOverview = mainOverview.copy(equipment = listOf(
             equipment("RAJ-GM-01", area = MixingArea.Rajoo)))
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Rajoo), anyOrNull())).thenReturn(Result.success(rajooOverview))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Rajoo), anyOrNull(), anyOrNull())).thenReturn(Result.success(rajooOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
-        whenever(mockUseCase.fetchCollectedMaterials("510019068", "COL_1")).thenReturn(
+        whenever(mockUseCase.fetchCollectedMaterials("COL_1")).thenReturn(
             Result.success(listOf(
                 com.ppnam.station2aa.domain.model.CollectedMaterial("MAT-1", "Resin", 550.0))))
         viewModel.openArea(MixingArea.Rajoo)
@@ -443,7 +443,7 @@ class MixingBoardViewModelTest {
             activeRuns = emptyList(),
             readyCollections = emptyList(),
         )
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Jandi), anyOrNull()))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Jandi), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(drumOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(emptyList()))
         viewModel.openArea(MixingArea.Jandi); advanceUntilIdle()
@@ -506,11 +506,11 @@ class MixingBoardViewModelTest {
     @Test
     fun `a late area load cannot overwrite a newer one`() = runTest {
         val slowGate = kotlinx.coroutines.CompletableDeferred<Unit>()
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Dolci), anyOrNull())).doSuspendableAnswer {
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Dolci), anyOrNull(), anyOrNull())).doSuspendableAnswer {
             slowGate.await()
             Result.success(mainOverview)
         }
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull()))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull()))
             .thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
 
@@ -527,9 +527,9 @@ class MixingBoardViewModelTest {
     fun `rajoo confirm validates doses fail-closed`() = runTest {
         val rajooOverview = mainOverview.copy(equipment = listOf(
             equipment("RAJ-GM-01", area = MixingArea.Rajoo)))
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Rajoo), anyOrNull())).thenReturn(Result.success(rajooOverview))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Rajoo), anyOrNull(), anyOrNull())).thenReturn(Result.success(rajooOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
-        whenever(mockUseCase.fetchCollectedMaterials(any(), any())).thenReturn(
+        whenever(mockUseCase.fetchCollectedMaterials(any())).thenReturn(
             Result.success(listOf(
                 com.ppnam.station2aa.domain.model.CollectedMaterial("MAT-1", "Resin", 100.0))))
         viewModel.openArea(MixingArea.Rajoo)
@@ -552,7 +552,7 @@ class MixingBoardViewModelTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
         val vm = MixingBoardViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         vm.openArea(MixingArea.Main)
         advanceUntilIdle()
@@ -570,7 +570,7 @@ class MixingBoardViewModelTest {
         val events = MutableSharedFlow<com.ppnam.station2aa.data.rfid.ScanEvent>()
         whenever(mockScanEventBus.events).thenReturn(events)
         val vm = MixingBoardViewModel(mockUseCase, mockScanEventBus, mockMqttRepository, mockAuthUseCase, mockSessionHolder)
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(Result.success(mainOverview))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull())).thenReturn(Result.success(mainOverview))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         vm.openArea(MixingArea.Main)
         advanceUntilIdle()
@@ -609,7 +609,7 @@ class MixingBoardViewModelTest {
             equipment = listOf(equipment("MXR-01"), equipment("MXR-02", status = "Available")),
             activeCycles = emptyList(),
         )
-        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull())).thenReturn(
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull())).thenReturn(
             Result.success(mainOverview), Result.success(refreshedAfterServerActuallyFinished))
         whenever(mockUseCase.fetchReadyCollections()).thenReturn(Result.success(readyCollections))
         viewModel.openArea(MixingArea.Main)
@@ -621,7 +621,7 @@ class MixingBoardViewModelTest {
         viewModel.finishCycle()
         advanceUntilIdle()
 
-        verify(mockUseCase, times(2)).fetchOverview(eq(MixingArea.Main), anyOrNull())
+        verify(mockUseCase, times(2)).fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull())
         val board = viewModel.uiState.value as MixingBoardUiState.Board
         assertEquals("Available", board.overview.equipment.single { it.machineCode == "MXR-02" }.status)
         assertTrue(board.overview.activeCycles.isEmpty())

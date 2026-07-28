@@ -56,7 +56,7 @@ data class ReadyMix(
     val collectionId: String,
     val area: MixingArea?,
     val jobCardNumber: String,
-    val mixerCode: String,
+    val sourceMixerCode: String,
     val mixerDisplayName: String,
     val status: String,
     val validNextMachineCodes: List<String>,

@@ -10,6 +10,7 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
+import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.EquipmentDto
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleStartPayload
@@ -40,6 +41,51 @@ class MixingBoardUseCaseTest {
         whenever(mockManagerAuthorization.authorize(any(), any(), any(), any()))
             .thenReturn(Result.success("auth-token-1"))
         useCase = MixingBoardUseCase(mockMqtt, mockManagerAuthorization)
+    }
+
+    @Test
+    fun `fetchOverview sends jobCardNumber and collectionId, never productionOrderDocumentNumber`() = runTest {
+        whenever(mockMqtt.request(
+            eq("mixing_overview_requested"), eq("mixing_overview_result"), any(), anyOrNull(),
+            eq(MixingOverviewResponse::class.java)
+        )).thenReturn(MqttOutcome.Accepted(MixingOverviewResponse(), NextAction.NONE))
+
+        useCase.fetchOverview(MixingArea.Main, jobCardNumber = "JC-24001", collectionId = "COL_000123")
+
+        val payload = argumentCaptor<Any>().apply {
+            verify(mockMqtt).request(any(), any(), capture(), anyOrNull(),
+                eq(MixingOverviewResponse::class.java))
+        }.firstValue as MixingOverviewPayload
+        assertEquals("MainMixingRoom", payload.mixingArea)
+        assertEquals("JC-24001", payload.jobCardNumber)
+        assertEquals("COL_000123", payload.collectionId)
+        // Absent, not null: the contract requires omission for unused optional fields.
+        assertNull(MixingOverviewPayload().mixingArea)
+        assertNull(MixingOverviewPayload().jobCardNumber)
+        assertNull(MixingOverviewPayload().collectionId)
+    }
+
+    @Test
+    fun `fetchCollectedMaterials resumes by collectionId alone`() = runTest {
+        // The JC comes back from Station 2; the handheld does not assert it.
+        val response = BomLoadedResponse(
+            jobCardNumber = "JC-24001", collectionId = "COL_000123",
+            ingredients = listOf(
+                BomLineResponse(materialCode = "MAT-001", materialName = "Resin",
+                    collectedQuantity = 550.0, issueType = "im_Manual")))
+        whenever(mockMqtt.request(
+            eq("collection_resume_requested"), eq("bom_loaded"), any(), anyOrNull(),
+            eq(BomLoadedResponse::class.java)
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.OPEN_MIXING))
+
+        val materials = useCase.fetchCollectedMaterials("COL_000123").getOrThrow()
+
+        val payload = argumentCaptor<Any>().apply {
+            verify(mockMqtt).request(any(), any(), capture(), anyOrNull(),
+                eq(BomLoadedResponse::class.java))
+        }.firstValue as CollectionResumePayload
+        assertEquals("COL_000123", payload.collectionId)
+        assertEquals(listOf("MAT-001"), materials.map { it.materialCode })
     }
 
     @Test
@@ -110,7 +156,7 @@ class MixingBoardUseCaseTest {
             eq(BomLoadedResponse::class.java)
         )).thenReturn(MqttOutcome.Accepted(response, NextAction.OPEN_MIXING))
 
-        val materials = useCase.fetchCollectedMaterials("510019068", "COL_1").getOrThrow()
+        val materials = useCase.fetchCollectedMaterials("COL_1").getOrThrow()
 
         assertEquals(listOf("MAT-1"), materials.map { it.materialCode })
         assertEquals(550.0, materials.single().collectedQty, 0.0)

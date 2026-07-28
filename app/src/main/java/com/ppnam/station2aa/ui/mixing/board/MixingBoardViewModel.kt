@@ -337,7 +337,7 @@ class MixingBoardViewModel @Inject constructor(
                     // Rajoo dose rows come from the collection's collected lines.
                     viewModelScope.launch {
                         setBoard(board.copy(busy = true))
-                        useCase.fetchCollectedMaterials(selection.jobCardNumber, selection.collectionId)
+                        useCase.fetchCollectedMaterials(selection.collectionId)
                             .onSuccess { materials ->
                                 val rows = materials.map { DoseRow(it.materialCode, it.materialName, it.collectedQty) }
                                 setBoard(board.copy(busy = false,

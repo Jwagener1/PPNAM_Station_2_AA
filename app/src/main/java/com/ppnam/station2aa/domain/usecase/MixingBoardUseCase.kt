@@ -47,6 +47,7 @@ class MixingBoardUseCase @Inject constructor(
     suspend fun fetchOverview(
         area: MixingArea? = null,
         jobCardNumber: String? = null,
+        collectionId: String? = null,
     ): Result<AreaOverview> =
         when (
             val outcome = mqttRepository.request(
@@ -54,9 +55,10 @@ class MixingBoardUseCase @Inject constructor(
                 responseType = "mixing_overview_result",
                 payload = MixingOverviewPayload(
                     mixingArea = area?.wire,
-                    productionOrderDocumentNumber = jobCardNumber,
+                    jobCardNumber = jobCardNumber,
+                    collectionId = collectionId,
                 ),
-                correlationKey = jobCardNumber,
+                correlationKey = jobCardNumber ?: collectionId,
                 responseClass = MixingOverviewResponse::class.java,
             )
         ) {
@@ -81,15 +83,12 @@ class MixingBoardUseCase @Inject constructor(
      * capture action `collection_resume_requested` — resuming a ReadyForMixing collection
      * replays its stored snapshot without touching state.
      */
-    suspend fun fetchCollectedMaterials(
-        jobCardNumber: String,
-        collectionId: String,
-    ): Result<List<CollectedMaterial>> =
+    suspend fun fetchCollectedMaterials(collectionId: String): Result<List<CollectedMaterial>> =
         when (
             val outcome = mqttRepository.request(
                 requestType = "collection_resume_requested",
                 responseType = "bom_loaded",
-                payload = CollectionResumePayload(jobCardNumber = jobCardNumber, collectionId = collectionId),
+                payload = CollectionResumePayload(collectionId = collectionId),
                 correlationKey = collectionId,
                 responseClass = BomLoadedResponse::class.java,
             )
@@ -253,7 +252,7 @@ class MixingBoardUseCase @Inject constructor(
         status = status,
         productLayer = productLayer,
         currentCycleId = currentCycleId,
-        currentJobCardNumber = currentProductionOrderDocumentNumber,
+        currentJobCardNumber = currentJobCardNumber,
         currentMixBatchIds = currentMixBatchIds,
         validDestinationMachineCodes = validDestinationMachineCodes,
         routeDescription = routeDescription,
@@ -264,8 +263,8 @@ class MixingBoardUseCase @Inject constructor(
         mixBatchId = mixBatchId,
         collectionId = collectionId,
         area = MixingArea.fromWire(mixingArea),
-        jobCardNumber = productionOrderDocumentNumber,
-        mixerCode = mixerCode,
+        jobCardNumber = jobCardNumber,
+        sourceMixerCode = sourceMixerCode,
         mixerDisplayName = mixerDisplayName,
         status = status,
         validNextMachineCodes = validNextMachineCodes,
@@ -291,7 +290,7 @@ class MixingBoardUseCase @Inject constructor(
         machineCode = machineCode,
         area = MixingArea.fromWire(mixingArea),
         role = equipmentRole,
-        jobCardNumber = productionOrderDocumentNumber,
+        jobCardNumber = jobCardNumber,
         collectionId = collectionId,
         mixBatchIds = mixBatchIds,
         productionRunId = productionRunId,
@@ -302,7 +301,7 @@ class MixingBoardUseCase @Inject constructor(
     private fun ActiveRunDto.toActiveRun() = ActiveRun(
         productionRunId = productionRunId,
         machineCode = machineCode,
-        jobCardNumber = productionOrderDocumentNumber,
+        jobCardNumber = jobCardNumber,
         mixBatchIds = mixBatchIds,
         startedAtUtc = startedAtUtc,
     )

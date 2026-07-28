@@ -13,34 +13,33 @@ class MixingMessagesTest {
     private val overviewJson = """
         {
           "mixingArea": "JandiBulkMixing",
-          "productionOrderDocumentNumber": "510019068",
           "equipment": [{
             "mixingArea": "JandiBulkMixing", "equipmentRole": "Mixer",
             "machineCode": "JAN-MIX-01", "displayName": "JANDI 2/3 Shared Bulk Mixer",
             "isEnabled": true, "isAvailable": true, "status": "Available",
             "productLayer": null, "currentCycleId": null,
-            "currentProductionOrderDocumentNumber": null, "currentMixBatchIds": [],
+            "currentJobCardNumber": null, "currentMixBatchIds": [],
             "validDestinationMachineCodes": ["JAN-02", "JAN-03", "JAN-04"],
             "routeDescription": "JANDI 2 or JANDI 3 direct; use the drum cycle before JANDI 4."
           }],
           "activeCycles": [{
             "cycleId": "CYC_000007", "machineCode": "JAN-MIX-01",
             "mixingArea": "JandiBulkMixing", "equipmentRole": "Mixer",
-            "productionOrderDocumentNumber": "510019068", "collectionId": "COL_000003",
+            "jobCardNumber": "510019068", "collectionId": "COL_000003",
             "mixBatchIds": ["MIX_000003"], "productionRunId": null,
             "startedAtUtc": "2026-07-21T08:20:00Z", "startedByOperatorId": "OP-001"
           }],
           "readyMixes": [{
             "mixBatchId": "MIX_000001", "collectionId": "COL_000001",
-            "mixingArea": "JandiBulkMixing", "productionOrderDocumentNumber": "510019068",
-            "mixerCode": "JAN-MIX-01", "mixerDisplayName": "JANDI 2/3 Shared Bulk Mixer",
+            "mixingArea": "JandiBulkMixing", "jobCardNumber": "510019068",
+            "sourceMixerCode": "JAN-MIX-01", "mixerDisplayName": "JANDI 2/3 Shared Bulk Mixer",
             "productLayer": null, "status": "ReadyForProduction",
             "validNextMachineCodes": ["JAN-DRUM-01", "JAN-02", "JAN-03"],
             "nextStepDescription": "Start one of: JAN-DRUM-01, JAN-02, JAN-03."
           }],
           "activeRuns": [{
             "productionRunId": "RUN_000001", "machineCode": "EXT-03",
-            "productionOrderDocumentNumber": "510019068",
+            "jobCardNumber": "510019068",
             "mixBatchIds": ["MIX_000001"], "startedAtUtc": "2026-07-21T08:30:00Z"
           }]
         }
@@ -66,7 +65,7 @@ class MixingMessagesTest {
             {
               "action": "Started", "mixingArea": "MainMixingRoom", "equipmentRole": "Mixer",
               "machineCode": "MXR-01", "cycleId": "CYC_000001",
-              "productionOrderDocumentNumber": "510019068", "collectionId": "COL_000001",
+              "jobCardNumber": "510019068", "collectionId": "COL_000001",
               "mixBatchId": "MIX_000001", "productionRunId": null,
               "affectedMixBatchIds": ["MIX_000001"], "alreadyFinished": false,
               "forceClosed": false, "approverUserId": null, "approverDisplayName": null,

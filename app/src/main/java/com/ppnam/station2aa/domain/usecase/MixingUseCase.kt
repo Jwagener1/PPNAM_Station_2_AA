@@ -51,7 +51,7 @@ class MixingUseCase @Inject constructor(
             requestType = if (resuming) "collection_resume_requested" else "job_card_load_requested",
             responseType = "bom_loaded",
             payload = if (resuming) {
-                CollectionResumePayload(jobCardNumber = jobCardNumber, collectionId = collectionId)
+                CollectionResumePayload(collectionId = collectionId)
             } else {
                 JobCardLoadPayload(jobCardNumber = jobCardNumber)
             },
