@@ -183,7 +183,8 @@ class MixingBoardUseCase @Inject constructor(
 
     /**
      * A Main destination scan: assigns and starts exactly one ready mix on one production
-     * machine. This replaces the withdrawn `mix_destination_assignment_requested` entirely.
+     * machine. The separate destination-assignment request that once preceded this has been
+     * withdrawn; this single call now does the whole job.
      */
     suspend fun startProductionDestination(machineCode: String, mixBatchId: String): MachineCycleOutcome =
         cycleRequest(

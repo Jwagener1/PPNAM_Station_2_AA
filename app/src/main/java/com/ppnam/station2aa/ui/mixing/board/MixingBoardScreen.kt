@@ -132,8 +132,8 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
             Text(
                 when (val sel = board.selection) {
                     is BoardSelection.None -> "Select a collection or mix, then scan a machine"
-                    is BoardSelection.Collection -> "Selected: ${sel.collectionId}"
-                    is BoardSelection.Mix -> "Selected: ${sel.mixBatchId}"
+                    is BoardSelection.Collection -> "Selected: JC ${sel.jobCardNumber}"
+                    is BoardSelection.Mix -> "Selected: JC ${sel.jobCardNumber}"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = if (board.selection is BoardSelection.None) TextMuted else AmberPrimary,
@@ -164,8 +164,10 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         border = BorderStroke(1.dp, if (selected) AmberPrimary else GraphiteBorder),
                     ) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("${collection.collectionId} · JC ${collection.jobCardNumber}",
-                                style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                            Text("JC ${collection.jobCardNumber}",
+                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+                            Text(collection.collectionId,
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             if (collection.productName.isNotBlank()) {
                                 Text(collection.productName,
                                     style = MaterialTheme.typography.bodySmall, color = TextMuted)
@@ -187,15 +189,38 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         border = BorderStroke(1.dp, if (selected) AmberPrimary else GraphiteBorder),
                     ) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("${mix.mixBatchId} · JC ${mix.jobCardNumber}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = TextPrimary)
-                            Text("From ${mix.mixerDisplayName}",
-                                style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                            Text("JC ${mix.jobCardNumber}",
+                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+                            Text("${mix.mixBatchId} · ${mix.collectionId} · from ${mix.sourceMixerCode}",
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             // Destinations render ONLY from validNextMachineCodes (§13.8).
                             Text("Next: ${mix.validNextMachineCodes.joinToString()}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = SuccessGreen)
+                        }
+                    }
+                }
+            }
+
+            board.overview.jandiDrum?.let { drum ->
+                item { SectionHeader("JANDI drum") }
+                item {
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+                        border = BorderStroke(1.dp, GraphiteBorder),
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
+                            Text("JC ${drum.jobCardNumber}",
+                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+                            Text("${drum.mixBatchId} · ${drum.collectionId}",
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            Text(drum.status,
+                                style = MaterialTheme.typography.bodyMedium, color = WarningOrange)
+                            if (drum.scanGuidance.isNotBlank()) {
+                                Text(drum.scanGuidance,
+                                    style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                            }
                         }
                     }
                 }
@@ -252,13 +277,43 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         border = BorderStroke(1.dp, GraphiteBorder),
                     ) {
                         Column(Modifier.padding(12.dp)) {
+                            Text("JC ${cycle.jobCardNumber}",
+                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
                             Text("${cycle.cycleId} on ${cycle.machineCode}",
-                                style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             Text(
-                                "JC ${cycle.jobCardNumber} · started " +
-                                    (formatElapsedSince(cycle.startedAtUtc)
-                                        ?: formatStationTimestamp(cycle.startedAtUtc)),
-                                style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                "Started " + (formatElapsedSince(cycle.startedAtUtc)
+                                    ?: formatStationTimestamp(cycle.startedAtUtc)),
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                        }
+                    }
+                }
+            }
+
+            if (board.overview.activeRuns.isNotEmpty()) {
+                item { SectionHeader("Active runs") }
+                items(board.overview.activeRuns, key = { it.productionRunId }) { run ->
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
+                        border = BorderStroke(1.dp, GraphiteBorder),
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
+                            Text(run.machineCode,
+                                style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                            Text("${run.productionRunId} · ${run.status}",
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            // A JANDI 4 or Rajoo run carries several inputs whose job cards may
+                            // differ. Listing them is the only way that is visible to an operator.
+                            run.inputs.forEach { input ->
+                                Text(
+                                    "JC ${input.jobCardNumber}" +
+                                        (input.productLayer?.let { " · layer $it" } ?: "") +
+                                        " · ${input.inputRole}",
+                                    style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                                Text(input.mixBatchId,
+                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            }
                         }
                     }
                 }
