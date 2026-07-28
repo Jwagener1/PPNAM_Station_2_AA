@@ -211,7 +211,7 @@ class MixingBoardUseCase @Inject constructor(
                 mainSourceMixBatchId = mainSourceMixBatchId?.takeIf { byMix },
                 mainSourceMixerCode = mainSourceMixerCode?.takeIf { byMixer },
             ),
-            correlationKey = mainSourceMixBatchId ?: mainSourceMixerCode,
+            correlationKey = mainSourceMixBatchId?.takeIf { byMix } ?: mainSourceMixerCode?.takeIf { byMixer },
         )
     }
 

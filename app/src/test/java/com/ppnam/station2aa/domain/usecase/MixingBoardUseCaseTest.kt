@@ -200,6 +200,9 @@ class MixingBoardUseCaseTest {
         assertEquals("COL_000124", p.collectionId)
         assertEquals("JAN-DRUM-01", p.destinationMachineCode)
         assertNull(p.mixBatchId)
+        assertNull(p.layerInputs)
+        assertNull(p.mainSourceMixBatchId)
+        assertNull(p.mainSourceMixerCode)
     }
 
     @Test
@@ -214,6 +217,10 @@ class MixingBoardUseCaseTest {
         assertEquals(1, p.layerInputs?.size)
         assertEquals("MAT-001", p.layerInputs?.single()?.materialCode)
         assertEquals(12.5, p.layerInputs?.single()?.dosingQuantity ?: 0.0, 0.0)
+        assertNull(p.destinationMachineCode)
+        assertNull(p.mixBatchId)
+        assertNull(p.mainSourceMixBatchId)
+        assertNull(p.mainSourceMixerCode)
     }
 
     @Test
@@ -246,6 +253,10 @@ class MixingBoardUseCaseTest {
         assertEquals("JAN-DRUM-01", p.machineCode)
         assertEquals("MIX_000124", p.mixBatchId)
         assertNull(p.collectionId)
+        assertNull(p.destinationMachineCode)
+        assertNull(p.layerInputs)
+        assertNull(p.mainSourceMixBatchId)
+        assertNull(p.mainSourceMixerCode)
     }
 
     @Test
@@ -257,6 +268,10 @@ class MixingBoardUseCaseTest {
         assertEquals("EXT-03", p.machineCode)
         assertEquals("MIX_000126", p.mixBatchId)
         assertNull(p.collectionId)
+        assertNull(p.destinationMachineCode)
+        assertNull(p.layerInputs)
+        assertNull(p.mainSourceMixBatchId)
+        assertNull(p.mainSourceMixerCode)
     }
 
     @Test
@@ -264,13 +279,23 @@ class MixingBoardUseCaseTest {
         stubStartAccepted()
         useCase.startJandi4("JAN-04", mainSourceMixBatchId = "MIX_000130", mainSourceMixerCode = null)
         val byMix = captureStart()
+        assertEquals("JAN-04", byMix.machineCode)
         assertEquals("MIX_000130", byMix.mainSourceMixBatchId)
         assertNull(byMix.mainSourceMixerCode)
+        assertNull(byMix.collectionId)
+        assertNull(byMix.destinationMachineCode)
+        assertNull(byMix.mixBatchId)
+        assertNull(byMix.layerInputs)
 
         val both = useCase.startJandi4("JAN-04", "MIX_000130", "MXR-02")
         assertTrue(both is MachineCycleOutcome.Rejected)
         val neither = useCase.startJandi4("JAN-04", null, null)
         assertTrue(neither is MachineCycleOutcome.Rejected)
+        // Both branches are rejected locally before anything is sent — confirmed directly,
+        // beyond the single wire call already captured for the by-mix case above.
+        verify(mockMqtt, times(1)).request(
+            eq("machine_cycle_start_requested"), any(), any(), anyOrNull(),
+            eq(MachineCycleResultResponse::class.java))
     }
 
     @Test
