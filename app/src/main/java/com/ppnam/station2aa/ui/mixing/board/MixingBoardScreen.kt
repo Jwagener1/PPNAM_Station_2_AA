@@ -20,7 +20,6 @@ import com.ppnam.station2aa.data.session.StationAction
 import com.ppnam.station2aa.data.session.canShow
 import com.ppnam.station2aa.domain.model.ActiveCycle
 import com.ppnam.station2aa.domain.model.Equipment
-import com.ppnam.station2aa.domain.model.EquipmentRole
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.components.DialogFormColumn
@@ -445,20 +444,10 @@ private fun StartConfirmDialog(
     selection: BoardSelection,
     viewModel: MixingBoardViewModel,
 ) {
-    // Strict two-phase (§8): committing finished mixes to a production machine is a destination
-    // ASSIGNMENT, not a cycle start — the JANDI drum (a Transfer) is the one downstream machine
-    // that is still a start. Word the confirmation to match what actually goes on the wire.
-    val isAssignment = selection is BoardSelection.Mix &&
-        sheet.machine.role == EquipmentRole.PRODUCTION_MACHINE
-    val confirmVerb = if (isAssignment) "Assign" else "Start"
     AlertDialog(
         onDismissRequest = viewModel::dismissSheet,
         title = {
-            Text(
-                if (isAssignment) "Assign to ${sheet.machine.displayName}"
-                else "Start ${sheet.machine.displayName}",
-                color = TextPrimary,
-            )
+            Text("Start ${sheet.machine.displayName}", color = TextPrimary)
         },
         text = {
             // Up to five dose fields plus the IME — the buttons need the scrollable body.
@@ -550,7 +539,7 @@ private fun StartConfirmDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = viewModel::confirmStart) { Text(confirmVerb, color = AmberPrimary) }
+            TextButton(onClick = viewModel::confirmStart) { Text("Start", color = AmberPrimary) }
         },
         dismissButton = {
             TextButton(onClick = viewModel::dismissSheet) { Text("Cancel", color = TextPrimary) }

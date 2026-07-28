@@ -364,17 +364,43 @@ class MixingBoardViewModel @Inject constructor(
                 // board selection. Its Main input is chosen in the sheet or supplied by a Main
                 // mixer code scanned earlier.
                 if (machine.machineCode == JANDI_4_CODE) {
-                    setBoard(board.copy(sheet = BoardSheet.StartConfirm(
-                        machine = machine,
-                        doseRows = null,
-                        mainSourceOptions = board.overview.readyMixes
-                            .filter { it.area == MixingArea.Main && it.isAssignable },
-                    )))
+                    // The JANDI-scoped overview this board was fetched with may or may not carry
+                    // Main-area readyMixes (finding 2) — fetch Main explicitly and union with
+                    // whatever is already on hand, so the sheet is correct either way.
+                    viewModelScope.launch {
+                        setBoard(board.copy(busy = true))
+                        val fetchedMainMixes = useCase.fetchOverview(MixingArea.Main)
+                            .onFailure {
+                                _messages.trySend(it.message ?: "Could not load Main mixes")
+                            }
+                            .getOrNull()
+                            ?.readyMixes
+                            .orEmpty()
+                        val existingMainMixes = board.overview.readyMixes.filter { it.area == MixingArea.Main }
+                        val options = (existingMainMixes + fetchedMainMixes)
+                            .filter { it.isAssignable }
+                            .distinctBy { it.mixBatchId }
+                        setBoard(board.copy(
+                            busy = false,
+                            sheet = BoardSheet.StartConfirm(
+                                machine = machine,
+                                doseRows = null,
+                                mainSourceOptions = options,
+                            ),
+                        ))
+                    }
                     return
                 }
                 val cycle = board.overview.activeCycles.firstOrNull { it.machineCode == machineCode }
                 if (cycle != null) {
                     setBoard(board.copy(sheet = BoardSheet.CycleSheet(machine, cycle)))
+                } else if (machine.area == MixingArea.Main && machine.role == EquipmentRole.MIXER) {
+                    // The design intends the operator to scan a Main mixer code ahead of time and
+                    // have the app cache it locally until the JANDI 4 start (finding 1): "There is
+                    // no separate source-selection MQTT mutation."
+                    cacheMainSourceMixerCode(machine.machineCode)
+                    _messages.trySend(
+                        "Cached ${machine.machineCode} as the Main source for the next JANDI 4 start.")
                 } else {
                     _messages.trySend("Select a collection or mix to start this machine.")
                 }
@@ -428,6 +454,14 @@ class MixingBoardViewModel @Inject constructor(
         val sheet = board.sheet as? BoardSheet.StartConfirm ?: return
         val machine = sheet.machine
         if (machine.machineCode == JANDI_4_CODE) {
+            // Pre-flight affordance only — the use case stays the authority (finding 3). Without
+            // it a rejected outcome's Rejected branch unconditionally closes the sheet, losing all
+            // sheet state and forcing a re-scan of JAN-04 to try again.
+            if (sheet.selectedMainSource == null && cachedMainSourceMixerCode == null) {
+                setBoard(board.copy(sheet = sheet.copy(
+                    validationError = "Select a Main mix or scan a Main mixer code before starting.")))
+                return
+            }
             actionJob = viewModelScope.launch {
                 setBoard(board.copy(busy = true))
                 val outcome = useCase.startJandi4(

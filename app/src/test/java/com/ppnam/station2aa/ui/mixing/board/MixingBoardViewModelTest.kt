@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -702,18 +704,107 @@ class MixingBoardViewModelTest {
     fun `the cached Main mixer code is cleared once a JANDI 4 start is accepted`() = runTest {
         whenever(mockUseCase.startJandi4(any(), anyOrNull(), anyOrNull()))
             .thenReturn(acceptedOutcome(jandiOverview))
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(AreaOverview.EMPTY))
         openJandiBoard()
         advanceUntilIdle()
         viewModel.cacheMainSourceMixerCode("MXR-02")
         viewModel.machineChosen("JAN-04")
+        advanceUntilIdle()
+        viewModel.confirmStart()
+        advanceUntilIdle()
+        verify(mockUseCase).startJandi4("JAN-04", null, "MXR-02")
+
+        // A second JANDI 4 start must not silently reuse the consumed code. Finding 3's
+        // sheet-local pre-flight now catches this before the use case is ever called — if the
+        // stale code had leaked through, this would instead be a second startJandi4 invocation.
+        viewModel.machineChosen("JAN-04")
+        advanceUntilIdle()
+        viewModel.confirmStart()
+        advanceUntilIdle()
+        verify(mockUseCase, times(1)).startJandi4(any(), anyOrNull(), anyOrNull())
+        val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
+        assertTrue(sheet is BoardSheet.StartConfirm)
+        assertNotNull((sheet as BoardSheet.StartConfirm).validationError)
+    }
+
+    // ---- Finding 1: cacheMainSourceMixerCode must be reachable via a scan --------------------
+
+    @Test
+    fun `a scanned Main mixer code reaches the cache through machineChosen, not the setter directly`() = runTest {
+        // The review's specific criticism: the existing cache tests call cacheMainSourceMixerCode
+        // directly, which gives false confidence that a real scan ever reaches it. This test drives
+        // the cache exclusively through machineChosen, as a real scan would.
+        openMainBoard(); advanceUntilIdle()
+        val messages = mutableListOf<String>()
+        val collectJob = launch { viewModel.messages.toList(messages) }
+
+        viewModel.machineChosen("MXR-01") // Main-area Mixer, Available, no active cycle.
+        advanceUntilIdle()
+
+        assertTrue("operator should be told the code was cached for the next JANDI 4 start",
+            messages.any { it.contains("MXR-01") })
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertTrue("caching a Main mixer code must not open a sheet", board.sheet is BoardSheet.None)
+        collectJob.cancel()
+
+        // Prove the cache actually reached the JANDI 4 path — exercised only via machineChosen.
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(AreaOverview.EMPTY))
+        whenever(mockUseCase.startJandi4(any(), anyOrNull(), anyOrNull()))
+            .thenReturn(acceptedOutcome(mainOverview))
+        viewModel.machineChosen("JAN-04")
+        advanceUntilIdle()
         viewModel.confirmStart()
         advanceUntilIdle()
 
-        // A second JANDI 4 start must not silently reuse the consumed code.
+        verify(mockUseCase).startJandi4("JAN-04", null, "MXR-01")
+    }
+
+    // ---- Finding 2: mainSourceOptions must not depend on the JANDI-scoped overview -----------
+
+    @Test
+    fun `the JANDI 4 sheet's mainSourceOptions fetches Main separately and excludes quarantined mixes`() = runTest {
+        openJandiBoard(); advanceUntilIdle()
+        // jandiOverview.readyMixes is empty — a Main mix ONLY ever shows up here via the
+        // Main-area fetch that machineChosen must trigger for JAN-04.
+        val eligible = readyMix("MIX_MAIN_1", validNext = listOf("EXT-01"))
+        val quarantined = readyMix("MIX_MAIN_Q", validNext = listOf("EXT-01"),
+            status = "Quarantined", completionMode = "ForceClosed", isAssignable = false)
+        val mainOnly = AreaOverview(
+            equipment = emptyList(), activeCycles = emptyList(),
+            readyMixes = listOf(eligible, quarantined), activeRuns = emptyList(),
+        )
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(mainOnly))
+
         viewModel.machineChosen("JAN-04")
+        advanceUntilIdle()
+
+        val board = viewModel.uiState.value as MixingBoardUiState.Board
+        assertFalse("busy must not be stranded once the sheet opens", board.busy)
+        val sheet = board.sheet as BoardSheet.StartConfirm
+        assertEquals(listOf("MIX_MAIN_1"), sheet.mainSourceOptions.map { it.mixBatchId })
+    }
+
+    // ---- Finding 3: JANDI 4 confirm with no source is a sheet-local validation error ---------
+
+    @Test
+    fun `confirming JANDI 4 with no source and no cached code sets a validation error and never calls startJandi4`() = runTest {
+        openJandiBoard(); advanceUntilIdle()
+        whenever(mockUseCase.fetchOverview(eq(MixingArea.Main), anyOrNull(), anyOrNull()))
+            .thenReturn(Result.success(AreaOverview.EMPTY))
+        viewModel.machineChosen("JAN-04")
+        advanceUntilIdle()
+
         viewModel.confirmStart()
         advanceUntilIdle()
-        verify(mockUseCase).startJandi4("JAN-04", null, null)
+
+        val sheet = (viewModel.uiState.value as MixingBoardUiState.Board).sheet
+        assertTrue("the sheet must stay open so the operator can fix it in place",
+            sheet is BoardSheet.StartConfirm)
+        assertNotNull((sheet as BoardSheet.StartConfirm).validationError)
+        verify(mockUseCase, never()).startJandi4(any(), anyOrNull(), anyOrNull())
     }
 
     @Test

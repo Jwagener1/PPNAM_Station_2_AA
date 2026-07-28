@@ -206,8 +206,11 @@ class MixingBoardUseCase @Inject constructor(
     ): MachineCycleOutcome {
         val byMix = !mainSourceMixBatchId.isNullOrBlank()
         val byMixer = !mainSourceMixerCode.isNullOrBlank()
-        if (byMix == byMixer) {
+        if (byMix && byMixer) {
             return rejectedLocally("Name the Main mix either exactly or by its source mixer, not both.")
+        }
+        if (!byMix && !byMixer) {
+            return rejectedLocally("Name the Main mix either exactly or by its source mixer.")
         }
         return cycleRequest(
             "machine_cycle_start_requested",

@@ -292,8 +292,12 @@ class MixingBoardUseCaseTest {
 
         val both = useCase.startJandi4("JAN-04", "MIX_000130", "MXR-02")
         assertTrue(both is MachineCycleOutcome.Rejected)
+        // Finding 5: "both" and "neither" are different mistakes and must read differently — the
+        // shared "not both" wording used to tell an operator who gave nothing that they gave two.
+        assertTrue((both as MachineCycleOutcome.Rejected).reason.contains("not both"))
         val neither = useCase.startJandi4("JAN-04", null, null)
         assertTrue(neither is MachineCycleOutcome.Rejected)
+        assertFalse((neither as MachineCycleOutcome.Rejected).reason.contains("not both"))
         // Both branches are rejected locally before anything is sent — confirmed directly,
         // beyond the single wire call already captured for the by-mix case above.
         verify(mockMqtt, times(1)).request(
