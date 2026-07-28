@@ -311,7 +311,10 @@ Decision: keep the board's structure, restyle for JC-first. The existing source-
   `validMixerCodes`; a selected mix highlights its `validNextMachineCodes`; both intersected with
   equipment where `scanAllowed` is true. It stays a pure function, unit-tested without the ViewModel.
 - `BoardSheet.StartConfirm` gains `routeOptions` / `selectedRoute` (JANDI) and `mainSourceOptions` /
-  `selectedMainSource` (JANDI 4). Confirm stays disabled until a required choice is made.
+  `selectedMainSource` (JANDI 4). A required choice that is missing is caught on Confirm and reported
+  as a `validationError` on the sheet, which stays open so the operator can fix it in place. (An
+  earlier draft said Confirm stays *disabled*; validating on tap is better — a visible reason beats a
+  mysteriously dead button — and it matches how the Rajoo dose sheet already behaves.)
 - New ViewModel-local `cachedMainMixerCode: String?`, set when the operator scans a Main mixer code
   while a JANDI 4 start is pending, cleared on successful start or on clearing selection. The
   requirements are explicit that this is client-side only: "There is no separate source-selection
