@@ -191,7 +191,10 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         Column(Modifier.padding(12.dp)) {
                             Text("JC ${mix.jobCardNumber}",
                                 style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            Text("${mix.mixBatchId} · ${mix.collectionId} · from ${mix.sourceMixerCode}",
+                            Text(
+                                "${mix.mixBatchId} · ${mix.collectionId}" +
+                                    (mix.sourceMixerCode.takeIf { it.isNotBlank() }
+                                        ?.let { " · from $it" } ?: ""),
                                 style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             // Destinations render ONLY from validNextMachineCodes (§13.8).
                             Text("Next: ${mix.validNextMachineCodes.joinToString()}",
@@ -213,7 +216,10 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         Column(Modifier.padding(12.dp)) {
                             Text("JC ${drum.jobCardNumber}",
                                 style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            Text("${drum.mixBatchId} · ${drum.collectionId}",
+                            Text(
+                                drum.mixBatchId +
+                                    (drum.collectionId.takeIf { it.isNotBlank() }
+                                        ?.let { " · $it" } ?: ""),
                                 style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             Text(drum.status,
                                 style = MaterialTheme.typography.bodyMedium, color = WarningOrange)
@@ -301,7 +307,10 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         Column(Modifier.padding(12.dp)) {
                             Text(run.machineCode,
                                 style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                            Text("${run.productionRunId} · ${run.status}",
+                            Text(
+                                run.productionRunId +
+                                    (run.status.takeIf { it.isNotBlank() }
+                                        ?.let { " · $it" } ?: ""),
                                 style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             // A JANDI 4 or Rajoo run carries several inputs whose job cards may
                             // differ. Listing them is the only way that is visible to an operator.
@@ -309,7 +318,8 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                                 Text(
                                     "JC ${input.jobCardNumber}" +
                                         (input.productLayer?.let { " · layer $it" } ?: "") +
-                                        " · ${input.inputRole}",
+                                        (input.inputRole.takeIf { it.isNotBlank() }
+                                            ?.let { " · $it" } ?: ""),
                                     style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                                 Text(input.mixBatchId,
                                     style = MaterialTheme.typography.labelSmall, color = TextMuted)
