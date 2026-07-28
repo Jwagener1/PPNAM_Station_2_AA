@@ -497,14 +497,19 @@ In `MixingBoardViewModel.kt`, replace the `is BoardSelection.Collection ->` bran
 
 ```kotlin
         is BoardSelection.Collection -> {
+            // NB: `when` has no implicit label, so an early `return@when` will not compile here.
             val collection = overview.readyCollections.firstOrNull {
                 it.collectionId == selection.collectionId
-            } ?: return@when emptySet()
-            val scannable = overview.equipment
-                .filter { it.isEnabled && it.scanAllowed }
-                .map { it.machineCode }
-                .toSet()
-            collection.validMixerCodes.toSet() intersect scannable
+            }
+            if (collection == null) {
+                emptySet()
+            } else {
+                val scannable = overview.equipment
+                    .filter { it.isEnabled && it.scanAllowed }
+                    .map { it.machineCode }
+                    .toSet()
+                collection.validMixerCodes.toSet() intersect scannable
+            }
         }
 ```
 
