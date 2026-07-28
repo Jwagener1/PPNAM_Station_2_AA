@@ -49,6 +49,9 @@ data class Equipment(
      * thing that may gate the scan affordance.
      */
     val scanAllowed: Boolean = false,
+    val currentCollectionId: String? = null,
+    val currentProductionRunId: String? = null,
+    val fixedDestinationMachineCode: String? = null,
 )
 
 data class ReadyMix(
@@ -81,14 +84,40 @@ data class ActiveCycle(
     val productionRunId: String?,
     val startedAtUtc: String,
     val startedByOperatorId: String,
+    val mixBatchId: String = "",
+    val destinationMachineCode: String? = null,
+    val productLayer: Int? = null,
+    val status: String = "",
+)
+
+/** One source feeding a production run. Composite runs carry several, with differing job cards. */
+data class RunInput(
+    val inputRole: String,
+    val jobCardNumber: String,
+    val productionOrderDocumentNumber: String,
+    val collectionId: String,
+    val mixBatchId: String,
+    val sourceMixerCode: String,
+    val productLayer: Int?,
+)
+
+/** The single JANDI drum, reserved from fill until JANDI 4 consumes it. */
+data class JandiDrum(
+    val status: String,
+    val jobCardNumber: String,
+    val collectionId: String,
+    val mixBatchId: String,
+    val activeTransferCycleId: String?,
+    val filledAtUtc: String?,
+    val scanGuidance: String,
 )
 
 data class ActiveRun(
     val productionRunId: String,
     val machineCode: String,
-    val jobCardNumber: String,
-    val mixBatchIds: List<String>,
+    val status: String,
     val startedAtUtc: String,
+    val inputs: List<RunInput> = emptyList(),
 )
 
 data class AreaOverview(
@@ -98,6 +127,8 @@ data class AreaOverview(
     val activeRuns: List<ActiveRun>,
     /** Collections that can start a mixer. */
     val readyCollections: List<ReadyCollection> = emptyList(),
+    val jandiDrum: JandiDrum? = null,
+    val nextAction: String = "",
 ) {
     companion object {
         val EMPTY = AreaOverview(emptyList(), emptyList(), emptyList(), emptyList())
@@ -153,6 +184,11 @@ sealed class MachineCycleOutcome {
         val forceClosed: Boolean,
         val approverDisplayName: String?,
         val areaStatus: AreaOverview,
+        val destinationMachineCode: String? = null,
+        val resultingStatus: String? = null,
+        val productLayer: Int? = null,
+        val inputs: List<RunInput> = emptyList(),
+        val sapIssuePrepared: Boolean = false,
     ) : MachineCycleOutcome()
 
     data class Rejected(

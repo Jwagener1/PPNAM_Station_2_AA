@@ -38,6 +38,9 @@ data class EquipmentDto(
     val currentMixBatchIds: List<String> = emptyList(),
     val validDestinationMachineCodes: List<String> = emptyList(),
     val routeDescription: String = "",
+    val currentCollectionId: String? = null,
+    val currentProductionRunId: String? = null,
+    val fixedDestinationMachineCode: String? = null,
 )
 
 /** Mix `status`. 4.1 adds `Quarantined` for a force-closed mix. */
@@ -97,14 +100,49 @@ data class ActiveCycleDto(
     val productionRunId: String? = null,
     val startedAtUtc: String = "",
     val startedByOperatorId: String = "",
+    val mixBatchId: String = "",
+    val destinationMachineCode: String? = null,
+    val productLayer: Int? = null,
+    val status: String = "",
+)
+
+/**
+ * One source feeding a production run.
+ *
+ * A JANDI 4 run takes the drum plus one Main mix, and a Rajoo run takes one layer per started
+ * gravimetric mixer — each from its own completed collection. Their job cards may legitimately
+ * differ, which is why a run carries a list of inputs rather than one JC.
+ */
+data class RunInputDto(
+    val inputRole: String = "",
+    val jobCardNumber: String = "",
+    val productionOrderDocumentNumber: String = "",
+    val collectionId: String = "",
+    val mixBatchId: String = "",
+    val sourceMixerCode: String = "",
+    val productLayer: Int? = null,
+)
+
+/**
+ * The single JANDI drum. Once filled it stays reserved until JANDI 4 consumes it, so there is
+ * exactly one of these in an area overview, not a list.
+ */
+data class JandiDrumDto(
+    val status: String = "",
+    val jobCardNumber: String = "",
+    val collectionId: String = "",
+    val mixBatchId: String = "",
+    val activeTransferCycleId: String? = null,
+    val filledAtUtc: String? = null,
+    val scanGuidance: String = "",
 )
 
 data class ActiveRunDto(
-    val jobCardNumber: String = "",
     val productionRunId: String = "",
     val machineCode: String = "",
-    val mixBatchIds: List<String> = emptyList(),
+    val status: String = "",
     val startedAtUtc: String = "",
+    val inputs: List<RunInputDto> = emptyList(),
 )
 
 /**
@@ -136,6 +174,8 @@ data class MixingOverviewResponse(
      */
     val readyMixes: List<ReadyMixDto> = emptyList(),
     val activeRuns: List<ActiveRunDto> = emptyList(),
+    val jandiDrum: JandiDrumDto? = null,
+    val nextAction: String = "",
 )
 
 data class LayerInputDto(
@@ -221,6 +261,14 @@ data class MachineCycleResultResponse(
     val approverRole: String? = null,
     val sapIssueQueued: Boolean = false,
     val sapProductionOrderChanged: Boolean = false,
+
+    val destinationMachineCode: String? = null,
+    val productLayer: Int? = null,
+    val resultingStatus: String? = null,
+    val inputs: List<RunInputDto> = emptyList(),
+    /** A local prepared-only preview. No Mixing action posts to SAP. */
+    val sapIssuePrepared: Boolean = false,
+    val sapPostingEnabled: Boolean = false,
 
     val areaStatus: MixingOverviewResponse = MixingOverviewResponse(),
 )

@@ -8,15 +8,18 @@ import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.NextAction
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
+import com.ppnam.station2aa.data.mqtt.dto.ActiveRunDto
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.EquipmentDto
+import com.ppnam.station2aa.data.mqtt.dto.JandiDrumDto
 import com.ppnam.station2aa.data.mqtt.dto.JandiRoute
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleStartPayload
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewPayload
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewResponse
+import com.ppnam.station2aa.data.mqtt.dto.RunInputDto
 import com.ppnam.station2aa.domain.model.LayerInput
 import com.ppnam.station2aa.domain.model.MachineCycleOutcome
 import com.ppnam.station2aa.domain.model.MixingArea
@@ -334,5 +337,73 @@ class MixingBoardUseCaseTest {
         val outcome = useCase.finish("MXR-01", "CYC_1")
 
         assertTrue(outcome is MachineCycleOutcome.Failed)
+    }
+
+    @Test
+    fun `an active run maps every input, including inputs from different job cards`() = runTest {
+        val response = MixingOverviewResponse(
+            activeRuns = listOf(ActiveRunDto(
+                productionRunId = "RUN_000200", machineCode = "JAN-04",
+                status = "InProgress", startedAtUtc = "2026-07-28T08:40:00.000000Z",
+                inputs = listOf(
+                    RunInputDto(inputRole = "JandiDrum", jobCardNumber = "JC-24001",
+                        productionOrderDocumentNumber = "PO-9001", collectionId = "COL_000124",
+                        mixBatchId = "MIX_000124", sourceMixerCode = "JAN-MIX-01"),
+                    RunInputDto(inputRole = "MainMix", jobCardNumber = "JC-24099",
+                        productionOrderDocumentNumber = "PO-9099", collectionId = "COL_000130",
+                        mixBatchId = "MIX_000130", sourceMixerCode = "MXR-02"),
+                ))))
+        whenever(mockMqtt.request(
+            eq("mixing_overview_requested"), eq("mixing_overview_result"), any(), anyOrNull(),
+            eq(MixingOverviewResponse::class.java)
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.NONE))
+
+        val run = useCase.fetchOverview().getOrThrow().activeRuns.single()
+
+        assertEquals("RUN_000200", run.productionRunId)
+        assertEquals(listOf("JandiDrum", "MainMix"), run.inputs.map { it.inputRole })
+        // Mixed job cards on one run are legal and must survive the mapping intact.
+        assertEquals(listOf("JC-24001", "JC-24099"), run.inputs.map { it.jobCardNumber })
+        assertEquals(listOf("PO-9001", "PO-9099"), run.inputs.map { it.productionOrderDocumentNumber })
+    }
+
+    @Test
+    fun `the JANDI drum state maps through`() = runTest {
+        val response = MixingOverviewResponse(
+            jandiDrum = JandiDrumDto(
+                status = "Filled", jobCardNumber = "JC-24001", collectionId = "COL_000124",
+                mixBatchId = "MIX_000124", filledAtUtc = "2026-07-28T08:25:00.000000Z",
+                scanGuidance = "Scan JANDI 4 to consume the drum."))
+        whenever(mockMqtt.request(
+            eq("mixing_overview_requested"), eq("mixing_overview_result"), any(), anyOrNull(),
+            eq(MixingOverviewResponse::class.java)
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.NONE))
+
+        val drum = useCase.fetchOverview().getOrThrow().jandiDrum
+
+        assertNotNull(drum)
+        assertEquals("Filled", drum?.status)
+        assertEquals("MIX_000124", drum?.mixBatchId)
+    }
+
+    @Test
+    fun `a machine result carries the destination, resulting status and SAP preview flags`() = runTest {
+        val response = MachineCycleResultResponse(
+            action = "Started", machineCode = "EXT-03", cycleId = "CYC_000140",
+            productionRunId = "RUN_000140", destinationMachineCode = "EXT-03",
+            jobCardNumber = "JC-24001", mixBatchId = "MIX_000126",
+            resultingStatus = "ProductionInProgress", sapIssuePrepared = true)
+        whenever(mockMqtt.request(
+            eq("machine_cycle_start_requested"), eq("machine_cycle_result"), any(), anyOrNull(),
+            eq(MachineCycleResultResponse::class.java)
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.SCAN_SAME_MACHINE_TO_FINISH))
+
+        val outcome = useCase.startProductionDestination("EXT-03", "MIX_000126")
+
+        val accepted = outcome as MachineCycleOutcome.Accepted
+        assertEquals("EXT-03", accepted.destinationMachineCode)
+        assertEquals("ProductionInProgress", accepted.resultingStatus)
+        // No Mixing action posts to SAP; the preview is local and prepared-only.
+        assertTrue(accepted.sapIssuePrepared)
     }
 }

@@ -10,6 +10,7 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveRunDto
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.CollectionResumePayload
 import com.ppnam.station2aa.data.mqtt.dto.EquipmentDto
+import com.ppnam.station2aa.data.mqtt.dto.JandiDrumDto
 import com.ppnam.station2aa.data.mqtt.dto.JandiRoute
 import com.ppnam.station2aa.data.mqtt.dto.LayerInputDto
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleFinishPayload
@@ -20,16 +21,19 @@ import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewPayload
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewResponse
 import com.ppnam.station2aa.data.mqtt.dto.ReadyCollectionDto
 import com.ppnam.station2aa.data.mqtt.dto.ReadyMixDto
+import com.ppnam.station2aa.data.mqtt.dto.RunInputDto
 import com.ppnam.station2aa.domain.model.ActiveCycle
 import com.ppnam.station2aa.domain.model.ActiveRun
 import com.ppnam.station2aa.domain.model.AreaOverview
 import com.ppnam.station2aa.domain.model.CollectedMaterial
 import com.ppnam.station2aa.domain.model.Equipment
+import com.ppnam.station2aa.domain.model.JandiDrum
 import com.ppnam.station2aa.domain.model.LayerInput
 import com.ppnam.station2aa.domain.model.MachineCycleOutcome
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.domain.model.ReadyCollection
 import com.ppnam.station2aa.domain.model.ReadyMix
+import com.ppnam.station2aa.domain.model.RunInput
 import com.ppnam.station2aa.domain.repository.MqttRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -293,6 +297,11 @@ class MixingBoardUseCase @Inject constructor(
                 forceClosed = outcome.body.forceClosed,
                 approverDisplayName = outcome.body.approverDisplayName,
                 areaStatus = outcome.body.areaStatus.toAreaOverview(),
+                destinationMachineCode = outcome.body.destinationMachineCode,
+                resultingStatus = outcome.body.resultingStatus,
+                productLayer = outcome.body.productLayer,
+                inputs = outcome.body.inputs.map { it.toRunInput() },
+                sapIssuePrepared = outcome.body.sapIssuePrepared,
             )
             is MqttOutcome.Rejected -> MachineCycleOutcome.Rejected(
                 errorCode = outcome.errorCode,
@@ -321,6 +330,8 @@ class MixingBoardUseCase @Inject constructor(
         readyMixes = readyMixes.map { it.toReadyMix() },
         activeRuns = activeRuns.map { it.toActiveRun() },
         readyCollections = readyCollections.map { it.toReadyCollection() },
+        jandiDrum = jandiDrum?.toJandiDrum(),
+        nextAction = nextAction,
     )
 
     private fun EquipmentDto.toEquipment() = Equipment(
@@ -338,6 +349,9 @@ class MixingBoardUseCase @Inject constructor(
         validDestinationMachineCodes = validDestinationMachineCodes,
         routeDescription = routeDescription,
         scanAllowed = scanAllowed,
+        currentCollectionId = currentCollectionId,
+        currentProductionRunId = currentProductionRunId,
+        fixedDestinationMachineCode = fixedDestinationMachineCode,
     )
 
     private fun ReadyMixDto.toReadyMix() = ReadyMix(
@@ -377,13 +391,37 @@ class MixingBoardUseCase @Inject constructor(
         productionRunId = productionRunId,
         startedAtUtc = startedAtUtc,
         startedByOperatorId = startedByOperatorId,
+        mixBatchId = mixBatchId,
+        destinationMachineCode = destinationMachineCode,
+        productLayer = productLayer,
+        status = status,
     )
 
     private fun ActiveRunDto.toActiveRun() = ActiveRun(
         productionRunId = productionRunId,
         machineCode = machineCode,
-        jobCardNumber = jobCardNumber,
-        mixBatchIds = mixBatchIds,
+        status = status,
         startedAtUtc = startedAtUtc,
+        inputs = inputs.map { it.toRunInput() },
+    )
+
+    private fun RunInputDto.toRunInput() = RunInput(
+        inputRole = inputRole,
+        jobCardNumber = jobCardNumber,
+        productionOrderDocumentNumber = productionOrderDocumentNumber,
+        collectionId = collectionId,
+        mixBatchId = mixBatchId,
+        sourceMixerCode = sourceMixerCode,
+        productLayer = productLayer,
+    )
+
+    private fun JandiDrumDto.toJandiDrum() = JandiDrum(
+        status = status,
+        jobCardNumber = jobCardNumber,
+        collectionId = collectionId,
+        mixBatchId = mixBatchId,
+        activeTransferCycleId = activeTransferCycleId,
+        filledAtUtc = filledAtUtc,
+        scanGuidance = scanGuidance,
     )
 }
