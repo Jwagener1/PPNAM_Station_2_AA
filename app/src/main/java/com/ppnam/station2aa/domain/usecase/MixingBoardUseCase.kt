@@ -15,10 +15,6 @@ import com.ppnam.station2aa.data.mqtt.dto.MachineCycleFinishPayload
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleForceClosePayload
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleStartPayload
-import com.ppnam.station2aa.data.mqtt.dto.MixDestinationAssignmentPayload
-import com.ppnam.station2aa.data.mqtt.dto.MixDestinationAssignmentResultResponse
-import com.ppnam.station2aa.data.mqtt.dto.MixDestinationDto
-import com.ppnam.station2aa.data.mqtt.dto.MixerPlanItemDto
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewPayload
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewResponse
 import com.ppnam.station2aa.data.mqtt.dto.ReadyCollectionDto
@@ -26,14 +22,10 @@ import com.ppnam.station2aa.data.mqtt.dto.ReadyMixDto
 import com.ppnam.station2aa.domain.model.ActiveCycle
 import com.ppnam.station2aa.domain.model.ActiveRun
 import com.ppnam.station2aa.domain.model.AreaOverview
-import com.ppnam.station2aa.domain.model.AssignedDestination
 import com.ppnam.station2aa.domain.model.CollectedMaterial
 import com.ppnam.station2aa.domain.model.Equipment
 import com.ppnam.station2aa.domain.model.LayerInput
 import com.ppnam.station2aa.domain.model.MachineCycleOutcome
-import com.ppnam.station2aa.domain.model.MixDestination
-import com.ppnam.station2aa.domain.model.MixPlanProgress
-import com.ppnam.station2aa.domain.model.MixerPlanItem
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.domain.model.ReadyCollection
 import com.ppnam.station2aa.domain.model.ReadyMix
@@ -74,16 +66,12 @@ class MixingBoardUseCase @Inject constructor(
         }
 
     /**
-     * The collections that can start a mixer, with their mixer plans.
+     * The collections that can start a mixer.
      *
-     * ### Why this no longer reads `active_job_cards_requested`
+     * ### Why this doesn't read `active_job_cards_requested`
      *
-     * 4.0 derived this by filtering the active-jobs list to `ReadyForMixing`. That can't work in
-     * 4.1 for two reasons: a planned collection's status is `MixingPlanned`, not `ReadyForMixing`,
-     * so the filter would hide exactly the collections that have work outstanding; and the list
-     * carries no plan data, so there would be no way to know which mixers remain to scan. Since
-     * 4.1 the mixing overview is authoritative for this — and it is also now paged, which a
-     * "give me all ready collections" call has no way to honour.
+     * The mixing overview is the authoritative source for which collections can start a mixer,
+     * and it is also paged — a "give me all ready collections" call has no way to honour that.
      */
     suspend fun fetchReadyCollections(area: MixingArea? = null): Result<List<ReadyCollection>> =
         fetchOverview(area = area).map { it.readyCollections }
@@ -225,7 +213,6 @@ class MixingBoardUseCase @Inject constructor(
                 forceClosed = outcome.body.forceClosed,
                 approverDisplayName = outcome.body.approverDisplayName,
                 areaStatus = outcome.body.areaStatus.toAreaOverview(),
-                planProgress = outcome.body.toPlanProgress(),
             )
             is MqttOutcome.Rejected -> MachineCycleOutcome.Rejected(
                 errorCode = outcome.errorCode,
@@ -246,85 +233,7 @@ class MixingBoardUseCase @Inject constructor(
                 it.readyMixes.isEmpty() && it.activeRuns.isEmpty()
         }
 
-    /**
-     * Phase 2 of the strict two-phase Mixing contract (§1/§8): commit one or more completed same-JC
-     * mixes to one or more compatible production machines via `mix_destination_assignment_requested`.
-     *
-     * This is the ONLY request that may start a production destination — a production-machine
-     * `machine_cycle_start_requested` is rejected with `destination_assignment_required`. The whole
-     * set is revalidated atomically server-side: one invalid mix or machine rejects the request
-     * rather than partially assigning, so there is no partial state to unwind here.
-     *
-     * Returns a [MachineCycleOutcome] so the board consumes it exactly like a mixer/drum cycle op:
-     * the accepted result carries the embedded `areaStatus`, and [MachineCycleOutcome.Accepted.assignedDestinations]
-     * names the runs that were started.
-     */
-    suspend fun assignDestinations(
-        mixBatchIds: List<String>,
-        machineCodes: List<String>,
-    ): MachineCycleOutcome {
-        val mixes = mixBatchIds.filter { it.isNotBlank() }.distinct()
-        val machines = machineCodes.filter { it.isNotBlank() }.distinct()
-        if (mixes.isEmpty() || machines.isEmpty()) {
-            // Nothing was sent, so nothing changed server-side — keep the board's current picture.
-            return MachineCycleOutcome.Rejected(
-                errorCode = null,
-                reason = "Select at least one mix and one destination machine.",
-                areaStatus = null,
-            )
-        }
-        return when (
-            val outcome = mqttRepository.request(
-                requestType = "mix_destination_assignment_requested",
-                responseType = "mix_destination_assignment_result",
-                payload = MixDestinationAssignmentPayload(mixBatchIds = mixes, machineCodes = machines),
-                correlationKey = mixes.first(),
-                responseClass = MixDestinationAssignmentResultResponse::class.java,
-            )
-        ) {
-            is MqttOutcome.Accepted -> {
-                val assigned = outcome.body.assignedDestinations.map {
-                    AssignedDestination(it.machineCode, it.productionRunId)
-                }
-                MachineCycleOutcome.Accepted(
-                    action = "Assigned",
-                    machineCode = assigned.firstOrNull()?.machineCode.orEmpty(),
-                    cycleId = null,
-                    mixBatchId = outcome.body.mixBatchIds.firstOrNull() ?: mixes.first(),
-                    productionRunId = assigned.firstOrNull()?.productionRunId,
-                    affectedMixBatchIds = outcome.body.mixBatchIds.ifEmpty { mixes },
-                    alreadyFinished = false,
-                    forceClosed = false,
-                    approverDisplayName = null,
-                    areaStatus = outcome.body.areaStatus.toAreaOverview(),
-                    assignedDestinations = assigned,
-                )
-            }
-            is MqttOutcome.Rejected -> MachineCycleOutcome.Rejected(
-                errorCode = outcome.errorCode,
-                reason = outcome.reason ?: "Destination assignment rejected",
-                areaStatus = outcome.body.areaStatus.toAreaOverviewOrNull(),
-            )
-            is MqttOutcome.NoResponse -> MachineCycleOutcome.Failed(outcome.kind.message())
-        }
-    }
-
     // ---- DTO -> domain -------------------------------------------------------
-
-    private fun MachineCycleResultResponse.toPlanProgress() = MixPlanProgress(
-        mixPlanId = mixPlanId,
-        planItemId = planItemId,
-        planItemStatus = planItemStatus,
-        mixPlanStatus = mixPlanStatus,
-        plannedMixerCount = plannedMixerCount,
-        startedMixerCount = startedMixerCount,
-        remainingMixerCount = remainingMixerCount,
-        plannedMixerCodes = plannedMixerCodes,
-        remainingMixerCodes = remainingMixerCodes,
-        plannedDestinationMachineCodes = plannedDestinationMachineCodes,
-        remainingDestinationMachineCodes = remainingDestinationMachineCodes,
-        productionRunIds = productionRunIds,
-    )
 
     private fun MixingOverviewResponse.toAreaOverview() = AreaOverview(
         equipment = equipment.map { it.toEquipment() },
@@ -332,7 +241,6 @@ class MixingBoardUseCase @Inject constructor(
         readyMixes = readyMixes.map { it.toReadyMix() },
         activeRuns = activeRuns.map { it.toActiveRun() },
         readyCollections = readyCollections.map { it.toReadyCollection() },
-        mixDestinations = mixDestinations.map { it.toMixDestination() },
     )
 
     private fun EquipmentDto.toEquipment() = Equipment(
@@ -349,10 +257,6 @@ class MixingBoardUseCase @Inject constructor(
         currentMixBatchIds = currentMixBatchIds,
         validDestinationMachineCodes = validDestinationMachineCodes,
         routeDescription = routeDescription,
-        mixPlanId = mixPlanId,
-        planItemStatus = planItemStatus,
-        reservationCollectionId = reservationCollectionId,
-        reservationJobCardNumber = reservationJobCardNumber,
         scanAllowed = scanAllowed,
     )
 
@@ -378,36 +282,8 @@ class MixingBoardUseCase @Inject constructor(
         productName = productName,
         productCode = productCode,
         status = status,
-        mixPlanId = mixPlanId,
-        mixPlanStatus = mixPlanStatus,
-        plannedMixerCount = plannedMixerCount,
-        startedMixerCount = startedMixerCount,
-        remainingMixerCount = remainingMixerCount,
-        plannedMixerCodes = plannedMixerCodes,
-        startedMixerCodes = startedMixerCodes,
-        remainingMixerCodes = remainingMixerCodes,
-        planItems = mixerPlanItems.map { it.toMixerPlanItem() },
         validMixerCodes = validMixerCodes,
         nextAction = nextAction,
-    )
-
-    private fun MixerPlanItemDto.toMixerPlanItem() = MixerPlanItem(
-        planItemId = planItemId,
-        area = MixingArea.fromWire(mixingArea),
-        machineCode = machineCode,
-        mixerDisplayName = mixerDisplayName,
-        fixedDestinationMachineCode = fixedDestinationMachineCode,
-        status = status,
-        mixBatchId = mixBatchId,
-        cycleId = cycleId,
-    )
-
-    private fun MixDestinationDto.toMixDestination() = MixDestination(
-        mixBatchId = mixBatchId,
-        machineCode = machineCode,
-        productionRunId = productionRunId,
-        linkStatus = linkStatus,
-        runStatus = runStatus,
     )
 
     private fun ActiveCycleDto.toActiveCycle() = ActiveCycle(

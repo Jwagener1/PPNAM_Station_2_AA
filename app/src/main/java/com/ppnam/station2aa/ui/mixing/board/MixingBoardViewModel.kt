@@ -116,30 +116,18 @@ internal fun computeHighlightedMachines(overview: AreaOverview, selection: Board
     when (selection) {
         is BoardSelection.None -> emptySet()
 
-        // 4.1: a collection's mixers are RESERVED by its saved plan, so "enabled and Available"
-        // is exactly the wrong predicate — a reserved mixer's status is `Reserved`, which would
-        // highlight none of the machines this operator should scan, while happily highlighting
-        // mixers reserved by somebody else's collection.
-        //
-        // The plan's own remainingMixerCodes is the answer, intersected with the equipment the
-        // server says this handheld may scan. Both come from the server; nothing is inferred.
         is BoardSelection.Collection -> {
-            val plan = overview.readyCollections.firstOrNull {
+            val collection = overview.readyCollections.firstOrNull {
                 it.collectionId == selection.collectionId
             }
-            val scannable = overview.equipment
-                .filter { machineTabOf(it) == MachineTab.Collections && it.isEnabled && it.scanAllowed }
-                .map { it.machineCode }
-                .toSet()
-            when {
-                // Planned: highlight exactly the mixers still to be scanned.
-                plan != null && plan.hasSavedPlan ->
-                    plan.remainingMixerCodes.toSet() intersect scannable
-                // Saved plan pending: the server tells us which mixers are legal to plan against,
-                // but none may be started yet — the plan is saved in Station 2, not here.
-                plan != null -> emptySet()
-                // No plan row at all (a stale selection): highlight nothing rather than guess.
-                else -> emptySet()
+            if (collection == null) {
+                emptySet()
+            } else {
+                val scannable = overview.equipment
+                    .filter { it.isEnabled && it.scanAllowed }
+                    .map { it.machineCode }
+                    .toSet()
+                collection.validMixerCodes.toSet() intersect scannable
             }
         }
 
@@ -405,33 +393,18 @@ class MixingBoardViewModel @Inject constructor(
                 }
                 is BoardSelection.Mix -> {
                     setBoard(board.copy(busy = true))
-                    assignOrStartDownstream(machine, selection)
+                    // Task 5 replaces this with startProductionDestination; startDownstream is a
+                    // temporary stand-in that keeps the module compiling and green.
+                    useCase.startDownstream(machine.machineCode, selection.jobCardNumber, listOf(selection.mixBatchId))
                 }
                 is BoardSelection.None -> return@launch
             }
             applyOutcome(outcome) { accepted ->
-                if (accepted.assignedDestinations.isNotEmpty()) {
-                    val runs = accepted.assignedDestinations.joinToString(", ") {
-                        "${it.machineCode} (${it.productionRunId})"
-                    }
-                    "Assigned to $runs"
-                } else {
-                    val id = accepted.productionRunId ?: accepted.cycleId ?: ""
-                    "Started $id on ${accepted.machineCode}"
-                }
+                val id = accepted.productionRunId ?: accepted.cycleId ?: ""
+                "Started $id on ${accepted.machineCode}"
             }
         }
     }
-
-    private suspend fun assignOrStartDownstream(
-        machine: Equipment,
-        selection: BoardSelection.Mix,
-    ): MachineCycleOutcome =
-        if (machine.role == EquipmentRole.PRODUCTION_MACHINE) {
-            useCase.assignDestinations(listOf(selection.mixBatchId), listOf(machine.machineCode))
-        } else {
-            useCase.startDownstream(machine.machineCode, selection.jobCardNumber, listOf(selection.mixBatchId))
-        }
 
     /** Returns null and surfaces a validation error when the rows are not sendable. */
     private fun validateDoses(rows: List<DoseRow>): List<LayerInput>? {

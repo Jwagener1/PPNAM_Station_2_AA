@@ -35,7 +35,6 @@ class MixingMessagesTest {
             "mixingArea": "JandiBulkMixing", "productionOrderDocumentNumber": "510019068",
             "mixerCode": "JAN-MIX-01", "mixerDisplayName": "JANDI 2/3 Shared Bulk Mixer",
             "productLayer": null, "status": "ReadyForProduction",
-            "plannedDestinationMachineCode": null,
             "validNextMachineCodes": ["JAN-DRUM-01", "JAN-02", "JAN-03"],
             "nextStepDescription": "Start one of: JAN-DRUM-01, JAN-02, JAN-03."
           }],

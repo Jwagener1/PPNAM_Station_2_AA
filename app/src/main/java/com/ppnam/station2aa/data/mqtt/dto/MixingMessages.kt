@@ -6,27 +6,11 @@ data class MixingOverviewPayload(
     val productionOrderDocumentNumber: String? = null,
 )
 
-/** Equipment `status`. 4.1 adds `Reserved` — held by a saved mixer plan for one collection. */
+/** Equipment `status`. */
 object EquipmentStatus {
     const val AVAILABLE = "Available"
-    const val RESERVED = "Reserved"
     const val IN_USE = "InUse"
     const val DISABLED = "Disabled"
-}
-
-/** Status of one item within a collection's mixer plan. */
-object PlanItemStatus {
-    const val RESERVED = "Reserved"
-    const val STARTED = "Started"
-    const val READY_FOR_DESTINATION = "ReadyForDestination"
-    const val COMPLETED = "Completed"
-}
-
-/** Status of the plan as a whole. */
-object MixPlanStatus {
-    const val SAVED = "Saved"
-    const val IN_PROGRESS = "InProgress"
-    const val COMPLETED = "Completed"
 }
 
 data class EquipmentDto(
@@ -42,18 +26,9 @@ data class EquipmentDto(
     val currentCycleId: String? = null,
     val currentProductionOrderDocumentNumber: String? = null,
 
-    // ---- 4.1 cross-area mixer plans ---------------------------------------------------------
-
-    /** The plan holding this machine, when it is reserved. */
-    val mixPlanId: String? = null,
-    val planItemStatus: String? = null,
-    val reservationCollectionId: String? = null,
-    val reservationJobCardNumber: String? = null,
     /**
      * Whether THIS handheld may scan this machine right now.
      *
-     * Deliberately separate from [isAvailable]: a mixer reserved by the collection in hand is not
-     * "available" (nobody else may take it) yet is exactly the machine this operator should scan.
      * The contract's rule is absolute — "Android must not infer availability or scan permission
      * locally" — so this is the only thing that may gate the scan affordance.
      */
@@ -88,7 +63,6 @@ data class ReadyMixDto(
     val productLayer: Int? = null,
     /** [MixStatus]. */
     val status: String = "",
-    val plannedDestinationMachineCode: String? = null,
     /** The ONLY legitimate source of destination choices (§13.8). */
     val validNextMachineCodes: List<String> = emptyList(),
     val nextStepDescription: String = "",
@@ -133,34 +107,10 @@ data class ActiveRunDto(
 )
 
 /**
- * One mixer reserved within a collection's plan.
+ * One collection in `readyCollections[]` that can start a mixer.
  *
- * 4.1 replaced "a completed collection starts one mixer" with "a completed collection has a saved
- * plan of several unique mixers, possibly in different areas, scannable in any order". Each
- * accepted planned scan creates its own `MIX_######` and cycle and starts only that item.
- */
-data class MixerPlanItemDto(
-    val planItemId: String = "",
-    val mixingArea: String = "",
-    val machineCode: String = "",
-    val mixerDisplayName: String = "",
-    /** Preselected for Mackie/Rajoo; null where the destination is chosen later (e.g. DOLCI). */
-    val fixedDestinationMachineCode: String? = null,
-    /** [PlanItemStatus]. */
-    val status: String = "",
-    /** Null until this item is started — never synthesize one (§7). */
-    val mixBatchId: String? = null,
-    val cycleId: String? = null,
-)
-
-/**
- * One collection in `readyCollections[]`: either unplanned and `ReadyForMixing`, or
- * `MixingPlanned` with reservations still outstanding.
- *
- * Before a plan is saved, [validMixerCodes] is scoped to enabled unreserved mixers in the
- * requested area and [nextAction] is `save_mixer_plan_in_station_2` — the plan is saved in Station
- * 2 (WPF), never on the handheld. After save, the remaining reserved codes are listed and the
- * collection stays here until no reservation remains.
+ * One completed collection creates exactly one physical mix. The mixers it may legally start come
+ * from [validMixerCodes] — server-decided, never inferred locally.
  */
 data class ReadyCollectionDto(
     val collectionId: String = "",
@@ -168,38 +118,9 @@ data class ReadyCollectionDto(
     val productionOrderDocumentNumber: String = "",
     val productCode: String = "",
     val productName: String = "",
-    /** ReadyForMixing | MixingPlanned. */
     val status: String = "",
-    val mixPlanId: String? = null,
-    /** [MixPlanStatus]; null before a plan is saved. */
-    val mixPlanStatus: String? = null,
-    val plannedMixerCount: Int = 0,
-    val startedMixerCount: Int = 0,
-    val remainingMixerCount: Int = 0,
-    val plannedMixerCodes: List<String> = emptyList(),
-    val startedMixerCodes: List<String> = emptyList(),
-    val remainingMixerCodes: List<String> = emptyList(),
-    val mixerPlanItems: List<MixerPlanItemDto> = emptyList(),
     val validMixerCodes: List<String> = emptyList(),
     val nextAction: String = "",
-) {
-    /** True once Station 2 has a saved plan for this collection. */
-    val hasSavedPlan: Boolean get() = !mixPlanId.isNullOrBlank()
-}
-
-/**
- * A durable link between a completed mix and a production machine.
- *
- * Includes active, consumed, returned and transferred links — completed entries are history and,
- * per the contract, "do not make readyMixes or activeRuns non-empty".
- */
-data class MixDestinationDto(
-    val mixBatchId: String = "",
-    val machineCode: String = "",
-    val productionRunId: String = "",
-    /** Active | Consumed | Returned | Transferred. */
-    val linkStatus: String = "",
-    val runStatus: String = "",
 )
 
 /** `mixing_overview_result`, and the `areaStatus` embedded in every machine result (§8). */
@@ -211,7 +132,7 @@ data class MixingOverviewResponse(
      */
     val productionOrderDocumentNumber: String? = null,
     val equipment: List<EquipmentDto> = emptyList(),
-    /** 4.1: collections that can start a mixer, with their plan state. */
+    /** Collections that can start a mixer. */
     val readyCollections: List<ReadyCollectionDto> = emptyList(),
     val activeCycles: List<ActiveCycleDto> = emptyList(),
     /**
@@ -220,8 +141,6 @@ data class MixingOverviewResponse(
      */
     val readyMixes: List<ReadyMixDto> = emptyList(),
     val activeRuns: List<ActiveRunDto> = emptyList(),
-    /** 4.1: destination-link overview/history, including completed links. */
-    val mixDestinations: List<MixDestinationDto> = emptyList(),
 )
 
 data class LayerInputDto(
@@ -232,11 +151,6 @@ data class LayerInputDto(
 /**
  * `machine_cycle_start_requested`. Exactly one of [collectionId] (mixer start) or
  * [mixBatchIds] (drum/production start) travels.
- *
- * [layerInputs] is Rajoo-only and, since 4.1, OPTIONAL: dosing is saved per layer mixer in the
- * Station 2 plan, and omitting it uses the stored 1–5 lines. Supplying a non-empty list that does
- * not exactly match the saved plan is rejected with `invalid_planned_layer_inputs` — so sending
- * nothing is both simpler and safer than echoing back what we think the plan says.
  *
  * The retired v3 array fields never appear here by construction.
  */
@@ -270,40 +184,6 @@ data class MachineCycleForceClosePayload(
     val auditReason: String,
 )
 
-/**
- * `mix_destination_assignment_requested` — 4.1.
- *
- * One or more completed same-JC mixes to one or more distinct compatible production machines. No
- * quantity is supplied per destination; the whole set is revalidated atomically, so a single
- * invalid mix or machine rejects the request rather than partially assigning.
- *
- * Schema 4.1 carries `mixBatchIds[]` (plural). The contract keeps a temporary singular `mixBatchId`
- * as 4.0 compatibility, but a 4.1 build sends the plural form so it can commit several finished
- * mixes into one production run — which is exactly what the board's multi-mix selection allows.
- */
-data class MixDestinationAssignmentPayload(
-    val mixBatchIds: List<String>,
-    val machineCodes: List<String>,
-)
-
-/** One `{ machineCode, productionRunId }` pair from an accepted assignment. */
-data class AssignedDestinationDto(
-    val machineCode: String = "",
-    val productionRunId: String = "",
-)
-
-/**
- * `mix_destination_assignment_result`. The atomic result echoes the complete `mixBatchIds[]` and
- * returns one `{ machineCode, productionRunId }` entry per selected compatible machine. Singular
- * `mixBatchId` is retained for temporary 4.0 compatibility.
- */
-data class MixDestinationAssignmentResultResponse(
-    val mixBatchId: String = "",
-    val mixBatchIds: List<String> = emptyList(),
-    val assignedDestinations: List<AssignedDestinationDto> = emptyList(),
-    val areaStatus: MixingOverviewResponse = MixingOverviewResponse(),
-)
-
 /** `machine_cycle_result` — the unified §8 result for start, finish, and force-close. */
 data class MachineCycleResultResponse(
     val action: String? = null,
@@ -325,24 +205,6 @@ data class MachineCycleResultResponse(
     val approverRole: String? = null,
     val sapIssueQueued: Boolean = false,
     val sapProductionOrderChanged: Boolean = false,
-
-    // ---- 4.1 plan identity and progress -----------------------------------------------------
-
-    val mixPlanId: String? = null,
-    val planItemId: String? = null,
-    /** [PlanItemStatus] of the item this scan touched — only that item changes. */
-    val planItemStatus: String? = null,
-    /** [MixPlanStatus] of the plan as a whole. */
-    val mixPlanStatus: String? = null,
-    val plannedMixerCount: Int = 0,
-    val startedMixerCount: Int = 0,
-    val remainingMixerCount: Int = 0,
-    val plannedMixerCodes: List<String> = emptyList(),
-    /** Exact codes still to be scanned — the operator's next targets. */
-    val remainingMixerCodes: List<String> = emptyList(),
-    val plannedDestinationMachineCodes: List<String> = emptyList(),
-    val remainingDestinationMachineCodes: List<String> = emptyList(),
-    val productionRunIds: List<String> = emptyList(),
 
     val areaStatus: MixingOverviewResponse = MixingOverviewResponse(),
 )

@@ -11,11 +11,8 @@ import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
 import com.ppnam.station2aa.data.mqtt.dto.BomLoadedResponse
 import com.ppnam.station2aa.data.mqtt.dto.EquipmentDto
-import com.ppnam.station2aa.data.mqtt.dto.AssignedDestinationDto
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MachineCycleStartPayload
-import com.ppnam.station2aa.data.mqtt.dto.MixDestinationAssignmentPayload
-import com.ppnam.station2aa.data.mqtt.dto.MixDestinationAssignmentResultResponse
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewPayload
 import com.ppnam.station2aa.data.mqtt.dto.MixingOverviewResponse
 import com.ppnam.station2aa.domain.model.LayerInput
@@ -72,49 +69,28 @@ class MixingBoardUseCaseTest {
     }
 
     @Test
-    fun `fetchReadyCollections reads the mixing overview, not the active-jobs list`() = runTest {
-        // 4.1 moved this. Filtering active_job_cards_list to status == "ReadyForMixing" cannot
-        // work any more: a collection with a saved plan is "MixingPlanned", so that filter would
-        // hide exactly the collections that still have mixers to scan — and the list carries no
-        // plan data to tell the operator which those are.
+    fun `fetchReadyCollections reads the mixing overview and carries no plan data`() = runTest {
         val response = MixingOverviewResponse(
             readyCollections = listOf(
                 ReadyCollectionDto(
-                    collectionId = "COL_1", jobCardNumber = "510019068", productName = "HD Film",
-                    status = "ReadyForMixing", validMixerCodes = listOf("MXR-01", "MXR-02"),
-                    nextAction = "save_mixer_plan_in_station_2",
-                ),
-                ReadyCollectionDto(
-                    collectionId = "COL_2", jobCardNumber = "510018531", productName = "LD Film",
-                    status = "MixingPlanned", mixPlanId = "MPL_45", mixPlanStatus = "Saved",
-                    plannedMixerCount = 2, startedMixerCount = 1, remainingMixerCount = 1,
-                    plannedMixerCodes = listOf("JAN-MIX-01", "MXR-02"),
-                    startedMixerCodes = listOf("JAN-MIX-01"),
-                    remainingMixerCodes = listOf("MXR-02"),
-                    nextAction = "scan_reserved_mixer:MXR-02",
-                ),
-            )
-        )
+                    jobCardNumber = "JC-24001", collectionId = "COL_000123",
+                    productName = "HD Film", status = "IngredientsCollected",
+                    validMixerCodes = listOf("MXR-01", "MXR-02"),
+                    nextAction = "scan_same_machine_to_finish"),
+            ))
         whenever(mockMqtt.request(
             eq("mixing_overview_requested"), eq("mixing_overview_result"), any(), anyOrNull(),
             eq(MixingOverviewResponse::class.java)
-        )).thenReturn(MqttOutcome.Accepted(response, NextAction.NONE))
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.SELECT_COLLECTION))
 
         val ready = useCase.fetchReadyCollections().getOrThrow()
 
-        assertEquals(listOf("COL_1", "COL_2"), ready.map { it.collectionId })
-
-        // An unplanned collection can't be scanned yet — the plan is saved at the desk.
-        val unplanned = ready.first()
-        assertFalse(unplanned.hasSavedPlan)
-        assertTrue(unplanned.needsPlan)
-
-        // A planned one names exactly which mixers are left.
-        val planned = ready[1]
-        assertTrue(planned.hasSavedPlan)
-        assertEquals("MPL_45", planned.mixPlanId)
-        assertEquals(listOf("MXR-02"), planned.remainingMixerCodes)
-        assertEquals(1, planned.remainingMixerCount)
+        val collection = ready.single()
+        assertEquals("COL_000123", collection.collectionId)
+        assertEquals("JC-24001", collection.jobCardNumber)
+        // One completed collection creates exactly one mix; the mixers it may start come from
+        // the server, not from a saved plan.
+        assertEquals(listOf("MXR-01", "MXR-02"), collection.validMixerCodes)
     }
 
     @Test
@@ -191,35 +167,6 @@ class MixingBoardUseCaseTest {
         }.firstValue as MachineCycleStartPayload
         assertEquals(listOf("MIX_1", "MIX_2"), payload.mixBatchIds)
         assertNull(payload.collectionId)
-    }
-
-    @Test
-    fun `assignDestinations sends plural mixBatchIds and maps the result to an accepted outcome`() = runTest {
-        // 4.1 Phase 2: the destination commit carries `mixBatchIds[]` (plural) and returns a
-        // MachineCycleOutcome so the board refreshes from the embedded areaStatus like any cycle op.
-        val response = MixDestinationAssignmentResultResponse(
-            mixBatchIds = listOf("MIX_1", "MIX_2"),
-            assignedDestinations = listOf(AssignedDestinationDto("EXT-03", "RUN_7")),
-            areaStatus = MixingOverviewResponse(equipment = listOf(EquipmentDto(machineCode = "EXT-03"))))
-        whenever(mockMqtt.request(
-            eq("mix_destination_assignment_requested"), eq("mix_destination_assignment_result"),
-            any(), anyOrNull(), eq(MixDestinationAssignmentResultResponse::class.java)))
-            .thenReturn(MqttOutcome.Accepted(response, NextAction.NONE))
-
-        val outcome = useCase.assignDestinations(listOf("MIX_1", "MIX_2"), listOf("EXT-03"))
-
-        val payload = argumentCaptor<Any>().apply {
-            verify(mockMqtt).request(any(), any(), capture(), anyOrNull(),
-                eq(MixDestinationAssignmentResultResponse::class.java))
-        }.firstValue as MixDestinationAssignmentPayload
-        assertEquals(listOf("MIX_1", "MIX_2"), payload.mixBatchIds)
-        assertEquals(listOf("EXT-03"), payload.machineCodes)
-
-        assertTrue(outcome is MachineCycleOutcome.Accepted)
-        val accepted = outcome as MachineCycleOutcome.Accepted
-        assertEquals("EXT-03", accepted.assignedDestinations.single().machineCode)
-        assertEquals("RUN_7", accepted.assignedDestinations.single().productionRunId)
-        assertEquals(1, accepted.areaStatus.equipment.size)
     }
 
     @Test
