@@ -420,18 +420,10 @@ Replace the `fetchReadyCollections` test in `MixingBoardUseCaseTest.kt` with:
     }
 ```
 
-Add a guard test:
-
-```kotlin
-    @Test
-    fun `the use case exposes no plan or destination-assignment operation`() {
-        // The retired messages return client_upgrade_required server-side. This asserts the app
-        // cannot send them at all, which is stronger than asserting it handles the rejection.
-        val operations = MixingBoardUseCase::class.java.methods.map { it.name }
-        assertFalse(operations.any { it.contains("assignDestination", ignoreCase = true) })
-        assertFalse(operations.any { it.contains("plan", ignoreCase = true) })
-    }
-```
+**Do not add a reflection-based guard test** asserting the absence of `assignDestinations`. Reflecting
+over method names is brittle — a rename silently weakens it. The retired messages are guarded instead
+by the source-level greps in Final Verification, which catch the wire string wherever it appears
+rather than only in method names. (Ruling, 2026-07-28.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -988,7 +980,14 @@ In `MixingBoardUseCase.kt`, delete `startMixer`, `startRajoo` and `startDownstre
         )
     }
 
-    /** Decanting a ReadyForTransfer JANDI mix into the single drum. */
+    /**
+     * Decanting a ReadyForTransfer JANDI mix into the single drum.
+     *
+     * This shares a wire shape with [startProductionDestination] but is deliberately a separate
+     * function: a transfer cycle and a production run start are different operations, the call
+     * sites read correctly this way, and the two can diverge without a refactor. Do not collapse
+     * them. (Ruling, 2026-07-28.)
+     */
     suspend fun startDrumTransfer(machineCode: String, mixBatchId: String): MachineCycleOutcome =
         cycleRequest(
             "machine_cycle_start_requested",
