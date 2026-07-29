@@ -67,7 +67,12 @@ class MixingBoardUseCase @Inject constructor(
                 responseClass = MixingOverviewResponse::class.java,
             )
         ) {
-            is MqttOutcome.Accepted -> Result.success(outcome.body.toAreaOverview())
+            // runCatching, because mapping is where a wire surprise lands: a field the server
+            // sends as null against a non-null domain type throws inside the constructor, and an
+            // exception raised here escapes the Result and kills the ViewModel's coroutine — the
+            // board dies on an unreadable overview instead of showing "could not load". An empty
+            // `jandiDrum` did exactly that.
+            is MqttOutcome.Accepted -> runCatching { outcome.body.toAreaOverview() }
             is MqttOutcome.Rejected -> Result.failure(Exception(outcome.reason ?: "Overview rejected"))
             is MqttOutcome.NoResponse -> Result.failure(Exception(outcome.kind.message()))
         }
@@ -300,17 +305,25 @@ class MixingBoardUseCase @Inject constructor(
                 alreadyFinished = outcome.body.alreadyFinished,
                 forceClosed = outcome.body.forceClosed,
                 approverDisplayName = outcome.body.approverDisplayName,
-                areaStatus = outcome.body.areaStatus.toAreaOverview(),
+                // Degrade the board picture, never the outcome: this cycle has already run on the
+                // machine, so reporting it as failed would send the operator to re-scan a mixer
+                // that is already going. WireJson stops a wire null reaching the mapping at all —
+                // these guards are what keep a mapping bug from reaching the shop floor as a crash.
+                areaStatus = runCatching { outcome.body.areaStatus.toAreaOverview() }
+                    .getOrDefault(AreaOverview.EMPTY),
                 destinationMachineCode = outcome.body.destinationMachineCode,
                 resultingStatus = outcome.body.resultingStatus,
                 productLayer = outcome.body.productLayer,
-                inputs = outcome.body.inputs.map { it.toRunInput() },
+                inputs = runCatching { outcome.body.inputs.map { it.toRunInput() } }
+                    .getOrDefault(emptyList()),
                 sapIssuePrepared = outcome.body.sapIssuePrepared,
             )
             is MqttOutcome.Rejected -> MachineCycleOutcome.Rejected(
                 errorCode = outcome.errorCode,
                 reason = outcome.reason ?: "Machine cycle rejected",
-                areaStatus = outcome.body.areaStatus.toAreaOverviewOrNull(),
+                // Null already means "keep the board as it is", so a failed mapping degrades into
+                // the existing quiet path rather than costing the operator the rejection reason.
+                areaStatus = runCatching { outcome.body.areaStatus.toAreaOverviewOrNull() }.getOrNull(),
             )
             is MqttOutcome.NoResponse -> MachineCycleOutcome.Failed(outcome.kind.message())
         }

@@ -1,5 +1,7 @@
 package com.ppnam.station2aa.data.mqtt.dto
 
+import com.google.gson.annotations.SerializedName
+
 /** `mixing_overview_requested` — every filter optional; Gson omits nulls per the contract. */
 data class MixingOverviewPayload(
     val mixingArea: String? = null,
@@ -45,6 +47,8 @@ data class EquipmentDto(
 
 /** Mix `status`. 4.1 adds `Quarantined` for a force-closed mix. */
 object MixStatus {
+    /** What Station 2 actually reports for a finished, unassigned mix. */
+    const val READY_FOR_ALLOCATION = "ReadyForAllocation"
     const val READY_FOR_TRANSFER = "ReadyForTransfer"
     const val READY_FOR_PRODUCTION = "ReadyForProduction"
     const val QUARANTINED = "Quarantined"
@@ -62,6 +66,15 @@ data class ReadyMixDto(
     val mixBatchId: String = "",
     val collectionId: String = "",
     val mixingArea: String = "",
+    /**
+     * The mixer this batch came off.
+     *
+     * Station 2 spells it `mixerCode` on a mix and `sourceMixerCode` only on a run input — the
+     * contract's `readyMixes[]` section says "source mixer" in prose and names no key, which is
+     * how this ended up reading the wrong one and silently rendering an empty mixer. The alternate
+     * keeps both spellings parsing if either side moves.
+     */
+    @SerializedName(value = "mixerCode", alternate = ["sourceMixerCode"])
     val sourceMixerCode: String = "",
     val mixerDisplayName: String = "",
     val productLayer: Int? = null,
@@ -129,9 +142,14 @@ data class RunInputDto(
  */
 data class JandiDrumDto(
     val status: String = "",
-    val jobCardNumber: String = "",
-    val collectionId: String = "",
-    val mixBatchId: String = "",
+    /**
+     * Null until the drum is filled — an idle drum arrives as explicit JSON nulls, not omissions,
+     * so these cannot be non-null with a `""` default: Gson writes the null straight over the
+     * default and the first non-null consumer throws.
+     */
+    val jobCardNumber: String? = null,
+    val collectionId: String? = null,
+    val mixBatchId: String? = null,
     val activeTransferCycleId: String? = null,
     val filledAtUtc: String? = null,
     val scanGuidance: String = "",

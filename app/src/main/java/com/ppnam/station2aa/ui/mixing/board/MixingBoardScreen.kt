@@ -70,12 +70,12 @@ fun MixingBoardScreen(
         operatorName = session?.operatorName,
         operatorRole = session?.role,
         onLogout = viewModel::logout,
+        loading = uiState is MixingBoardUiState.Loading || board?.busy == true,
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (val state = uiState) {
-                is MixingBoardUiState.Loading -> Box(
-                    Modifier.fillMaxSize(), contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator(color = AmberPrimary) }
+                // The scaffold's bar is the whole loading affordance — nothing to draw here.
+                is MixingBoardUiState.Loading -> Unit
 
                 is MixingBoardUiState.Error -> Column(
                     Modifier.fillMaxSize().padding(16.dp),
@@ -119,10 +119,7 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
     val tabMachines = board.overview.equipment.filter { machineTabOf(it) == machineTab }
 
     Column(Modifier.fillMaxSize()) {
-        if (board.busy) {
-            LinearProgressIndicator(
-                Modifier.fillMaxWidth(), color = AmberPrimary, trackColor = GraphiteBorder)
-        }
+        // board.busy raises the scaffold's bar under the title — see MixingBoardScreen().
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -217,7 +214,10 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                         border = BorderStroke(1.dp, GraphiteBorder),
                     ) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("JC ${drum.jobCardNumber}",
+                            // An idle drum has no batch on it, so there is no JC to lead with —
+                            // naming the drum itself beats printing an empty JC line.
+                            Text(
+                                drum.jobCardNumber?.let { "JC $it" } ?: "JANDI Transfer Drum",
                                 style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
                             val drumSecondary = secondaryLine(drum.mixBatchId, drum.collectionId)
                             if (drumSecondary.isNotBlank()) {

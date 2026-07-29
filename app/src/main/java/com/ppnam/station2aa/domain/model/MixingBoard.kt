@@ -104,9 +104,10 @@ data class RunInput(
 /** The single JANDI drum, reserved from fill until JANDI 4 consumes it. */
 data class JandiDrum(
     val status: String,
-    val jobCardNumber: String,
-    val collectionId: String,
-    val mixBatchId: String,
+    /** Null while the drum is empty — there is no batch on it to name. */
+    val jobCardNumber: String?,
+    val collectionId: String?,
+    val mixBatchId: String?,
     val activeTransferCycleId: String?,
     val filledAtUtc: String?,
     val scanGuidance: String,
