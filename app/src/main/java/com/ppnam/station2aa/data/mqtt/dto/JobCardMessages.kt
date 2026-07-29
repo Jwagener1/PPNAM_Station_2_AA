@@ -14,6 +14,25 @@ data class CollectionResumePayload(
 )
 
 /**
+ * One entry in [BomLineResponse.bagSizeOptions] — the wire shape of the backend's
+ * `BagSizeOptionMessage`.
+ *
+ * This is an OBJECT on the wire, not a string. It was declared as a bare `List<String>` here, and
+ * because Gson cannot read an object into a String, a single line offering bag sizes aborted the
+ * parse of the entire `bom_loaded` message — the operator saw "Station 2 sent an unreadable
+ * response" and lost the whole job card, not just the one line's options.
+ *
+ * [availableBagCount] is fractional by construction: the backend divides a pallet's remaining
+ * quantity by the bag size, so a part-used pallet contributes a non-integer count.
+ */
+data class BagSizeOptionResponse(
+    val bagSize: Double = 0.0,
+    val availableBagCount: Double = 0.0,
+    val availableQuantity: Double = 0.0,
+    val unit: String = "",
+)
+
+/**
  * One BOM line, as returned by BOTH `bom_loaded` and `ingredient_scan_result` — the contract returns
  * "the full refreshed ingredients[]" in the scan result, identical in shape.
  *
@@ -63,7 +82,11 @@ data class BomLineResponse(
      * weight the pallet did not have.
      */
     val bagSizeIsVariable: Boolean = false,
-    val bagSizeOptions: List<String> = emptyList(),
+    /**
+     * Sent whenever collectable pallets exist, NOT only when [bagSizeIsVariable] is true — the live
+     * backend populates it for a single-size line as well. Never assume it is empty.
+     */
+    val bagSizeOptions: List<BagSizeOptionResponse> = emptyList(),
 
     // ---- 4.1 §9: credited vs captured -------------------------------------------------------
 
