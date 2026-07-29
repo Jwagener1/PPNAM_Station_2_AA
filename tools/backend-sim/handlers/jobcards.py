@@ -199,11 +199,25 @@ def load(world, log, req, session):
 def seed_demo_collections(world, log):
     """Pre-load a few collections at startup (bypassing job_card_load_requested
     and every ingredient scan) so the handheld sees active job cards the
-    moment it logs in. One collection per seeded SAP order plus a second
-    against 510019068 that starts already ReadyForMixing, for exercising the
-    mixing board without manually driving a full collection first."""
-    plans = [("510019068", False), ("510019068", True), ("510018531", False)]
-    for job, complete in plans:
+    moment it logs in.
+
+    Each entry is (job, mixer_codes): mixer_codes=None -> a fresh Collecting collection;
+    a list -> a ReadyForMixing collection whose WPF-saved plan reserves those mixers
+    (4.1 §7 requires a saved plan before any mixer scan). The first three entries are the
+    historical demo set (COL_000001 Collecting, COL_000002 ReadyForMixing on Main, COL_000003
+    Collecting on the 2nd job card) and MUST keep those ids for continuity. The extra entries
+    add coverage the on-device sweep needs:
+      * a Rajoo-planned ready collection (E16-E20 dose sheet), and
+      * a ready collection on the SECOND job card (E11/E12 cross-mix cases)."""
+    plans = [
+        ("510019068", None),                  # COL_000001 — Collecting, fresh
+        ("510019068", ["MXR-01", "MXR-02"]),  # COL_000002 — ReadyForMixing, two Main mixers
+        ("510018531", None),                  # COL_000003 — Collecting, 2nd JC
+        ("510019068", ["RAJ-GM-01"]),         # COL_000004 — ReadyForMixing, Rajoo (E16-E20)
+        ("510018531", ["MXR-03"]),            # COL_000005 — ReadyForMixing, 2nd JC (E11/E12)
+    ]
+    for job, mixer_codes in plans:
+        complete = mixer_codes is not None
         order = world.sap_orders.get(job)
         if not order:
             continue
@@ -234,9 +248,9 @@ def seed_demo_collections(world, log):
                        f"({'ReadyForMixing, all ingredients collected' if complete else 'Collecting, fresh'})")
         if complete:
             # 4.1 §7: a ReadyForMixing collection needs a WPF-saved mixer plan before any mixer
-            # scan. Seed one reserving two Main mixers so the handheld can exercise the plan-
-            # driven mixer start, two-mixer intersection, and destination assignment end-to-end.
-            world.save_mix_plan(col_id, ["MXR-01", "MXR-02"])
+            # scan. Reserve the requested mixers so the handheld can exercise the plan-driven
+            # mixer start, intersection, dose sheet and destination assignment end-to-end.
+            world.save_mix_plan(col_id, mixer_codes)
 
 
 def resume(world, log, req, session):
@@ -257,7 +271,11 @@ def resume(world, log, req, session):
                         next_action="active_job_cards")
     if status == "Collecting":
         next_action = "scan_ingredient"
-    elif status == "ReadyForMixing":
+    elif status in ("ReadyForMixing", "MixingPlanned"):
+        # 4.1 §7: a collection with a saved mixer plan is MixingPlanned but still fully readable —
+        # the handheld resumes it to read its collected lines when building a Rajoo dose sheet
+        # (fetchCollectedMaterials) and to reach the mixer-start flow. Rejecting MixingPlanned here
+        # left the dose sheet unable to open.
         next_action = "start_mixing"
     else:
         raise Rejection("state_conflict",
