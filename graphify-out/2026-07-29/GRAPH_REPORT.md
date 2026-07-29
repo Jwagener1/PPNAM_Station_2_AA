@@ -1,12 +1,12 @@
 # Graph Report - PPNAM_Station_2_AA  (2026-07-29)
 
 ## Corpus Check
-- 2669 files · ~8,646,920 words
+- 2666 files · ~8,644,243 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2423 nodes · 3649 edges · 199 communities (116 shown, 83 thin omitted)
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 354 edges (avg confidence: 0.79)
+- 2385 nodes · 3593 edges · 195 communities (114 shown, 81 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 352 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -173,7 +173,6 @@
 - MqttSessionExpiryTest
 - LoginViewModelTest
 - .readyMix
-- WireNullToleranceTest
 - .request
 - ConnectionStatus
 - MqttClientFactoryTest
@@ -187,7 +186,6 @@
 - analyze.py
 - RfidViewModelTest
 - PalletUseCase
-- .create
 - .authenticate
 - MqttResponseDeduplicationTest
 - MqttSessionExpiryTest
@@ -197,11 +195,9 @@
 - SettingsViewModelTest
 - SettingsViewModel
 - make_pallets.py
-- MixingOverviewWireCaptureTest
 - PalletStateTest
 - MqttClientFactory
 - ActiveJobsPage
-- ResponseEnvelopeTest
 - formatElapsedSince
 - HoverExitScrollCrashTest
 - MqttClientFactoryTest
@@ -218,9 +214,9 @@
 5. `MqttRepositoryImpl` - 43 edges
 6. `MixingBoardViewModel` - 41 edges
 7. `PPNAM Station 2 — Live Test Findings Log` - 33 edges
-8. `MixingBoardUseCase` - 30 edges
-9. `World` - 28 edges
-10. `OperatorSessionHolder` - 26 edges
+8. `World` - 28 edges
+9. `OperatorSessionHolder` - 26 edges
+10. `MixingBoardUseCase` - 26 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `logout()` --calls--> `build_response()`  [INFERRED]
@@ -237,7 +233,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (199 total, 83 thin omitted)
+## Communities (195 total, 81 thin omitted)
 
 ### Community 0 - "Room DAO Tests"
 Cohesion: 0.10
@@ -308,8 +304,8 @@ Cohesion: 0.08
 Nodes (25): 1. Why, 2. The new workflow, as the app must model it, 3.1 Deletions, 3.2 The JC / production-order split, 3.3 `MixingOverviewPayload`, 3.4 `MachineCycleStartPayload`, 3.5 New DTOs, 3.6 Reshaped response DTOs (+17 more)
 
 ### Community 19 - "Shared UI Scaffold & Screens"
-Cohesion: 0.29
-Nodes (5): EmptyPayload, Any, Gson, String, RequestEnvelope
+Cohesion: 0.15
+Nodes (6): EmptyPayload, Any, String, RequestEnvelope, ResponseEnvelopeTest, Gson
 
 ### Community 21 - "Dashboard Use Case & Tests"
 Cohesion: 0.13
@@ -508,7 +504,7 @@ Cohesion: 0.17
 Nodes (11): Architecture, Business rules of note, Decisions (user-confirmed), Error handling, Logging (simlog.py) — the second source of truth, MQTT surface, Out of scope, Self-test (selftest.py) (+3 more)
 
 ### Community 140 - "state.py"
-Cohesion: 0.16
+Cohesion: 0.17
 Nodes (8): canShow(), Boolean, StateFlow, String, OperatorSession, OperatorSessionHolder, StationAction, OperatorSessionHolderTest
 
 ### Community 141 - "LoginViewModel"
@@ -520,8 +516,8 @@ Cohesion: 0.14
 Nodes (13): 1. Screens and navigation, 2. Source-first interaction, 3. Finish and force-close, 4. Results, errors, refresh, 5. Architecture (new vertical slice), 6. Cleanups folded in (SP4a final-review carry-ins), 7. Testing and acceptance, Decisions (user-adjudicated 2026-07-21 — do not re-litigate) (+5 more)
 
 ### Community 143 - "jobcards.py"
-Cohesion: 0.13
-Nodes (22): build_response(), Assemble the full response envelope around handler-provided fields.      4.1 a, unit_for_uom(), active_list(), bom_loaded_response(), load(), open_sap_list(), active_job_cards_requested   -> active_job_cards_list open_sap_job_cards_reques (+14 more)
+Cohesion: 0.15
+Nodes (19): build_response(), Assemble the full response envelope around handler-provided fields.      4.1 a, unit_for_uom(), active_list(), bom_loaded_response(), load(), open_sap_list(), active_job_cards_requested   -> active_job_cards_list open_sap_job_cards_reques (+11 more)
 
 ### Community 145 - "LoginViewModelTest"
 Cohesion: 0.30
@@ -533,14 +529,14 @@ Nodes (7): Logs (per run: `logs/<UTC-timestamp>/`), Options, Seed world, Self-te
 
 ### Community 149 - "MqttVocabularyTest"
 Cohesion: 0.06
-Nodes (14): Barcode, SharedFlow, RfidTag, ScanEvent, ScanEventBus, ReadyMix, SharedFlow, ScanRepository (+6 more)
+Nodes (13): Barcode, SharedFlow, RfidTag, ScanEvent, ScanEventBus, SharedFlow, ScanRepository, computeHighlightedMachines() (+5 more)
 
 ### Community 150 - ".request"
 Cohesion: 0.60
 Nodes (3): Any, Class, T
 
 ### Community 151 - "MixingBoardUseCase"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (17): ActiveCycleDto, ActiveRunDto, CompletionMode, EquipmentDto, EquipmentStatus, JandiDrumDto, JandiRoute, Boolean (+9 more)
 
 ### Community 152 - "SettingsViewModel.kt"
@@ -580,19 +576,15 @@ Cohesion: 0.11
 Nodes (3): LoginViewModelTest, Exception, MutableStateFlow
 
 ### Community 162 - ".readyMix"
-Cohesion: 0.13
-Nodes (11): Accepted, ActiveCycle, ActiveRun, AreaOverview, EquipmentRole, Failed, JandiDrum, MixingArea (+3 more)
-
-### Community 163 - "WireNullToleranceTest"
-Cohesion: 0.18
-Nodes (7): Class, List, Set, String, WireNullToleranceTest, Field, Type
+Cohesion: 0.14
+Nodes (13): Accepted, ActiveCycle, ActiveRun, AreaOverview, EquipmentRole, Failed, JandiDrum, MixingArea (+5 more)
 
 ### Community 164 - ".request"
 Cohesion: 0.06
 Nodes (33): F-001 — SECURITY (High): operator passwords traverse MQTT in cleartext, F-002 — CONTRACT (Medium): response `timestampUtc` is earlier than the request, F-003 — CONTRACT (Low): inconsistent timestamp serialization, F-004 — CONTRACT (Medium): error text is in `reason`, `errorMessage` is absent, F-005 — ENV (Low): device clock 2.67 s behind broker/host, F-006 — UX (Medium): IME hides the password field and Log In button, F-007 — UX (Low): "Or scan your badge" sits above the username field, F-008 — PERF (Medium): 2.69 s for a credential rejection (+25 more)
 
 ### Community 165 - "ConnectionStatus"
-Cohesion: 0.28
+Cohesion: 0.25
 Nodes (9): AuthUseCase, Badge, Credentials, List, String, Unit, LoginMethod, message() (+1 more)
 
 ### Community 166 - "MqttClientFactoryTest"
@@ -608,8 +600,8 @@ Cohesion: 0.47
 Nodes (8): emit(), now_iso(), on_connect(), on_disconnect(), on_message(), Passive MQTT sniffer for PPNAM Station 2 live-backend testing.  Read-only: subsc, redact(), report_orphans()
 
 ### Community 172 - "RfidViewModel.kt"
-Cohesion: 0.40
-Nodes (5): MachineCycleStartPayload, MachineCycleOutcome, Any, String, MixingBoardUseCase
+Cohesion: 0.41
+Nodes (4): MachineCycleStartPayload, MachineCycleOutcome, Any, String
 
 ### Community 173 - "UpgradeGateViewModel"
 Cohesion: 0.21
@@ -623,13 +615,9 @@ Nodes (3): Boolean, String, RfidViewModelTest
 Cohesion: 0.23
 Nodes (6): HoldingRecoveryPayload, PalletLookupPayload, PalletInfo, PalletState, String, PalletUseCase
 
-### Community 177 - ".create"
-Cohesion: 0.20
-Nodes (8): Gson, T, NullPruningTypeAdapterFactory, WireJson, JsonElement, TypeAdapter, TypeAdapterFactory, TypeToken
-
 ### Community 178 - ".authenticate"
-Cohesion: 0.23
-Nodes (9): authFailureMessage(), String, ScramExchange, BadgeLoginPayload, ScramChallengeResponse, ScramProofPayload, ScramProofResponse, ScramPurpose (+1 more)
+Cohesion: 0.15
+Nodes (12): String, ManagerAuthorization, authFailureMessage(), String, ScramExchange, BadgeLoginPayload, ManagerAction, ScramChallengeResponse (+4 more)
 
 ### Community 180 - "MqttSessionExpiryTest"
 Cohesion: 0.29
@@ -672,8 +660,8 @@ Cohesion: 0.32
 Nodes (4): HoverExitScrollCrashTest, Int, MotionEvent, View
 
 ### Community 194 - "MqttClientFactoryTest"
-Cohesion: 0.40
-Nodes (3): String, ManagerAuthorization, ManagerAction
+Cohesion: 0.50
+Nodes (3): parse_iso(), Return the session if valid+usable for this device, resuming a Suspended one., Accept 'Z' or offset ISO 8601.
 
 ### Community 195 - ".request"
 Cohesion: 0.39
@@ -686,17 +674,17 @@ Nodes (3): build(), main(), Publish a fault-injection control frame to the backe
 ## Knowledge Gaps
 - **692 isolated node(s):** `FailureKind`, `EmptyPayload`, `ScramPurpose`, `ScramChallengeResponse`, `SourceType` (+687 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **83 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **81 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `MqttRepository` connect `MixingViewModel.kt` to `Room DAO Tests`, `LoginViewModelTest`, `Pre-Mix Hopper Domain Models`, `MQTT Message Envelope & Repository Impl`, `BOM Line Response & Lookup Tests`, `Typed MQTT Result & Repository Contract`, `AuthUseCase`, `UpgradeGateViewModel`, `RfidViewModelTest`, `App Settings Defaults & Tests`, `MqttVocabularyTest`, `SettingsViewModelTest`, `MixingOverviewWireCaptureTest`?**
-  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **Why does `MqttRepository` connect `MixingViewModel.kt` to `Room DAO Tests`, `LoginViewModelTest`, `Pre-Mix Hopper Domain Models`, `MQTT Message Envelope & Repository Impl`, `BOM Line Response & Lookup Tests`, `Typed MQTT Result & Repository Contract`, `AuthUseCase`, `UpgradeGateViewModel`, `RfidViewModelTest`, `App Settings Defaults & Tests`, `MqttVocabularyTest`, `SettingsViewModelTest`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Why does `MixingBoardViewModelTest` connect `MqttVocabularyTest` to `LoginViewModelTest`, `.readyMix`, `ConnectionStatus`, `MixingViewModel.kt`, `state.py`, `SettingsViewModel.kt`?**
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._
 - **Why does `Rejection` connect `Replay` to `LoginViewModelTest`, `common.py`, `SimLogger`, `Rejection`, `jobcards.py`, `Dashboard Use Case & Tests`, `BomLine`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
-- **Why does `MixingBoardViewModelTest` connect `MqttVocabularyTest` to `LoginViewModelTest`, `ConnectionStatus`, `MixingViewModel.kt`, `RfidViewModel.kt`, `state.py`, `SettingsViewModel.kt`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **What connects `FailureKind`, `EmptyPayload`, `ScramPurpose` to the rest of the system?**
   _790 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Room DAO Tests` be split into smaller, more focused modules?**
