@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -58,12 +57,11 @@ fun MixingAreaPickerScreen(
         operatorName = session?.operatorName,
         operatorRole = session?.role,
         onLogout = viewModel::logout,
+        loading = uiState is MixingBoardUiState.Loading,
     ) { padding ->
         when (val state = uiState) {
-            is MixingBoardUiState.Loading -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator(color = AmberPrimary) }
+            // The scaffold's bar is the whole loading affordance — nothing to draw here.
+            is MixingBoardUiState.Loading -> Unit
 
             is MixingBoardUiState.Error -> Column(
                 Modifier.fillMaxSize().padding(padding).padding(16.dp),

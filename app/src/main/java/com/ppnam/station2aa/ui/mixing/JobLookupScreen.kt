@@ -130,7 +130,8 @@ fun JobLookupScreen(
         onSettings = onSettings,
         operatorName = session?.operatorName,
         operatorRole = session?.role,
-        onLogout = viewModel::logout
+        onLogout = viewModel::logout,
+        loading = isLoading
     ) { padding ->
         Column(
             modifier = Modifier

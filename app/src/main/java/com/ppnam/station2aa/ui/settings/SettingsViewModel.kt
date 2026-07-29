@@ -88,6 +88,13 @@ class SettingsViewModel @Inject constructor(
 
     val connectionState: StateFlow<MqttConnectionState> = mqttRepository.connectionState
 
+    /**
+     * Surfaced separately from [connectionStatus] so Diagnostics can show the broker link and
+     * Station 2's presence on their own lines. The composite status collapses them into one
+     * verdict, which is right for the top-bar pill but hides which of the two is actually down.
+     */
+    val stationOnline: StateFlow<Boolean> = mqttRepository.stationOnline
+
     val connectionStatus: StateFlow<ConnectionStatus> = connectionStatusFlow(
         mqttRepository.connectionState,
         mqttRepository.stationOnline,

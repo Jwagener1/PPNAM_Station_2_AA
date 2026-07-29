@@ -33,6 +33,7 @@ fun AppScaffold(
     operatorName: String? = null,
     operatorRole: String? = null,
     onLogout: (() -> Unit)? = null,
+    loading: Boolean = false,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val (dotColor, statusLabel) = when (status) {
@@ -225,6 +226,18 @@ fun AppScaffold(
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = GraphiteSurface
                         )
+                    )
+                }
+
+                // The one loading affordance in the app. A centred spinner blanks the page it
+                // sits on, so whatever the operator was reading disappears for the duration and
+                // reappears somewhere else; a bar under the title leaves the content in place and
+                // still reads at a glance from arm's length on the handheld.
+                if (loading) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = AmberPrimary,
+                        trackColor = GraphiteBorder
                     )
                 }
             }

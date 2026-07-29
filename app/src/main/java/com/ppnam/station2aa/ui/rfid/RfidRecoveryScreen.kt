@@ -31,7 +31,8 @@ fun RfidRecoveryScreen(
     AppScaffold(
         title = "RFID Pallet Lookup",
         status = connectionStatus,
-        onBack = onBack
+        onBack = onBack,
+        loading = uiState is RfidUiState.Loading || uiState is RfidUiState.Recovering
     ) { padding ->
         Column(
             modifier = Modifier
@@ -45,15 +46,13 @@ fun RfidRecoveryScreen(
                         ScanPromptCard(message = "Scan an RFID tag to look up a pallet")
                     }
                     is RfidUiState.Loading, is RfidUiState.Recovering -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = AmberPrimary)
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = if (state is RfidUiState.Recovering) "Recovering pallet…" else "Looking up pallet…",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextMuted
-                            )
-                        }
+                        // The scaffold's bar carries the "working" signal; the caption stays
+                        // because lookup and recovery are different waits with different stakes.
+                        Text(
+                            text = if (state is RfidUiState.Recovering) "Recovering pallet…" else "Looking up pallet…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMuted
+                        )
                     }
                     is RfidUiState.Result -> {
                         val pallet = state.pallet

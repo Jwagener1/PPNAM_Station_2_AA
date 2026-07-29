@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.BuildConfig
+import com.ppnam.station2aa.domain.repository.MqttConnectionState
 import com.ppnam.station2aa.ui.components.AppScaffold
-import com.ppnam.station2aa.ui.components.ConnectionStatus
 import com.ppnam.station2aa.ui.theme.*
 
 @Composable
@@ -34,6 +35,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val connectionStatus by viewModel.connectionStatus.collectAsState()
+    val connectionState by viewModel.connectionState.collectAsState()
+    val stationOnline by viewModel.stationOnline.collectAsState()
     val pinState = viewModel.pinState.value
     val pinInput = viewModel.pinInput.value
     val pinError = viewModel.pinError.value
@@ -82,38 +85,26 @@ fun SettingsScreen(
                 border = BorderStroke(1.dp, GraphiteBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    val (dotColor, statusLabel) = when (connectionStatus) {
-                        ConnectionStatus.Connected      -> SuccessGreen to "Connected"
-                        ConnectionStatus.Reconnecting   -> AmberPrimary to "Reconnecting"
-                        ConnectionStatus.StationOffline -> AmberPrimary to "Station 2 offline"
-                        ConnectionStatus.ClockSkewed    -> AmberPrimary to "Clock out of sync"
-                        ConnectionStatus.Offline        -> DangerRed to "Offline"
+                    // Broker link and Station 2 presence are separate failures with separate
+                    // remedies, and the composite status can only name one of them at a time.
+                    // Diagnostics shows both so the operator can tell which half is down.
+                    val (brokerColor, brokerLabel) = when (connectionState) {
+                        MqttConnectionState.CONNECTED    -> SuccessGreen to "Connected"
+                        MqttConnectionState.RECONNECTING -> AmberPrimary to "Reconnecting"
+                        MqttConnectionState.DISCONNECTED -> DangerRed to "Disconnected"
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "CONNECTION",
-                            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
-                            color = TextMuted
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(dotColor.copy(alpha = 0.12f))
-                                .padding(horizontal = 10.dp, vertical = 5.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Canvas(Modifier.size(6.dp)) {
-                                    drawCircle(dotColor, center = Offset(size.width / 2, size.height / 2))
-                                }
-                                Spacer(Modifier.width(5.dp))
-                                Text(statusLabel, style = MaterialTheme.typography.labelSmall, color = dotColor)
-                            }
-                        }
+                    DiagnosticRow("MQTT BROKER", brokerColor, brokerLabel)
+
+                    HorizontalDivider(color = GraphiteBorder, modifier = Modifier.padding(vertical = 10.dp))
+
+                    // With the broker down, the retained presence value is stale rather than
+                    // false — saying "offline" there would blame Station 2 for the broker's fault.
+                    val (stationColor, stationLabel) = when {
+                        connectionState != MqttConnectionState.CONNECTED -> TextMuted to "Unknown"
+                        stationOnline -> SuccessGreen to "Online"
+                        else -> AmberPrimary to "Offline"
                     }
+                    DiagnosticRow("STATION 2", stationColor, stationLabel)
 
                     HorizontalDivider(color = GraphiteBorder, modifier = Modifier.padding(vertical = 10.dp))
 
@@ -342,6 +333,36 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+/** One labelled line of the Diagnostics card, with its own dot-and-text status badge. */
+@Composable
+private fun DiagnosticRow(label: String, dotColor: Color, statusLabel: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
+            color = TextMuted
+        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(dotColor.copy(alpha = 0.12f))
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Canvas(Modifier.size(6.dp)) {
+                    drawCircle(dotColor, center = Offset(size.width / 2, size.height / 2))
+                }
+                Spacer(Modifier.width(5.dp))
+                Text(statusLabel, style = MaterialTheme.typography.labelSmall, color = dotColor)
+            }
         }
     }
 }

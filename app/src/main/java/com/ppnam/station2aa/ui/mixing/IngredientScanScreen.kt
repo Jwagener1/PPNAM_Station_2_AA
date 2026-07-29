@@ -651,7 +651,8 @@ fun IngredientScanScreen(
         title = "Scan Ingredients",
         status = connectionStatus,
         onBack = { showBackConfirmDialog = true },
-        onRfidLookup = onRfidLookup
+        onRfidLookup = onRfidLookup,
+        loading = uiState is MixingUiState.Loading
     ) { padding ->
         Box(
             modifier = Modifier
@@ -665,9 +666,9 @@ fun IngredientScanScreen(
             ) {
                 when (val state = uiState) {
                     is MixingUiState.Loading -> {
-                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = AmberPrimary)
-                        }
+                        // The scaffold's bar is the whole loading affordance; the weighted spacer
+                        // keeps anything below this branch in the position it will settle into.
+                        Box(Modifier.weight(1f).fillMaxWidth())
                     }
                     is MixingUiState.Error -> {
                         Column(Modifier.weight(1f).fillMaxWidth()) {
