@@ -2,9 +2,9 @@ package com.ppnam.station2aa.ui.mixing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
 import com.ppnam.station2aa.data.mqtt.MqttTopics
 import com.ppnam.station2aa.data.mqtt.NextAction
+import com.ppnam.station2aa.data.mqtt.WireJson
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsInvalidatedResponse
 import com.ppnam.station2aa.data.rfid.ScanEvent
@@ -133,7 +133,7 @@ class MixingViewModel @Inject constructor(
     private val sessionHolder: OperatorSessionHolder
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = WireJson.gson
 
     private val _uiState = MutableStateFlow<MixingUiState>(MixingUiState.Idle)
     val uiState: StateFlow<MixingUiState> = _uiState.asStateFlow()

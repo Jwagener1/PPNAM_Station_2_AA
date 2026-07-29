@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.domain.usecase
 
-import com.google.gson.Gson
 import com.ppnam.station2aa.data.auth.ManagerAuthorization
 import com.ppnam.station2aa.data.local.BomCacheDao
 import com.ppnam.station2aa.data.local.BomCacheEntity
@@ -8,6 +7,7 @@ import com.ppnam.station2aa.data.mqtt.EmptyPayload
 import com.ppnam.station2aa.data.mqtt.ErrorCode
 import com.ppnam.station2aa.data.mqtt.MqttOutcome
 import com.ppnam.station2aa.data.mqtt.NextAction
+import com.ppnam.station2aa.data.mqtt.WireJson
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsListResponse
 import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardsPayload
 import com.ppnam.station2aa.data.mqtt.dto.BomLineResponse
@@ -36,7 +36,7 @@ class MixingUseCase @Inject constructor(
     private val palletUseCase: PalletUseCase,
     private val managerAuthorization: ManagerAuthorization,
 ) {
-    private val gson = Gson()
+    private val gson = WireJson.gson
 
     /**
      * Loads a job card, or resumes an exact existing collection when [collectionId] is supplied.
@@ -126,10 +126,10 @@ class MixingUseCase @Inject constructor(
         remainingQty = remainingQuantity,
         availableQty = availableQuantity,
         // SAP UoM 269 displays as kg and 268 as each; unknown values pass through.
-        // orEmpty() before ifBlank(): Gson writes a JSON null straight into these non-null String
-        // fields (it does not honour Kotlin nullability, and the data-class default only applies
-        // when the key is absent), so a null `unit` would NPE on ifBlank and take down every job
-        // card load. Same failure mode that crashed the pallet lookup on 2026-07-23.
+        // orEmpty() before ifBlank() is belt to WireJson's braces. A null `unit` used to reach here
+        // and NPE on ifBlank, taking down every job card load — the same failure mode that crashed
+        // the pallet lookup on 2026-07-23 and the mixing board on 2026-07-29. WireJson now deletes
+        // wire nulls before Gson can bind them, so this can no longer be the thing that saves us.
         uom = unit.orEmpty().ifBlank { uomCode.orEmpty() },
         // Null on a bulk line, and null is meaningful — do NOT coalesce to 0.0.
         bagSize = bagSize,

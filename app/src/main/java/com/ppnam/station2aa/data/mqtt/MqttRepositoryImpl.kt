@@ -2,7 +2,6 @@ package com.ppnam.station2aa.data.mqtt
 
 import android.util.Log
 import androidx.annotation.VisibleForTesting
-import com.google.gson.Gson
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.ppnam.station2aa.data.mqtt.dto.ResponseEnvelope
@@ -58,7 +57,8 @@ class MqttRepositoryImpl @Inject constructor(
         internal const val SEEN_RESPONSE_CAPACITY = 512
     }
 
-    private val gson = Gson()
+    // WireJson, never a bare Gson instance: it is what stops a JSON null landing in a non-null field.
+    private val gson = WireJson.gson
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _connectionState = MutableStateFlow(MqttConnectionState.DISCONNECTED)
