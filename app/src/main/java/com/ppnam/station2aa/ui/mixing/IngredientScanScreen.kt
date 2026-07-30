@@ -25,10 +25,26 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.data.session.StationAction
 import com.ppnam.station2aa.data.session.canShow
+import com.ppnam.station2aa.domain.model.BomLine
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.components.DialogFormColumn
+import com.ppnam.station2aa.ui.components.StatusCard
+import com.ppnam.station2aa.ui.components.StatusTone
 import com.ppnam.station2aa.ui.theme.*
 import kotlin.math.ceil
+
+/**
+ * Maps a BOM line's satisfied/armed/pending state to the shared color language. Pending (a
+ * request in flight for this specific line) takes priority — an operator watching the list should
+ * see "this one's working" over any other signal. `internal`, not `private`, so
+ * `IngredientScanScreenKtTest` can verify it directly.
+ */
+internal fun BomLine.checklistTone(armed: Boolean, pending: Boolean): StatusTone = when {
+    pending -> StatusTone.Running
+    isSatisfied -> StatusTone.Ready
+    armed -> StatusTone.Running
+    else -> StatusTone.Idle
+}
 
 @Composable
 fun IngredientScanScreen(
@@ -833,169 +849,151 @@ fun IngredientScanScreen(
                                 }
                                 val displayName = bomLine.itemName.ifBlank { bomLine.itemCode }
 
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        // Arming during an in-flight request would leave the
-                                        // operator unsure which line the response applies to.
-                                        .clickable(enabled = !state.isBusy) { viewModel.selectLine(bomLine.lineNumber) },
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = when {
-                                            satisfied -> SuccessGreen.copy(alpha = 0.10f)
-                                            armed -> AmberPrimary.copy(alpha = 0.10f)
-                                            else -> GraphiteSurface
-                                        }
-                                    ),
-                                    border = BorderStroke(
-                                        if (armed || pending) 2.dp else 1.dp,
-                                        when {
-                                            pending -> AmberPrimary
-                                            satisfied -> SuccessGreen.copy(alpha = 0.30f)
-                                            armed -> AmberPrimary
-                                            else -> GraphiteBorder
-                                        }
-                                    )
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(
-                                                        text = "Line ${bomLine.lineNumber}",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = TextMuted
-                                                    )
-                                                    if (armed) {
-                                                        Spacer(Modifier.width(6.dp))
-                                                        Text(
-                                                            text = "ARMED",
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = AmberPrimary
-                                                        )
-                                                    }
-                                                }
-                                                // maxLines + ellipsis: an unconstrained name
-                                                // ("MASTERBATCH BLACK ME 9200 ME") wrapped under
-                                                // the right-aligned kg value and the two overlapped.
+                                StatusCard(
+                                    tone = bomLine.checklistTone(armed = armed, pending = pending),
+                                    // Arming during an in-flight request would leave the
+                                    // operator unsure which line the response applies to.
+                                    onClick = { viewModel.selectLine(bomLine.lineNumber) },
+                                    enabled = !state.isBusy,
+                                ) { accent ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
-                                                    text = displayName,
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                    color = TextPrimary,
-                                                    maxLines = 2,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    text = "Line ${bomLine.lineNumber}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = TextMuted
                                                 )
+                                                if (armed) {
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "ARMED",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = accent
+                                                    )
+                                                }
                                             }
-                                            Spacer(Modifier.width(8.dp))
-                                            if (pending) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(16.dp),
-                                                    color = AmberPrimary,
-                                                    strokeWidth = 2.dp
-                                                )
-                                                Spacer(Modifier.width(6.dp))
-                                            } else if (satisfied) {
-                                                Icon(
-                                                    imageVector = Icons.Filled.CheckCircle,
-                                                    contentDescription = "Satisfied",
-                                                    tint = SuccessGreen,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                                Spacer(Modifier.width(6.dp))
-                                            }
-                                            // The value column gets its own floor so the name can
-                                            // never squeeze it to nothing, and stays right-aligned.
+                                            // maxLines + ellipsis: an unconstrained name
+                                            // ("MASTERBATCH BLACK ME 9200 ME") wrapped under
+                                            // the right-aligned kg value and the two overlapped.
                                             Text(
-                                                text = if (bomLine.isSatisfied) {
-                                                    "Fully Allocated"
-                                                } else {
-                                                    "%.2f %s".format(bomLine.remainingQty, bomLine.uom)
-                                                },
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = if (satisfied) SuccessGreen else TextMuted,
-                                                textAlign = TextAlign.End,
+                                                text = displayName,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = TextPrimary,
                                                 maxLines = 2,
-                                                modifier = Modifier.widthIn(min = 72.dp)
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
-                                        Spacer(Modifier.height(6.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        if (pending) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                color = AmberPrimary,
+                                                strokeWidth = 2.dp
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                        } else if (satisfied) {
+                                            Icon(
+                                                imageVector = Icons.Filled.CheckCircle,
+                                                contentDescription = "Satisfied",
+                                                tint = SuccessGreen,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                        }
+                                        // The value column gets its own floor so the name can
+                                        // never squeeze it to nothing, and stays right-aligned.
                                         Text(
-                                            text = buildString {
-                                                append("Available: %.2f %s".format(bomLine.availableQty, bomLine.uom))
-                                                if (bomLine.isBagged) {
-                                                    append(" · Bag size: ${bomLine.bagSize}")
-                                                }
+                                            text = if (bomLine.isSatisfied) {
+                                                "Fully Allocated"
+                                            } else {
+                                                "%.2f %s".format(bomLine.remainingQty, bomLine.uom)
                                             },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (satisfied) SuccessGreen else TextMuted,
+                                            textAlign = TextAlign.End,
+                                            maxLines = 2,
+                                            modifier = Modifier.widthIn(min = 72.dp)
+                                        )
+                                    }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = buildString {
+                                            append("Available: %.2f %s".format(bomLine.availableQty, bomLine.uom))
+                                            if (bomLine.isBagged) {
+                                                append(" · Bag size: ${bomLine.bagSize}")
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextMuted
+                                    )
+                                    if (!bomLine.isSatisfied) {
+                                        Spacer(Modifier.height(8.dp))
+                                        // Captioned: a bagged line renders two visually
+                                        // identical bars (weight, then bags) and neither said
+                                        // which was which.
+                                        Text(
+                                            text = "Weight  %.2f / %.2f %s".format(
+                                                bomLine.collectedQty, bomLine.requiredQty, bomLine.uom
+                                            ),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = TextMuted
                                         )
-                                        if (!bomLine.isSatisfied) {
-                                            Spacer(Modifier.height(8.dp))
-                                            // Captioned: a bagged line renders two visually
-                                            // identical bars (weight, then bags) and neither said
-                                            // which was which.
-                                            Text(
-                                                text = "Weight  %.2f / %.2f %s".format(
-                                                    bomLine.collectedQty, bomLine.requiredQty, bomLine.uom
-                                                ),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = TextMuted
-                                            )
-                                            Spacer(Modifier.height(4.dp))
-                                            LinearProgressIndicator(
-                                                progress = { fraction },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(6.dp)
-                                                    .clip(RoundedCornerShape(3.dp)),
-                                                color = if (satisfied) SuccessGreen else AmberPrimary,
-                                                trackColor = GraphiteBorder
-                                            )
+                                        Spacer(Modifier.height(4.dp))
+                                        LinearProgressIndicator(
+                                            progress = { fraction },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(6.dp)
+                                                .clip(RoundedCornerShape(3.dp)),
+                                            color = if (satisfied) SuccessGreen else AmberPrimary,
+                                            trackColor = GraphiteBorder
+                                        )
+                                    }
+                                    // Every element below is gated on isBagged: a bulk line has no
+                                    // bag arithmetic (its bag fields are null, not zero) and must
+                                    // never render bag figures or be treated as bag-incomplete.
+                                    if (bomLine.isBagged) {
+                                        val expectedBags = bomLine.expectedBags ?: 0.0
+                                        val scannedBags = bomLine.scannedBags ?: 0.0
+                                        val bagFraction = if (expectedBags > 0.0) {
+                                            (scannedBags / expectedBags).toFloat().coerceIn(0f, 1f)
+                                        } else {
+                                            0f
                                         }
-                                        // Every element below is gated on isBagged: a bulk line has no
-                                        // bag arithmetic (its bag fields are null, not zero) and must
-                                        // never render bag figures or be treated as bag-incomplete.
-                                        if (bomLine.isBagged) {
-                                            val expectedBags = bomLine.expectedBags ?: 0.0
-                                            val scannedBags = bomLine.scannedBags ?: 0.0
-                                            val bagFraction = if (expectedBags > 0.0) {
-                                                (scannedBags / expectedBags).toFloat().coerceIn(0f, 1f)
-                                            } else {
-                                                0f
-                                            }
-                                            Spacer(Modifier.height(6.dp))
-                                            Text(
-                                                text = "Bags  %.2f / %.2f full bags".format(scannedBags, expectedBags),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = TextMuted
-                                            )
+                                        Spacer(Modifier.height(6.dp))
+                                        Text(
+                                            text = "Bags  %.2f / %.2f full bags".format(scannedBags, expectedBags),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = TextMuted
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        LinearProgressIndicator(
+                                            progress = { bagFraction },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(6.dp)
+                                                .clip(RoundedCornerShape(3.dp)),
+                                            color = if (satisfied) SuccessGreen else AmberPrimary,
+                                            trackColor = GraphiteBorder
+                                        )
+                                        // Waiving short bags is an Admin privilege the
+                                        // Operator's allowedActions does not carry. Offering it
+                                        // regardless meant discovering that only after a
+                                        // multi-second round trip and a generic rejection.
+                                        if (!satisfied && mayWaiveShortBags) {
                                             Spacer(Modifier.height(4.dp))
-                                            LinearProgressIndicator(
-                                                progress = { bagFraction },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(6.dp)
-                                                    .clip(RoundedCornerShape(3.dp)),
-                                                color = if (satisfied) SuccessGreen else AmberPrimary,
-                                                trackColor = GraphiteBorder
-                                            )
-                                            // Waiving short bags is an Admin privilege the
-                                            // Operator's allowedActions does not carry. Offering it
-                                            // regardless meant discovering that only after a
-                                            // multi-second round trip and a generic rejection.
-                                            if (!satisfied && mayWaiveShortBags) {
-                                                Spacer(Modifier.height(4.dp))
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.End
-                                                ) {
-                                                    TextButton(
-                                                        enabled = !state.isBusy,
-                                                        onClick = { viewModel.openShortBagWaiver(bomLine.itemCode) }
-                                                    ) { Text("Short bags", color = AmberPrimary) }
-                                                }
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End
+                                            ) {
+                                                TextButton(
+                                                    enabled = !state.isBusy,
+                                                    onClick = { viewModel.openShortBagWaiver(bomLine.itemCode) }
+                                                ) { Text("Short bags", color = AmberPrimary) }
                                             }
                                         }
                                     }
