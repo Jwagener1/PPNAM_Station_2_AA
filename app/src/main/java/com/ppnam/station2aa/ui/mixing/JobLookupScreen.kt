@@ -39,7 +39,7 @@ fun JobLookupScreen(
     onLogout: () -> Unit = {},
     onRfidLookup: () -> Unit = {},
     onOpenMixing: () -> Unit = {},
-    onExitApp: () -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: MixingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -48,45 +48,21 @@ fun JobLookupScreen(
     val activeJobsError by viewModel.activeJobsError.collectAsState()
     val session by viewModel.session.collectAsState()
     var orderInput by rememberSaveable { mutableStateOf("") }
-    var showExitDialog by rememberSaveable { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
-    // Same accidental-exit hazard the login screen has, and this is where operators actually
-    // spend their time: Job Lookup is the start of the post-login graph, so Back had nothing to
-    // pop and dropped straight to the Android launcher. Two stages, as on Login — dismiss the
-    // keyboard first, then ask.
+    // Job Lookup now sits below Home on the post-login back stack, so Back has somewhere real to
+    // pop to — the accidental-exit hazard (and its dialog) moved to HomeScreen, which is the
+    // actual root now. What's left here is purely local: with the keyboard up, Back should close
+    // it rather than immediately navigate away and lose the in-progress order number.
     val imeVisible = WindowInsets.isImeVisible
     BackHandler {
         if (imeVisible) {
             keyboard?.hide()
             focusManager.clearFocus()
         } else {
-            showExitDialog = true
+            onBack()
         }
-    }
-
-    if (showExitDialog) {
-        AlertDialog(
-            onDismissRequest = { showExitDialog = false },
-            title = { Text("Close the app?", color = TextPrimary) },
-            text = {
-                Text(
-                    "You'll leave PPNAM Station 2. Any collection in progress stays saved on Station 2.",
-                    color = TextMuted
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showExitDialog = false
-                    onExitApp()
-                }) { Text("Close", color = DangerRed) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExitDialog = false }) { Text("Stay") }
-            },
-            containerColor = GraphiteSurface
-        )
     }
 
     // Re-fetches on first entry, on in-app back navigation, AND every time the screen becomes
@@ -125,7 +101,7 @@ fun JobLookupScreen(
     AppScaffold(
         title = "Job Lookup",
         status = connectionStatus,
-        onBack = null,
+        onBack = onBack,
         onRfidLookup = onRfidLookup,
         onSettings = onSettings,
         operatorName = session?.operatorName,

@@ -1,5 +1,6 @@
 package com.ppnam.station2aa.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,25 +15,32 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.WifiTethering
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.theme.DangerRed
 import com.ppnam.station2aa.ui.theme.GraphiteBorder
 import com.ppnam.station2aa.ui.theme.GraphiteSurface
 import com.ppnam.station2aa.ui.theme.TextMuted
 import com.ppnam.station2aa.ui.theme.TextPrimary
+import java.time.LocalTime
 
 @Composable
 fun HomeScreen(
@@ -41,13 +49,41 @@ fun HomeScreen(
     onFixATag: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
+    onExitApp: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val session by viewModel.session.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
+    var showExitDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.logoutEvent.collect { onLogout() }
+    }
+
+    // Home is the actual post-login root now (Login lands here via
+    // popUpTo(LOGIN){inclusive=true}), so Back has nothing left to pop. Same accidental-exit
+    // hazard Login guards against, and the same fix: intercept Back and ask before leaving,
+    // rather than silently dropping to the Android launcher on a shared, gloved handheld.
+    BackHandler {
+        showExitDialog = true
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Close the app?", color = TextPrimary) },
+            text = { Text("You'll leave PPNAM Station 2 and return to the home screen.", color = TextMuted) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitDialog = false
+                    onExitApp()
+                }) { Text("Close", color = DangerRed) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("Stay") }
+            },
+            containerColor = GraphiteSurface
+        )
     }
 
     AppScaffold(
@@ -65,8 +101,9 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val greeting = greetingForHour(LocalTime.now().hour)
             Text(
-                text = session?.operatorName?.let { "Good morning, $it" } ?: "Good morning",
+                text = session?.operatorName?.let { "$greeting, $it" } ?: greeting,
                 style = MaterialTheme.typography.headlineSmall,
                 color = TextPrimary,
             )
@@ -90,6 +127,13 @@ fun HomeScreen(
             )
         }
     }
+}
+
+/** Shift-appropriate greeting for the current hour — a fixed "Good morning" read wrong for most of a floor shift. */
+private fun greetingForHour(hour: Int): String = when {
+    hour < 12 -> "Good morning"
+    hour < 18 -> "Good afternoon"
+    else -> "Good evening"
 }
 
 @Composable

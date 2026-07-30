@@ -56,6 +56,8 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
         composable(NavRoutes.HOME) {
+            // LocalActivity only exists from activity-compose 1.10; this project is on 1.9.0.
+            val activity = LocalContext.current.findActivity()
             HomeScreen(
                 onOpenJobCards = { navController.navigate(NavRoutes.MIXING) },
                 onOpenMixingBoard = { navController.navigate(NavRoutes.mixingAreas()) },
@@ -64,6 +66,10 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 // Navigation on logout is SessionWatcher's job alone — see the comment on
                 // MixingAreaPickerScreen's onLogout further down in this graph.
                 onLogout = {},
+                // Home is the start of the post-login graph now — there is no back stack to
+                // pop, so leaving means finishing the Activity. Only reached via the explicit
+                // confirm dialog.
+                onExitApp = { activity?.finish() },
             )
         }
         composable(NavRoutes.SETTINGS) {
@@ -75,7 +81,6 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                     navController.getBackStackEntry(NavRoutes.MIXING)
                 }
                 val viewModel: MixingViewModel = hiltViewModel(parentEntry)
-                val activity = LocalContext.current.findActivity()
                 JobLookupScreen(
                     onJobFound = { orderNo -> navController.navigate(NavRoutes.ingredientScan(orderNo)) },
                     onSettings = { navController.navigate(NavRoutes.SETTINGS) },
@@ -87,9 +92,9 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                         navController.navigate(NavRoutes.RFID_RECOVERY)
                     },
                     onOpenMixing = { navController.navigate(NavRoutes.mixingAreas()) },
-                    // Start of the post-login graph: nothing to pop, so leaving finishes the
-                    // Activity. Only reached via the explicit confirm dialog.
-                    onExitApp = { activity?.finish() },
+                    // Job Lookup now sits below Home on the back stack — plain pop takes the
+                    // operator back to Home. The "close the app?" guard lives on Home now.
+                    onBack = { navController.popBackStack() },
                     viewModel = viewModel
                 )
             }
