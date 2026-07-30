@@ -22,14 +22,28 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.ppnam.station2aa.data.mqtt.dto.ActiveJobCardSummary
 import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.components.StatusCard
+import com.ppnam.station2aa.ui.components.StatusTone
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
-import com.ppnam.station2aa.ui.theme.GraphiteBorder
-import com.ppnam.station2aa.ui.theme.GraphiteSurface
 import com.ppnam.station2aa.ui.theme.TextMuted
 import com.ppnam.station2aa.ui.theme.TextPrimary
 import com.ppnam.station2aa.ui.theme.WarningOrange
+
+/**
+ * Maps a job's wire status (plus its pending-approval flag) to the shared color language.
+ * Pending approval takes priority over the base status — an operator scanning for what needs
+ * attention should see amber immediately, not read a secondary line. `internal`, not `private`,
+ * so `JobLookupScreenKtTest` can verify it directly.
+ */
+internal fun ActiveJobCardSummary.cardTone(): StatusTone = when {
+    (pendingApprovalCount ?: 0) > 0 -> StatusTone.Warning
+    status == "ReadyForMixing" -> StatusTone.Ready
+    status == "Collecting" || status == "Mixing" -> StatusTone.Running
+    else -> StatusTone.Idle
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -99,7 +113,7 @@ fun JobLookupScreen(
     val errorMessage = if (uiState is MixingUiState.Error) (uiState as MixingUiState.Error).message else null
 
     AppScaffold(
-        title = "Job Lookup",
+        title = "Job Cards",
         status = connectionStatus,
         onBack = onBack,
         onRfidLookup = onRfidLookup,
@@ -130,61 +144,57 @@ fun JobLookupScreen(
                     // collections per job card is intended behaviour, and duplicate keys would
                     // make LazyColumn throw.
                     items(activeJobs, key = { it.collectionId.ifBlank { it.jobCardNumber } }) { job ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(enabled = !isLoading) { viewModel.lookupJob(job.jobCardNumber, job.collectionId) },
-                            colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                            border = BorderStroke(1.dp, GraphiteBorder)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(job.jobCardNumber, style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                                // Four collections of the same job card previously rendered as
-                                // four visually identical rows — order number plus product name —
-                                // while actually holding 0%, 75%, 75% and 0% progress, so the
-                                // operator had no way to pick the one they were working on. Every
-                                // field below was already in the response and simply unread.
-                                // Every progress figure here is optional, because the backend
-                                // genuinely omits them. Rendering a missing percentage as "0%"
-                                // told the operator a ReadyForMixing collection had no progress
-                                // at all. `status` is the one field Station 2 fills in reliably,
-                                // so it leads and the numbers embellish it only when they exist.
+                        StatusCard(
+                            tone = job.cardTone(),
+                            onClick = { viewModel.lookupJob(job.jobCardNumber, job.collectionId) },
+                            enabled = !isLoading,
+                        ) { accent ->
+                            Text(job.jobCardNumber, style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                            // Four collections of the same job card previously rendered as
+                            // four visually identical rows — order number plus product name —
+                            // while actually holding 0%, 75%, 75% and 0% progress, so the
+                            // operator had no way to pick the one they were working on. Every
+                            // field below was already in the response and simply unread.
+                            // Every progress figure here is optional, because the backend
+                            // genuinely omits them. Rendering a missing percentage as "0%"
+                            // told the operator a ReadyForMixing collection had no progress
+                            // at all. `status` is the one field Station 2 fills in reliably,
+                            // so it leads and the numbers embellish it only when they exist.
+                            Text(
+                                buildString {
+                                    if (job.collectionId.isNotBlank()) append(job.collectionId)
+                                    if (job.status.isNotBlank()) {
+                                        if (isNotEmpty()) append(" · ")
+                                        append(job.statusLabel)
+                                    }
+                                    val required = job.requiredIngredientCount ?: 0
+                                    if (required > 0) {
+                                        if (isNotEmpty()) append(" · ")
+                                        append("${job.completedIngredientCount ?: 0} of $required lines")
+                                    }
+                                    job.progressPercent?.let { percent ->
+                                        if (isNotEmpty()) append(" · ")
+                                        append("%.0f%%".format(percent))
+                                    }
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                color = accent
+                            )
+                            if (job.productName.isNotBlank()) {
                                 Text(
-                                    buildString {
-                                        if (job.collectionId.isNotBlank()) append(job.collectionId)
-                                        if (job.status.isNotBlank()) {
-                                            if (isNotEmpty()) append(" · ")
-                                            append(job.statusLabel)
-                                        }
-                                        val required = job.requiredIngredientCount ?: 0
-                                        if (required > 0) {
-                                            if (isNotEmpty()) append(" · ")
-                                            append("${job.completedIngredientCount ?: 0} of $required lines")
-                                        }
-                                        job.progressPercent?.let { percent ->
-                                            if (isNotEmpty()) append(" · ")
-                                            append("%.0f%%".format(percent))
-                                        }
-                                    },
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = AmberPrimary
+                                    job.productName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMuted,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                if (job.productName.isNotBlank()) {
-                                    Text(
-                                        job.productName,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextMuted,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                if ((job.pendingApprovalCount ?: 0) > 0) {
-                                    Text(
-                                        "${job.pendingApprovalCount} line(s) awaiting approval",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = WarningOrange
-                                    )
-                                }
+                            }
+                            if ((job.pendingApprovalCount ?: 0) > 0) {
+                                Text(
+                                    "${job.pendingApprovalCount} line(s) awaiting approval",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = WarningOrange
+                                )
                             }
                         }
                     }
