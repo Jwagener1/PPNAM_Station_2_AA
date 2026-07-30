@@ -744,7 +744,7 @@ fun IngredientScanScreen(
                         // the checklist below (Task 4) still re-arms it — operators grab whatever
                         // pallet is physically nearby first, not strictly in BOM order, so jumping
                         // the queue must stay first-class, not a fallback.
-                        LaunchedEffect(state.selectedLineNumber, order.lines) {
+                        LaunchedEffect(state.selectedLineNumber, order.lines, state.isBusy) {
                             if (state.selectedLineNumber == null && !state.isBusy) {
                                 order.lines.firstOrNull { !it.isSatisfied }
                                     ?.let { viewModel.selectLine(it.lineNumber) }
@@ -752,31 +752,29 @@ fun IngredientScanScreen(
                         }
 
                         val nextLine = order.lines.firstOrNull { it.lineNumber == state.selectedLineNumber }
+                            ?.takeIf { !it.isSatisfied }
                         if (!allSatisfied && nextLine != null) {
-                            Card(
+                            StatusCard(
+                                tone = StatusTone.Running,
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = SuccessGreen.copy(alpha = 0.10f)),
-                                border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.35f))
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        "SCAN THIS NEXT",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = SuccessGreen
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        nextLine.itemName.ifBlank { nextLine.itemCode },
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        color = TextPrimary
-                                    )
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        "%.2f %s needed".format(nextLine.remainingQty, nextLine.uom),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = TextMuted
-                                    )
-                                }
+                            ) { accent ->
+                                Text(
+                                    "SCAN THIS NEXT",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = accent
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    nextLine.itemName.ifBlank { nextLine.itemCode },
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = TextPrimary
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    "%.2f %s needed".format(nextLine.remainingQty, nextLine.uom),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextMuted
+                                )
                             }
                             Spacer(Modifier.height(12.dp))
                         }
