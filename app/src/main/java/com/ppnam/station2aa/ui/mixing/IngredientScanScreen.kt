@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +48,7 @@ fun IngredientScanScreen(
     val mayWaiveShortBags = session.canShow(StationAction.INGREDIENT_APPROVE_SHORT_BAG)
     var showCancelDialog by rememberSaveable { mutableStateOf(false) }
     var showBackConfirmDialog by rememberSaveable { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
     var managerUsername by remember { mutableStateOf("") }
     var managerPassword by remember { mutableStateOf("") }
     var selectedBagFraction by rememberSaveable { mutableStateOf(0.0) }
@@ -652,6 +654,31 @@ fun IngredientScanScreen(
         status = connectionStatus,
         onBack = { showBackConfirmDialog = true },
         onRfidLookup = onRfidLookup,
+        actions = if (mayCancelCollection) {
+            {
+                Box {
+                    IconButton(onClick = { showOverflowMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More actions",
+                            tint = TextMuted
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showOverflowMenu,
+                        onDismissRequest = { showOverflowMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Cancel Job", color = DangerRed) },
+                            onClick = {
+                                showOverflowMenu = false
+                                showCancelDialog = true
+                            }
+                        )
+                    }
+                }
+            }
+        } else null,
         loading = uiState is MixingUiState.Loading
     ) { padding ->
         Box(
@@ -957,35 +984,21 @@ fun IngredientScanScreen(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Button(
+                    onClick = {
+                        (uiState as? MixingUiState.OrderLoaded)
+                            ?.order?.collectionId?.takeIf { it.isNotBlank() }
+                            ?.let(onStartMixing)
+                    },
+                    enabled = readyForMixing,
+                    colors = if (readyForMixing) {
+                        ButtonDefaults.buttonColors(containerColor = SuccessGreen, contentColor = GraphiteBackground)
+                    } else {
+                        ButtonDefaults.buttonColors()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    // Cancelling a collection is an Admin privilege — an Operator's
-                    // allowedActions does not include ingredient_collection_cancel, so the
-                    // button is simply absent rather than a dead end they discover after a
-                    // credential prompt and a round trip.
-                    if (mayCancelCollection) {
-                        OutlinedButton(
-                            onClick = { showCancelDialog = true },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
-                            border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f)),
-                            modifier = Modifier.weight(1f).height(56.dp)
-                        ) {
-                            Text("Cancel")
-                        }
-                    }
-                    Button(
-                        onClick = {
-                            (uiState as? MixingUiState.OrderLoaded)
-                                ?.order?.collectionId?.takeIf { it.isNotBlank() }
-                                ?.let(onStartMixing)
-                        },
-                        enabled = readyForMixing,
-                        modifier = Modifier.weight(2f).height(56.dp)
-                    ) {
-                        Text(if (readyForMixing) "Start Mixing" else "Mixing after collection")
-                    }
+                    Text(if (readyForMixing) "Start Mixing →" else "Mixing after collection")
                 }
             }
 
