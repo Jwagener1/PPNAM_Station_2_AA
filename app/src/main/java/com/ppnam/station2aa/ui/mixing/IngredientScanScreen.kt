@@ -723,6 +723,48 @@ fun IngredientScanScreen(
                         val satisfiedCount = order.lines.count { bomLine -> bomLine.isSatisfied }
                         val allSatisfied = satisfiedCount == order.lines.size
 
+                        // Auto-arm the first unsatisfied line so operators can scan immediately
+                        // without an extra tap for the common case. Tapping a different line in
+                        // the checklist below (Task 4) still re-arms it — operators grab whatever
+                        // pallet is physically nearby first, not strictly in BOM order, so jumping
+                        // the queue must stay first-class, not a fallback.
+                        LaunchedEffect(state.selectedLineNumber, order.lines) {
+                            if (state.selectedLineNumber == null && !state.isBusy) {
+                                order.lines.firstOrNull { !it.isSatisfied }
+                                    ?.let { viewModel.selectLine(it.lineNumber) }
+                            }
+                        }
+
+                        val nextLine = order.lines.firstOrNull { it.lineNumber == state.selectedLineNumber }
+                        if (!allSatisfied && nextLine != null) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = SuccessGreen.copy(alpha = 0.10f)),
+                                border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.35f))
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        "SCAN THIS NEXT",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = SuccessGreen
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        nextLine.itemName.ifBlank { nextLine.itemCode },
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = TextPrimary
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        "%.2f %s needed".format(nextLine.remainingQty, nextLine.uom),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = TextMuted
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -751,14 +793,6 @@ fun IngredientScanScreen(
                                         order.summary,
                                         style = MaterialTheme.typography.labelMedium,
                                         color = TextMuted
-                                    )
-                                }
-                                if (!allSatisfied && state.selectedLineNumber == null) {
-                                    Spacer(Modifier.height(6.dp))
-                                    Text(
-                                        "Tap a line below to arm it before scanning a pallet.",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = AmberPrimary
                                     )
                                 }
                             }
