@@ -23,6 +23,11 @@ class IngredientScanScreenKtTest {
     }
 
     @Test
+    fun `pending overrides even a satisfied and armed line`() {
+        assertEquals(StatusTone.Running, bomLine(remainingQty = 0.0).checklistTone(armed = true, pending = true))
+    }
+
+    @Test
     fun `satisfied unarmed line maps to Ready`() {
         assertEquals(StatusTone.Ready, bomLine(remainingQty = 0.0).checklistTone(armed = false, pending = false))
     }
