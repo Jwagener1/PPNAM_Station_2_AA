@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.mixing.board
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,7 +16,6 @@ import com.ppnam.station2aa.ui.components.StatusCard
 import com.ppnam.station2aa.ui.components.StatusTone
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
-import com.ppnam.station2aa.ui.theme.GraphiteSurface
 import com.ppnam.station2aa.ui.theme.TextMuted
 import com.ppnam.station2aa.ui.theme.TextPrimary
 
@@ -86,13 +84,9 @@ fun MixingAreaPickerScreen(
             ) {
                 state.pendingCollectionId?.let { pending ->
                     item {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                            border = BorderStroke(1.dp, AmberPrimary),
-                        ) {
+                        StatusCard(tone = StatusTone.Running) {
                             Text(
                                 "$pending ready to mix — pick an area",
-                                Modifier.padding(12.dp),
                                 color = AmberPrimary,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
@@ -109,6 +103,7 @@ fun MixingAreaPickerScreen(
                         onClick = { onAreaChosen(area) },
                     ) { accent ->
                         Text(area.display, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                        Text(area.description, style = MaterialTheme.typography.labelSmall, color = TextMuted)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "$available machine(s) available · $cycles active cycle(s) · $mixes ready mix(es)",

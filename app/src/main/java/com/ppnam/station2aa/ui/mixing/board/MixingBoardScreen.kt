@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ppnam.station2aa.data.mqtt.dto.JandiRoute
 import com.ppnam.station2aa.data.session.OperatorSession
@@ -153,7 +154,7 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                     val selected = (board.selection as? BoardSelection.Collection)
                         ?.collectionId == collection.collectionId
                     StatusCard(
-                        tone = if (selected) StatusTone.Running else StatusTone.Idle,
+                        highlighted = selected,
                         onClick = { viewModel.selectCollection(collection.collectionId) },
                         enabled = !board.busy,
                     ) {
@@ -175,7 +176,7 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                     val selected =
                         (board.selection as? BoardSelection.Mix)?.mixBatchId == mix.mixBatchId
                     StatusCard(
-                        tone = if (selected) StatusTone.Running else StatusTone.Idle,
+                        highlighted = selected,
                         onClick = { viewModel.selectMix(mix.mixBatchId) },
                         enabled = !board.busy,
                     ) {
@@ -365,7 +366,14 @@ private fun SectionHeader(text: String) {
         modifier = Modifier.padding(top = 8.dp))
 }
 
-/** Rendered verbatim from areaStatus.equipment — never inferred locally (§13.7). */
+/**
+ * Rendered verbatim from areaStatus.equipment — never inferred locally (§13.7).
+ *
+ * "InUse" deliberately maps to [StatusTone.Warning], not [StatusTone.Running]/blue, even though
+ * Running is used for "in progress" elsewhere in this app: on this screen Running/blue is reserved
+ * for [StatusCard]'s `highlighted` axis (the scan/tap target), so an in-use machine's border must
+ * stay visually distinct from a highlighted one.
+ */
 internal fun machineStatusTone(status: String): StatusTone = when (status) {
     "Available" -> StatusTone.Ready
     "InUse" -> StatusTone.Warning
@@ -393,7 +401,7 @@ private fun MachineCard(
         modifier = modifier,
     ) { accent ->
         Text(machine.displayName, style = MaterialTheme.typography.bodyMedium,
-            color = TextPrimary, maxLines = 1)
+            color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(machine.machineCode, style = MaterialTheme.typography.labelSmall, color = TextMuted)
         Spacer(Modifier.height(4.dp))
         Text(machine.status, style = MaterialTheme.typography.labelSmall, color = accent)

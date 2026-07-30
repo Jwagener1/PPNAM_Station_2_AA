@@ -65,7 +65,11 @@ fun StatusCard(
         tone == StatusTone.Idle -> GraphiteBorder
         else -> accentColor
     }
-    val borderWidth = if (highlighted || tone != StatusTone.Idle) 2.dp else 1.dp
+    val borderWidth = when {
+        highlighted -> 3.dp
+        tone == StatusTone.Idle -> 1.dp
+        else -> 2.dp
+    }
     val shape = RoundedCornerShape(16.dp)
     var cardModifier = modifier
         .fillMaxWidth()

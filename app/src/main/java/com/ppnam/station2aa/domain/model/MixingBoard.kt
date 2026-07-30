@@ -3,12 +3,12 @@ package com.ppnam.station2aa.domain.model
 import com.ppnam.station2aa.data.mqtt.ErrorCode
 
 /** The five fixed v4.0 mixing areas (§6). Server-authoritative; never extended locally. */
-enum class MixingArea(val wire: String, val display: String) {
-    Dolci("DolciBulkMixing", "DOLCI"),
-    Main("MainMixingRoom", "Main Mixing Room"),
-    Jandi("JandiBulkMixing", "JANDI"),
-    Mackie("MackieBulkMixing", "Mackie"),
-    Rajoo("RajooMachineMixing", "Rajoo");
+enum class MixingArea(val wire: String, val display: String, val description: String) {
+    Dolci("DolciBulkMixing", "DOLCI", "3 fixed direct-feed mixers"),
+    Main("MainMixingRoom", "Main Mixing Room", "5 mixers · allocate to any area but Rajoo"),
+    Jandi("JandiBulkMixing", "JANDI", "Bulk mixer + Jandi 4 composite"),
+    Mackie("MackieBulkMixing", "Mackie", "1 fixed direct-feed mixer"),
+    Rajoo("RajooMachineMixing", "Rajoo", "3-layer gravimetric · never from Main Room");
 
     companion object {
         fun fromWire(value: String?): MixingArea? = entries.firstOrNull { it.wire == value }
