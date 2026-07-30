@@ -11,6 +11,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ppnam.station2aa.ui.theme.AmberPrimary
@@ -53,14 +54,17 @@ fun StatusCard(
 ) {
     val accentColor = tone.color()
     val borderColor = if (tone == StatusTone.Idle) GraphiteBorder else accentColor
-    var cardModifier = modifier.fillMaxWidth()
+    val shape = RoundedCornerShape(16.dp)
+    var cardModifier = modifier
+        .fillMaxWidth()
+        .clip(shape)
     if (onClick != null) {
         cardModifier = cardModifier.clickable(enabled = enabled, onClick = onClick)
     }
     Card(
         modifier = cardModifier,
         colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-        shape = RoundedCornerShape(16.dp),
+        shape = shape,
         border = BorderStroke(if (tone == StatusTone.Idle) 1.dp else 2.dp, borderColor),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
