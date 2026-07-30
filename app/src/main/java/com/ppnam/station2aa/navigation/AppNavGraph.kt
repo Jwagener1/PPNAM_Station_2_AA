@@ -24,6 +24,7 @@ import com.ppnam.station2aa.ui.mixing.board.MixingAreaPickerScreen
 import com.ppnam.station2aa.ui.mixing.board.MixingBoardScreen
 import com.ppnam.station2aa.ui.mixing.board.MixingBoardViewModel
 import com.ppnam.station2aa.ui.components.UpgradeRequiredGate
+import com.ppnam.station2aa.ui.home.HomeScreen
 import com.ppnam.station2aa.ui.rfid.RfidRecoveryScreen
 import com.ppnam.station2aa.ui.session.SessionWatcher
 import com.ppnam.station2aa.ui.settings.SettingsScreen
@@ -44,7 +45,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
             val activity = LocalContext.current.findActivity()
             LoginScreen(
                 onLoggedIn = {
-                    navController.navigate(NavRoutes.MIXING) {
+                    navController.navigate(NavRoutes.HOME) {
                         popUpTo(NavRoutes.LOGIN) { inclusive = true }
                     }
                 },
@@ -52,6 +53,17 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 // Login is the start destination — there is no back stack to pop, so leaving
                 // means finishing the Activity. Only reached via the explicit confirm dialog.
                 onExitApp = { activity?.finish() },
+            )
+        }
+        composable(NavRoutes.HOME) {
+            HomeScreen(
+                onOpenJobCards = { navController.navigate(NavRoutes.MIXING) },
+                onOpenMixingBoard = { navController.navigate(NavRoutes.mixingAreas()) },
+                onFixATag = { navController.navigate(NavRoutes.RFID_RECOVERY) },
+                onSettings = { navController.navigate(NavRoutes.SETTINGS) },
+                // Navigation on logout is SessionWatcher's job alone — see the comment on
+                // MixingAreaPickerScreen's onLogout further down in this graph.
+                onLogout = {},
             )
         }
         composable(NavRoutes.SETTINGS) {
