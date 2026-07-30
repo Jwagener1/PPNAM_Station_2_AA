@@ -1,6 +1,5 @@
 package com.ppnam.station2aa.ui.mixing.board
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,13 +26,11 @@ import com.ppnam.station2aa.ui.components.StatusCard
 import com.ppnam.station2aa.ui.components.StatusTone
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
-import com.ppnam.station2aa.ui.theme.GraphiteBorder
 import com.ppnam.station2aa.ui.theme.GraphiteSurface
 import com.ppnam.station2aa.ui.theme.GraphiteSurfaceVariant
 import com.ppnam.station2aa.ui.theme.SuccessGreen
 import com.ppnam.station2aa.ui.theme.TextMuted
 import com.ppnam.station2aa.ui.theme.TextPrimary
-import com.ppnam.station2aa.ui.theme.WarningOrange
 import com.ppnam.station2aa.ui.util.formatElapsedSince
 import com.ppnam.station2aa.ui.util.formatStationTimestamp
 
@@ -368,6 +365,13 @@ private fun SectionHeader(text: String) {
         modifier = Modifier.padding(top = 8.dp))
 }
 
+/** Rendered verbatim from areaStatus.equipment — never inferred locally (§13.7). */
+internal fun machineStatusTone(status: String): StatusTone = when (status) {
+    "Available" -> StatusTone.Ready
+    "InUse" -> StatusTone.Warning
+    else -> StatusTone.Danger
+}
+
 @Composable
 private fun MachineCard(
     machine: Equipment,
@@ -378,28 +382,21 @@ private fun MachineCard(
     onChosen: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val statusColor = when (machine.status) {
-        "Available" -> SuccessGreen
-        "InUse" -> WarningOrange
-        else -> DangerRed
-    }
     // Taps work on highlighted machines (start) or, with no selection, on busy
     // machines (cycle sheet). A SCAN reaches any machine via the ViewModel.
     val clickable = !busy && (highlighted || (noSelection && hasCycle))
-    Card(
-        modifier = modifier.clickable(enabled = clickable) { onChosen(machine.machineCode) },
-        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-        border = BorderStroke(if (highlighted) 2.dp else 1.dp,
-            if (highlighted) AmberPrimary else GraphiteBorder),
-    ) {
-        Column(Modifier.padding(12.dp)) {
-            Text(machine.displayName, style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary, maxLines = 1)
-            Text(machine.machineCode, style = MaterialTheme.typography.labelSmall, color = TextMuted)
-            Spacer(Modifier.height(4.dp))
-            // Rendered verbatim from areaStatus.equipment — never inferred locally (§13.7).
-            Text(machine.status, style = MaterialTheme.typography.labelSmall, color = statusColor)
-        }
+    StatusCard(
+        tone = machineStatusTone(machine.status),
+        highlighted = highlighted,
+        onClick = { onChosen(machine.machineCode) },
+        enabled = clickable,
+        modifier = modifier,
+    ) { accent ->
+        Text(machine.displayName, style = MaterialTheme.typography.bodyMedium,
+            color = TextPrimary, maxLines = 1)
+        Text(machine.machineCode, style = MaterialTheme.typography.labelSmall, color = TextMuted)
+        Spacer(Modifier.height(4.dp))
+        Text(machine.status, style = MaterialTheme.typography.labelSmall, color = accent)
     }
 }
 
