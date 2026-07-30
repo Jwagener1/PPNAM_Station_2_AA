@@ -49,11 +49,23 @@ fun StatusCard(
     tone: StatusTone = StatusTone.Idle,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    /**
+     * Whether this is the current scan/tap target, independent of [tone]. A card can be e.g.
+     * `Warning`-toned AND highlighted at once — status (what state something is in) and highlight
+     * (is this the thing to act on right now) are two different questions, so they get two
+     * parameters rather than overloading [tone] to answer both.
+     */
+    highlighted: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.(accent: Color) -> Unit,
 ) {
     val accentColor = tone.color()
-    val borderColor = if (tone == StatusTone.Idle) GraphiteBorder else accentColor
+    val borderColor = when {
+        highlighted -> AmberPrimary
+        tone == StatusTone.Idle -> GraphiteBorder
+        else -> accentColor
+    }
+    val borderWidth = if (highlighted || tone != StatusTone.Idle) 2.dp else 1.dp
     val shape = RoundedCornerShape(16.dp)
     var cardModifier = modifier
         .fillMaxWidth()
@@ -65,7 +77,7 @@ fun StatusCard(
         modifier = cardModifier,
         colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
         shape = shape,
-        border = BorderStroke(if (tone == StatusTone.Idle) 1.dp else 2.dp, borderColor),
+        border = BorderStroke(borderWidth, borderColor),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             content(accentColor)
