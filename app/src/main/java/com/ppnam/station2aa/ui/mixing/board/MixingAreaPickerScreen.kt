@@ -1,7 +1,6 @@
 package com.ppnam.station2aa.ui.mixing.board
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,13 +13,23 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.ui.components.AppScaffold
+import com.ppnam.station2aa.ui.components.StatusCard
+import com.ppnam.station2aa.ui.components.StatusTone
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
-import com.ppnam.station2aa.ui.theme.GraphiteBorder
 import com.ppnam.station2aa.ui.theme.GraphiteSurface
-import com.ppnam.station2aa.ui.theme.SuccessGreen
 import com.ppnam.station2aa.ui.theme.TextMuted
 import com.ppnam.station2aa.ui.theme.TextPrimary
+
+/**
+ * A ready mix waiting is the strongest signal (act now); active cycles alone mean the area is
+ * working but has nothing new for the operator yet; neither means nothing to report.
+ */
+internal fun areaTone(mixes: Int, cycles: Int): StatusTone = when {
+    mixes > 0 -> StatusTone.Ready
+    cycles > 0 -> StatusTone.Running
+    else -> StatusTone.Idle
+}
 
 @Composable
 fun MixingAreaPickerScreen(
@@ -95,20 +104,17 @@ fun MixingAreaPickerScreen(
                     val available = equipment.count { it.isEnabled && it.status == "Available" }
                     val cycles = state.overview.activeCycles.count { it.area == area }
                     val mixes = state.overview.readyMixes.count { it.area == area }
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clickable { onAreaChosen(area) },
-                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                        border = BorderStroke(1.dp, GraphiteBorder),
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(area.display, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "$available machine(s) available · $cycles active cycle(s) · $mixes ready mix(es)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (mixes > 0) SuccessGreen else TextMuted,
-                            )
-                        }
+                    StatusCard(
+                        tone = areaTone(mixes = mixes, cycles = cycles),
+                        onClick = { onAreaChosen(area) },
+                    ) { accent ->
+                        Text(area.display, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "$available machine(s) available · $cycles active cycle(s) · $mixes ready mix(es)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = accent,
+                        )
                     }
                 }
             }
