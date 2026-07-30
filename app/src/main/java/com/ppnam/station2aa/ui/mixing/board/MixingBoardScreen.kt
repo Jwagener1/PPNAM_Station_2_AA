@@ -23,6 +23,8 @@ import com.ppnam.station2aa.domain.model.Equipment
 import com.ppnam.station2aa.domain.model.MixingArea
 import com.ppnam.station2aa.ui.components.AppScaffold
 import com.ppnam.station2aa.ui.components.DialogFormColumn
+import com.ppnam.station2aa.ui.components.StatusCard
+import com.ppnam.station2aa.ui.components.StatusTone
 import com.ppnam.station2aa.ui.theme.AmberPrimary
 import com.ppnam.station2aa.ui.theme.DangerRed
 import com.ppnam.station2aa.ui.theme.GraphiteBorder
@@ -153,21 +155,18 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                 items(board.readyCollections, key = { it.collectionId }) { collection ->
                     val selected = (board.selection as? BoardSelection.Collection)
                         ?.collectionId == collection.collectionId
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                            .clickable(enabled = !board.busy) { viewModel.selectCollection(collection.collectionId) },
-                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                        border = BorderStroke(1.dp, if (selected) AmberPrimary else GraphiteBorder),
+                    StatusCard(
+                        tone = if (selected) StatusTone.Running else StatusTone.Idle,
+                        onClick = { viewModel.selectCollection(collection.collectionId) },
+                        enabled = !board.busy,
                     ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text("JC ${collection.jobCardNumber}",
-                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            Text(collection.collectionId,
-                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                            if (collection.productName.isNotBlank()) {
-                                Text(collection.productName,
-                                    style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                            }
+                        Text("JC ${collection.jobCardNumber}",
+                            style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+                        Text(collection.collectionId,
+                            style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                        if (collection.productName.isNotBlank()) {
+                            Text(collection.productName,
+                                style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         }
                     }
                 }
@@ -178,29 +177,26 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
                 items(board.overview.readyMixes, key = { it.mixBatchId }) { mix ->
                     val selected =
                         (board.selection as? BoardSelection.Mix)?.mixBatchId == mix.mixBatchId
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                            .clickable(enabled = !board.busy) { viewModel.selectMix(mix.mixBatchId) },
-                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                        border = BorderStroke(1.dp, if (selected) AmberPrimary else GraphiteBorder),
+                    StatusCard(
+                        tone = if (selected) StatusTone.Running else StatusTone.Idle,
+                        onClick = { viewModel.selectMix(mix.mixBatchId) },
+                        enabled = !board.busy,
                     ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text("JC ${mix.jobCardNumber}",
-                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            val mixSecondary = secondaryLine(
-                                mix.mixBatchId,
-                                mix.collectionId,
-                                mix.sourceMixerCode.takeIf { it.isNotBlank() }?.let { "from $it" },
-                            )
-                            if (mixSecondary.isNotBlank()) {
-                                Text(mixSecondary,
-                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                            }
-                            // Destinations render ONLY from validNextMachineCodes (§13.8).
-                            Text("Next: ${mix.validNextMachineCodes.joinToString()}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = SuccessGreen)
+                        Text("JC ${mix.jobCardNumber}",
+                            style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+                        val mixSecondary = secondaryLine(
+                            mix.mixBatchId,
+                            mix.collectionId,
+                            mix.sourceMixerCode.takeIf { it.isNotBlank() }?.let { "from $it" },
+                        )
+                        if (mixSecondary.isNotBlank()) {
+                            Text(mixSecondary,
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
                         }
+                        // Destinations render ONLY from validNextMachineCodes (§13.8).
+                        Text("Next: ${mix.validNextMachineCodes.joinToString()}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = SuccessGreen)
                     }
                 }
             }
@@ -208,28 +204,26 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
             board.overview.jandiDrum?.let { drum ->
                 item { SectionHeader("JANDI drum") }
                 item {
-                    Card(
-                        Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                        border = BorderStroke(1.dp, GraphiteBorder),
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-                            // An idle drum has no batch on it, so there is no JC to lead with —
-                            // naming the drum itself beats printing an empty JC line.
-                            Text(
-                                drum.jobCardNumber?.let { "JC $it" } ?: "JANDI Transfer Drum",
-                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            val drumSecondary = secondaryLine(drum.mixBatchId, drum.collectionId)
-                            if (drumSecondary.isNotBlank()) {
-                                Text(drumSecondary,
-                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                            }
-                            Text(drum.status,
-                                style = MaterialTheme.typography.bodyMedium, color = WarningOrange)
-                            if (drum.scanGuidance.isNotBlank()) {
-                                Text(drum.scanGuidance,
-                                    style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                            }
+                    // The drum's exact status vocabulary isn't fully enumerated in this codebase
+                    // today (it's rendered verbatim, never matched against known values) — a
+                    // single fixed Warning tone matches its current always-amber presentation
+                    // without guessing at status strings this task can't verify.
+                    StatusCard(tone = StatusTone.Warning) { accent ->
+                        // An idle drum has no batch on it, so there is no JC to lead with —
+                        // naming the drum itself beats printing an empty JC line.
+                        Text(
+                            drum.jobCardNumber?.let { "JC $it" } ?: "JANDI Transfer Drum",
+                            style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+                        val drumSecondary = secondaryLine(drum.mixBatchId, drum.collectionId)
+                        if (drumSecondary.isNotBlank()) {
+                            Text(drumSecondary,
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                        }
+                        Text(drum.status,
+                            style = MaterialTheme.typography.bodyMedium, color = accent)
+                        if (drum.scanGuidance.isNotBlank()) {
+                            Text(drum.scanGuidance,
+                                style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         }
                     }
                 }
@@ -277,24 +271,18 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
             if (board.overview.activeCycles.isNotEmpty()) {
                 item { SectionHeader("Active cycles") }
                 items(board.overview.activeCycles, key = { it.cycleId }) { cycle ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                            .clickable(enabled = !board.busy && board.selection is BoardSelection.None) {
-                                viewModel.machineChosen(cycle.machineCode)
-                            },
-                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                        border = BorderStroke(1.dp, GraphiteBorder),
+                    StatusCard(
+                        onClick = { viewModel.machineChosen(cycle.machineCode) },
+                        enabled = !board.busy && board.selection is BoardSelection.None,
                     ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text("JC ${cycle.jobCardNumber}",
-                                style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-                            Text("${cycle.cycleId} on ${cycle.machineCode}",
-                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                            Text(
-                                "Started " + (formatElapsedSince(cycle.startedAtUtc)
-                                    ?: formatStationTimestamp(cycle.startedAtUtc)),
-                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                        }
+                        Text("JC ${cycle.jobCardNumber}",
+                            style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+                        Text("${cycle.cycleId} on ${cycle.machineCode}",
+                            style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                        Text(
+                            "Started " + (formatElapsedSince(cycle.startedAtUtc)
+                                ?: formatStationTimestamp(cycle.startedAtUtc)),
+                            style = MaterialTheme.typography.labelSmall, color = TextMuted)
                     }
                 }
             }
@@ -302,37 +290,31 @@ private fun BoardContent(board: MixingBoardUiState.Board, viewModel: MixingBoard
             if (board.overview.activeRuns.isNotEmpty()) {
                 item { SectionHeader("Active runs") }
                 items(board.overview.activeRuns, key = { it.productionRunId }) { run ->
-                    Card(
-                        Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = GraphiteSurface),
-                        border = BorderStroke(1.dp, GraphiteBorder),
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text(run.machineCode,
-                                style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                            val runSecondary = secondaryLine(run.productionRunId, run.status)
-                            if (runSecondary.isNotBlank()) {
-                                Text(runSecondary,
-                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                            }
-                            // A JANDI 4 or Rajoo run carries several inputs whose job cards may
-                            // differ. Listing them is the only way that is visible to an operator.
-                            run.inputs.forEach { input ->
-                                // "JC …" is the leading identifier (never conditionally hidden,
-                                // matching every other card's JC line); only the traits after it
-                                // — layer and role — are optional and joined so a blank one
-                                // can't leave a dangling " · " behind.
-                                val inputTraits = secondaryLine(
-                                    input.productLayer?.let { "layer $it" },
-                                    input.inputRole,
-                                )
-                                Text(
-                                    "JC ${input.jobCardNumber}" +
-                                        (inputTraits.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                                    style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                                Text(input.mixBatchId,
-                                    style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                            }
+                    StatusCard {
+                        Text(run.machineCode,
+                            style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                        val runSecondary = secondaryLine(run.productionRunId, run.status)
+                        if (runSecondary.isNotBlank()) {
+                            Text(runSecondary,
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                        }
+                        // A JANDI 4 or Rajoo run carries several inputs whose job cards may
+                        // differ. Listing them is the only way that is visible to an operator.
+                        run.inputs.forEach { input ->
+                            // "JC …" is the leading identifier (never conditionally hidden,
+                            // matching every other card's JC line); only the traits after it
+                            // — layer and role — are optional and joined so a blank one
+                            // can't leave a dangling " · " behind.
+                            val inputTraits = secondaryLine(
+                                input.productLayer?.let { "layer $it" },
+                                input.inputRole,
+                            )
+                            Text(
+                                "JC ${input.jobCardNumber}" +
+                                    (inputTraits.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                                style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                            Text(input.mixBatchId,
+                                style = MaterialTheme.typography.labelSmall, color = TextMuted)
                         }
                     }
                 }
