@@ -30,6 +30,8 @@ fun AppScaffold(
     onBack: (() -> Unit)? = null,
     onRfidLookup: (() -> Unit)? = null,
     onSettings: (() -> Unit)? = null,
+    /** A screen-specific top-bar action (e.g. an overflow menu) rendered next to Settings/RFID. */
+    actions: (@Composable RowScope.() -> Unit)? = null,
     operatorName: String? = null,
     operatorRole: String? = null,
     onLogout: (() -> Unit)? = null,
@@ -166,6 +168,7 @@ fun AppScaffold(
                                 )
                             }
                         }
+                        actions?.invoke(this)
                         statusPill()
                     }
                     Text(
@@ -221,6 +224,7 @@ fun AppScaffold(
                                     )
                                 }
                             }
+                            actions?.invoke(this)
                             statusPill()
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
