@@ -372,6 +372,49 @@ class MixingBoardUseCaseTest {
     }
 
     @Test
+    fun `duplicate activeRuns rows sharing a productionRunId are merged into one run`() = runTest {
+        // A non-conformant server can flatten a run's accumulated inputs into one activeRuns[]
+        // row PER input, all sharing the same productionRunId, instead of one row with a
+        // multi-element inputs[] (the shape the test above exercises). The board's LazyColumn
+        // keys on productionRunId and Compose crashes outright on a duplicate key, so the
+        // mapping must defensively merge these back into a single run.
+        val response = MixingOverviewResponse(
+            activeRuns = listOf(
+                ActiveRunDto(
+                    productionRunId = "PRC_000011", machineCode = "RAJ-EXT-01",
+                    status = "InProgress", startedAtUtc = "2026-07-30T14:40:00.000000Z",
+                    inputs = listOf(RunInputDto(inputRole = "RajooLayer", jobCardNumber = "JC-1",
+                        productionOrderDocumentNumber = "PO-1", collectionId = "COL_1",
+                        mixBatchId = "MIX_1", sourceMixerCode = "RAJ-GM-01"))),
+                ActiveRunDto(
+                    productionRunId = "PRC_000011", machineCode = "RAJ-EXT-01",
+                    status = "InProgress", startedAtUtc = "2026-07-30T14:40:00.000000Z",
+                    inputs = listOf(RunInputDto(inputRole = "RajooLayer", jobCardNumber = "JC-2",
+                        productionOrderDocumentNumber = "PO-2", collectionId = "COL_2",
+                        mixBatchId = "MIX_2", sourceMixerCode = "RAJ-GM-02"))),
+                ActiveRunDto(
+                    productionRunId = "PRC_000011", machineCode = "RAJ-EXT-01",
+                    status = "InProgress", startedAtUtc = "2026-07-30T14:40:00.000000Z",
+                    inputs = listOf(RunInputDto(inputRole = "RajooLayer", jobCardNumber = "JC-3",
+                        productionOrderDocumentNumber = "PO-3", collectionId = "COL_3",
+                        mixBatchId = "MIX_3", sourceMixerCode = "RAJ-GM-03"))),
+            ))
+        whenever(mockMqtt.request(
+            eq("mixing_overview_requested"), eq("mixing_overview_result"), any(), anyOrNull(),
+            eq(MixingOverviewResponse::class.java)
+        )).thenReturn(MqttOutcome.Accepted(response, NextAction.NONE))
+
+        val activeRuns = useCase.fetchOverview().getOrThrow().activeRuns
+
+        // Exactly one run — a duplicate-keyed list here is what crashes MixingBoardScreen's
+        // LazyColumn(key = { it.productionRunId }).
+        val run = activeRuns.single()
+        assertEquals("PRC_000011", run.productionRunId)
+        // All three job cards' inputs survive, merged onto the one run.
+        assertEquals(listOf("JC-1", "JC-2", "JC-3"), run.inputs.map { it.jobCardNumber })
+    }
+
+    @Test
     fun `the JANDI drum state maps through`() = runTest {
         val response = MixingOverviewResponse(
             jandiDrum = JandiDrumDto(

@@ -345,7 +345,20 @@ class MixingBoardUseCase @Inject constructor(
         equipment = equipment.map { it.toEquipment() },
         activeCycles = activeCycles.map { it.toActiveCycle() },
         readyMixes = readyMixes.map { it.toReadyMix() },
-        activeRuns = activeRuns.map { it.toActiveRun() },
+        // §9 activeRuns[]: the contract's own shape is one row per run with an inputs[] list for
+        // multi-JC accumulation — but a run that has accumulated inputs from several job cards
+        // (e.g. a Rajoo run fed by three collections) has come back from Station 2 as one
+        // activeRuns[] row PER input, all sharing the same productionRunId, rather than one row
+        // with a 3-element inputs[]. The board's LazyColumn keys on productionRunId
+        // (MixingBoardScreen.kt) and Compose crashes outright on a duplicate key, so group
+        // defensively and recombine every row's inputs — this reconstructs the contract's
+        // intended shape instead of merely working around the crash.
+        activeRuns = activeRuns
+            .groupBy { it.productionRunId }
+            .map { (_, rows) ->
+                rows.first().toActiveRun()
+                    .copy(inputs = rows.flatMap { row -> row.inputs.map { it.toRunInput() } })
+            },
         readyCollections = readyCollections.map { it.toReadyCollection() },
         jandiDrum = jandiDrum?.toJandiDrum(),
         nextAction = nextAction,
