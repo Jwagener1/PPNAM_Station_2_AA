@@ -466,6 +466,14 @@ def main():
           and rc["mixPlanStatus"] == "Saved" and rc["remainingMixerCodes"] == ["MXR-01"]
           and len(rc["mixerPlanItems"]) == 1 and rc["mixerPlanItems"][0]["status"] == "Reserved",
           "saved plan surfaces in readyCollections as MixingPlanned with its reserved mixer")
+    # Regression: a collection planned to a Main-only mixer must not leak into another area's
+    # board. readyCollections used to be returned unfiltered for every area (the Android client
+    # made the same mistake, never passing its area to fetchReadyCollections) — an operator on
+    # any board saw every in-flight collection, including ones whose only reserved mixer they
+    # could never reach from that screen.
+    r_other, _ = hh.request("mixing_overview_requested", {"mixingArea": "JandiBulkMixing"})
+    check(all(c["collectionId"] != col1 for c in r_other["readyCollections"]),
+          "a collection planned only to a Main mixer does not appear on the JANDI board")
     resm = next(e for e in r["equipment"] if e["machineCode"] == "MXR-01")
     check(resm["status"] == "Reserved" and resm["scanAllowed"] is True
           and not resm["isAvailable"] and resm["reservationCollectionId"] == col1,

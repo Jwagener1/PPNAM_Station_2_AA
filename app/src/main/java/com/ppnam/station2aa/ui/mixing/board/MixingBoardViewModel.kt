@@ -251,7 +251,7 @@ class MixingBoardViewModel @Inject constructor(
                 _uiState.value = MixingBoardUiState.Error(it.message ?: "Could not load $area")
                 return@launch
             }
-            val collections = useCase.fetchReadyCollections().getOrElse {
+            val collections = useCase.fetchReadyCollections(area).getOrElse {
                 _uiState.value = MixingBoardUiState.Error(it.message ?: "Could not load collections")
                 return@launch
             }
@@ -600,7 +600,7 @@ class MixingBoardViewModel @Inject constructor(
         val board = board() ?: return
         when (outcome) {
             is MachineCycleOutcome.Accepted -> {
-                val collections = useCase.fetchReadyCollections().getOrElse { board.readyCollections }
+                val collections = useCase.fetchReadyCollections(board.area).getOrElse { board.readyCollections }
                 setBoard(board.copy(
                     overview = outcome.areaStatus,
                     readyCollections = collections,
@@ -627,7 +627,7 @@ class MixingBoardViewModel @Inject constructor(
                 // and re-fetch ready collections too, since a "no response" start/finish may have
                 // actually landed server-side and consumed exactly what's still selected.
                 val resynced = useCase.fetchOverview(board.area).getOrNull()
-                val collections = useCase.fetchReadyCollections().getOrElse { board.readyCollections }
+                val collections = useCase.fetchReadyCollections(board.area).getOrElse { board.readyCollections }
                 setBoard(board.copy(
                     overview = resynced ?: board.overview,
                     readyCollections = collections,

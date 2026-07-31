@@ -13,6 +13,7 @@ Examples:
     python simctl.py reject active_job_cards_requested session_required old
     python simctl.py reject active_job_cards_requested client_upgrade_required
     python simctl.py login_mangle blank_session          # B3 (match scram_proof + login)
+    python simctl.py save_plan COL_000002 MXR-01         # seed a MixingPlanned reservation
 """
 import json
 import sys
@@ -46,6 +47,9 @@ def build(argv):
         # match both auth paths so whichever the app uses is caught
         return {"cmd": "login_mangle", "mode": argv[1], "match": "scram_proof_requested",
                 "count": 1}
+    if cmd == "save_plan":
+        return {"cmd": "save_mix_plan", "collectionId": argv[1],
+                "mixerCodes": argv[2].split(",")}
     raise SystemExit(f"unknown command {cmd!r}")
 
 

@@ -543,6 +543,7 @@ One row per fixed defect, each with a specific re-check. This is what makes the 
 | R-20 | Dose validation refused silently — message below the scrollable fields | E19 |
 | R-21 | Unknown-job-card rejection reached the operator as raw SAP jargon | C8 |
 | R-22 | Latent NPE on `unit.ifBlank` in the BOM mapper | G2.1 |
+| R-23 | `readyCollections` leaked across mixing areas — the board never passed its area to `fetchReadyCollections()`, and the sim never scoped the field either | scope a `mixing_overview_requested` to one area and confirm a collection planned only to another area's mixer is absent |
 
 ---
 

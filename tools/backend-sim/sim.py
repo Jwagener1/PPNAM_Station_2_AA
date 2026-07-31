@@ -188,6 +188,20 @@ class Simulator:
             self.log.warn(f"sim-control: FAULT presence override -> retained '{value}' "
                           f"on {STATUS_TOPIC}")
             return
+        if kind == "save_mix_plan":
+            # Test-only stand-in for the WPF/Core save Station 2 normally performs out of band
+            # of the MQTT handheld contract (see state.World.save_mix_plan) — the only way to
+            # get a collection into MixingPlanned from outside --direct selftest, so on-device
+            # runs can exercise the per-area readyCollections scoping without a live Station 2.
+            col_id = cmd.get("collectionId")
+            mixer_codes = cmd.get("mixerCodes", [])
+            try:
+                plan = self.world.save_mix_plan(col_id, mixer_codes)
+                self.log.ok(f"sim-control: SAVE_MIX_PLAN {col_id} -> {plan['mixPlanId']} "
+                            f"reserving {mixer_codes}")
+            except KeyError as e:
+                self.log.warn(f"sim-control: SAVE_MIX_PLAN failed: {e}")
+            return
         if kind in ("withhold", "malformed", "uncorrelated", "reject", "login_mangle"):
             fault = {
                 "cmd": kind,

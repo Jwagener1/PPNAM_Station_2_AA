@@ -134,10 +134,14 @@ def area_overview(world, area=None, po=None):
         # 4.1: the overview is now authoritative for which collections can start a mixer.
         # Filtering active_job_cards_list to "ReadyForMixing" cannot work any more, because a
         # planned collection's status is "MixingPlanned" and that list carries no plan data.
-        "readyCollections": [_ready_collection_payload(world, c, area)
-                             for c in world.collections.values()
+        # Area-scoped like equipment/activeCycles/readyMixes/activeRuns above: a collection whose
+        # validMixerCodes has nothing in the requested area does not belong on that area's board,
+        # even though the collection itself carries no mixingArea field of its own.
+        "readyCollections": [payload for c in world.collections.values()
                              if _collection_selectable(world, c)
-                             and po_ok(c["productionOrderDocumentNumber"])],
+                             and po_ok(c["productionOrderDocumentNumber"])
+                             for payload in [_ready_collection_payload(world, c, area)]
+                             if area is None or payload["validMixerCodes"]],
         "mixDestinations": [_destination_payload(world, d) for d in world.mix_destinations],
     }
 
@@ -190,6 +194,11 @@ def _ready_collection_payload(world, col, area=None):
         }
 
     remaining = plan["remainingMixerCodes"]
+    # A plan's remaining mixer codes can span areas in theory; scope validMixerCodes to the
+    # requested area the same way the unplanned branch above does, so a board only ever offers
+    # machines it can actually show equipment for.
+    valid_remaining = [code for code in remaining
+                       if area is None or world.equipment.get(code, {}).get("mixingArea") == area]
     return {
         "collectionId": col["collectionId"],
         "jobCardNumber": col["jobCardNumber"],
@@ -206,7 +215,7 @@ def _ready_collection_payload(world, col, area=None):
         "startedMixerCodes": list(plan["startedMixerCodes"]),
         "remainingMixerCodes": list(remaining),
         "mixerPlanItems": [dict(i) for i in plan["items"]],
-        "validMixerCodes": list(remaining),
+        "validMixerCodes": valid_remaining,
         "nextAction": ("scan_reserved_mixer:" + ",".join(remaining)) if remaining
                       else "select_collection_mix_or_machine",
     }
